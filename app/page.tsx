@@ -1,23 +1,15 @@
-import { createClient } from '@/lib/supabase/server';
 import { HeroMedia } from '@/components/home/HeroMedia';
 import { PulsingLogo } from '@/components/home/PulsingLogo';
 import { MemberNames } from '@/components/home/MemberNames';
 
-export default async function HomePage() {
-  let settings = null;
-  
-  try {
-    const supabase = await createClient();
-    // Get site settings for hero
-    const { data } = await supabase
-      .from('site_settings')
-      .select('*')
-      .single();
-    settings = data;
-  } catch (error) {
-    // If Supabase fails, use defaults - don't break the homepage
-    console.error('Error loading site settings:', error);
-  }
+// Force static rendering - no cookies, headers, or server-side data fetching
+export const dynamic = 'force-static';
+export const revalidate = 3600; // Revalidate every hour
+
+export default function HomePage() {
+  // Use defaults - no Supabase server client calls (avoids cookies())
+  // Settings will be loaded client-side if needed via API routes
+  const settings = null;
 
   return (
     <div className="relative min-h-screen flex items-center justify-center">
