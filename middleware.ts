@@ -4,15 +4,23 @@ import { createServerClient } from '@supabase/ssr';
 const ALLOWLIST_EMAIL = 'divinetiming.world@gmail.com';
 
 export async function middleware(request: NextRequest) {
+  // Check for required environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // If environment variables are missing, skip Supabase operations
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables in middleware');
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  // Create Edge-compatible Supabase client
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    // Create Edge-compatible Supabase client
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -29,18 +37,18 @@ export async function middleware(request: NextRequest) {
           );
         },
       },
-    }
-  );
+    });
 
-  try {
-    // Update Supabase session and get user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Update Supabase session
+    await supabase.auth.getUser();
 
     // Protect admin routes
     if (request.nextUrl.pathname.startsWith('/admin')) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user?.email) {
         return Response.redirect(new URL('/login', request.url));
       }
@@ -50,14 +58,20 @@ export async function middleware(request: NextRequest) {
         return Response.redirect(new URL('/', request.url));
       }
 
-      // Verify in admin_users table
-      const { data, error: dbError } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('email', user.email.toLowerCase())
-        .single();
+      // Verify in admin_users table (with error handling)
+      try {
+        const { data, error: dbError } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('email', user.email.toLowerCase())
+          .single();
 
-      if (dbError || !data) {
+        if (dbError || !data) {
+          return Response.redirect(new URL('/', request.url));
+        }
+      } catch (dbError) {
+        // If database query fails, redirect to home for safety
+        console.error('Database query error in middleware:', dbError);
         return Response.redirect(new URL('/', request.url));
       }
     }
