@@ -4,13 +4,20 @@ import { PulsingLogo } from '@/components/home/PulsingLogo';
 import { MemberNames } from '@/components/home/MemberNames';
 
 export default async function HomePage() {
-  const supabase = await createClient();
-
-  // Get site settings for hero
-  const { data: settings } = await supabase
-    .from('site_settings')
-    .select('*')
-    .single();
+  let settings = null;
+  
+  try {
+    const supabase = await createClient();
+    // Get site settings for hero
+    const { data } = await supabase
+      .from('site_settings')
+      .select('*')
+      .single();
+    settings = data;
+  } catch (error) {
+    // If Supabase fails, use defaults - don't break the homepage
+    console.error('Error loading site settings:', error);
+  }
 
   return (
     <div className="relative min-h-screen flex items-center justify-center">
