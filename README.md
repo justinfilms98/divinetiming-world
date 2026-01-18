@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DIVINE:TIMING Website
 
-## Getting Started
+A modern artist website template built with Next.js, Tailwind CSS, Framer Motion, Supabase, and Stripe.
 
-First, run the development server:
+## Features
+
+- **Hero-first design** inspired by louisthechild.com
+- **Full admin panel** for managing content
+- **Stripe Checkout** integration for merch sales
+- **Supabase** for auth, database, and storage
+- **Responsive design** with mobile hamburger menu
+- **Cosmic eclipse aesthetic** with DIVINE:TIMING branding
+
+## Setup
+
+### 1. Environment Variables
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+```
+
+### 2. Supabase Setup
+
+1. Create a new Supabase project (or use existing)
+2. **If you have old tables**, run the cleanup first:
+   - `000_cleanup_old_schema.sql` - Removes old tables, policies, and functions
+3. Run the migrations in `supabase/migrations/` (in order):
+   - `001_initial_schema.sql` - Creates all tables
+   - `002_inventory_function.sql` - Creates inventory decrement function
+
+4. Set up Supabase Storage buckets if you plan to upload media files
+
+### 3. Stripe Setup
+
+1. Create a Stripe account
+2. Get your API keys from the Stripe dashboard
+3. Set up a webhook endpoint pointing to `/api/webhooks/stripe`
+4. Add the webhook secret to your environment variables
+
+### 4. Brand Assets
+
+Place your brand assets in `public/brand/`:
+- `logo.svg` - Main logo
+- `hero-eclipse.jpg` - Default hero background image
+
+### 5. Install Dependencies
+
+```bash
+npm install
+```
+
+### 6. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Admin Access
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Email**: divinetiming.world@gmail.com
+- **Route**: `/admin`
+- **Login**: `/login`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The admin email is hardcoded in the allowlist. Only this email can access the admin panel.
 
-## Learn More
+## Database Schema
 
-To learn more about Next.js, take a look at the following resources:
+- `site_settings` - Brand settings, hero media, social links
+- `admin_users` - Admin allowlist
+- `events` - Tour dates
+- `videos` - YouTube videos
+- `photo_albums` - Photo album collections
+- `photos` - Individual photos
+- `products` - Merch products
+- `product_variants` - Product variants (size, color, etc.)
+- `product_images` - Product images
+- `orders` - Stripe orders
+- `order_items` - Order line items
+- `presskit` - Press kit content
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Routes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Public Routes
+- `/` - Home page
+- `/tour` - Tour dates
+- `/shop` - Product listing
+- `/shop/[slug]` - Product detail
+- `/media` - Photos and videos
+- `/about` - About page
+- `/booking` - Booking information
+- `/presskit` - Press kit
 
-## Deploy on Vercel
+### Admin Routes
+- `/admin` - Dashboard
+- `/admin/settings` - Site settings
+- `/admin/events` - Manage events
+- `/admin/media` - Manage videos and photo albums
+- `/admin/shop` - Manage products
+- `/admin/orders` - View orders
+- `/admin/presskit` - Edit press kit
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stripe Checkout Flow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. User selects product and variant
+2. Clicks "Buy Now"
+3. Redirected to Stripe Checkout
+4. After payment, webhook creates order in database
+5. Inventory is decremented automatically
+
+## Tech Stack
+
+- **Next.js 16** (App Router)
+- **React 19**
+- **TypeScript**
+- **Tailwind CSS 4**
+- **Framer Motion**
+- **Supabase** (Auth, Database, Storage)
+- **Stripe** (Checkout)
+
+## License
+
+Private - DIVINE:TIMING
