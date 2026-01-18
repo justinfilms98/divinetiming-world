@@ -39,23 +39,21 @@ export async function middleware(request: NextRequest) {
       },
     });
 
-    // Update Supabase session
-    await supabase.auth.getUser();
-
     // Protect admin routes
     if (request.nextUrl.pathname.startsWith('/admin')) {
+      // Get user for admin route protection
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
 
       if (authError || !user?.email) {
-        return Response.redirect(new URL('/login', request.url));
+        return NextResponse.redirect(new URL('/login', request.url));
       }
 
       // Check allowlist
       if (user.email.toLowerCase() !== ALLOWLIST_EMAIL.toLowerCase()) {
-        return Response.redirect(new URL('/', request.url));
+        return NextResponse.redirect(new URL('/', request.url));
       }
 
       // Verify in admin_users table (with error handling)
@@ -67,12 +65,12 @@ export async function middleware(request: NextRequest) {
           .single();
 
         if (dbError || !data) {
-          return Response.redirect(new URL('/', request.url));
+          return NextResponse.redirect(new URL('/', request.url));
         }
       } catch (dbError) {
         // If database query fails, redirect to home for safety
         console.error('Database query error in middleware:', dbError);
-        return Response.redirect(new URL('/', request.url));
+        return NextResponse.redirect(new URL('/', request.url));
       }
     }
   } catch (error) {
