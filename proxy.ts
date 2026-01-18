@@ -40,7 +40,9 @@ export function proxy(req: NextRequest) {
 export const config = {
   // ONLY match admin routes - do not intercept other routes (especially /)
   // This ensures the proxy doesn't interfere with homepage or public routes
+  // Using path-to-regexp pattern: /admin followed by any path segments
   matcher: [
     '/admin/:path*',
+    '/admin',
   ],
 };
