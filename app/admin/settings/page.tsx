@@ -164,7 +164,7 @@ export default function AdminSettingsPage() {
         console.error('Upload error (JSON):', JSON.stringify(uploadError, null, 2));
         console.error('Upload error (message):', uploadError.message);
         console.error('Upload error (name):', uploadError.name);
-        console.error('Upload error (statusCode):', uploadError.statusCode);
+        console.error('Upload error (statusCode):', (uploadError as any).statusCode);
         
         // Get error message - handle different error formats
         const errorMessage = uploadError.message || uploadError.error?.message || String(uploadError);
