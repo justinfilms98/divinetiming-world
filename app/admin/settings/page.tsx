@@ -167,7 +167,7 @@ export default function AdminSettingsPage() {
         console.error('Upload error (statusCode):', (uploadError as any).statusCode);
         
         // Get error message - handle different error formats
-        const errorMessage = uploadError.message || uploadError.error?.message || String(uploadError);
+        const errorMessage = uploadError.message || String(uploadError);
         const errorString = errorMessage.toLowerCase();
         
         console.error('Parsed error message:', errorMessage);
