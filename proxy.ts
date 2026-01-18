@@ -5,8 +5,11 @@ import type { NextRequest } from "next/server";
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Only protect admin paths
-  if (!pathname.startsWith("/admin")) return NextResponse.next();
+  // Only protect admin paths - return immediately for all non-admin routes
+  // This ensures the proxy doesn't interfere with homepage or other routes
+  if (!pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
 
   // Cookie presence check only (no DB validation here)
   // Check for common Supabase SSR cookie patterns
