@@ -4,14 +4,19 @@ import { createServerClient } from '@supabase/ssr';
 const ALLOWLIST_EMAIL = 'divinetiming.world@gmail.com';
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware for non-admin routes to avoid any potential issues
+  if (!request.nextUrl.pathname.startsWith('/admin')) {
+    return NextResponse.next();
+  }
+
   // Check for required environment variables
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // If environment variables are missing, skip Supabase operations
+  // If environment variables are missing, redirect to home
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase environment variables in middleware');
-    return NextResponse.next();
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   let supabaseResponse = NextResponse.next();
@@ -24,19 +29,23 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next();
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          try {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            supabaseResponse = NextResponse.next();
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            );
+          } catch (cookieError) {
+            console.error('Cookie error in middleware:', cookieError);
+          }
         },
       },
     });
 
     // Protect admin routes
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    try {
       // Get user for admin route protection
       const {
         data: { user },
@@ -68,12 +77,14 @@ export async function middleware(request: NextRequest) {
         console.error('Database query error in middleware:', dbError);
         return NextResponse.redirect(new URL('/', request.url));
       }
+    } catch (adminError) {
+      console.error('Admin route protection error:', adminError);
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   } catch (error) {
-    // If middleware fails, allow the request to proceed to avoid breaking the site
-    // Log error in production for debugging
+    // If middleware fails completely, redirect to home to avoid breaking the site
     console.error('Middleware error:', error);
-    // Return the response without additional checks
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return supabaseResponse;
