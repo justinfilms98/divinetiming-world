@@ -5,8 +5,9 @@ import type { NextRequest } from "next/server";
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Only protect admin paths - return immediately for all non-admin routes
-  // This ensures the proxy doesn't interfere with homepage or other routes
+  // CRITICAL: Immediately return for non-admin routes
+  // Do NOT process "/" or any public routes - only /admin paths should reach the auth check
+  // This early return ensures homepage and public routes are never intercepted
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
