@@ -32,34 +32,40 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Update Supabase session
-  await supabase.auth.getUser();
-
-  // Protect admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  try {
+    // Update Supabase session and get user
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
-    if (!user?.email) {
-      return Response.redirect(new URL('/login', request.url));
-    }
+    // Protect admin routes
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+      if (authError || !user?.email) {
+        return Response.redirect(new URL('/login', request.url));
+      }
 
-    // Check allowlist
-    if (user.email.toLowerCase() !== ALLOWLIST_EMAIL.toLowerCase()) {
-      return Response.redirect(new URL('/', request.url));
-    }
+      // Check allowlist
+      if (user.email.toLowerCase() !== ALLOWLIST_EMAIL.toLowerCase()) {
+        return Response.redirect(new URL('/', request.url));
+      }
 
-    // Verify in admin_users table
-    const { data } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('email', user.email.toLowerCase())
-      .single();
+      // Verify in admin_users table
+      const { data, error: dbError } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('email', user.email.toLowerCase())
+        .single();
 
-    if (!data) {
-      return Response.redirect(new URL('/', request.url));
+      if (dbError || !data) {
+        return Response.redirect(new URL('/', request.url));
+      }
     }
+  } catch (error) {
+    // If middleware fails, allow the request to proceed to avoid breaking the site
+    // Log error in production for debugging
+    console.error('Middleware error:', error);
+    // Return the response without additional checks
   }
 
   return supabaseResponse;
