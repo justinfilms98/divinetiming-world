@@ -116,27 +116,32 @@ export async function compressVideo(file: File, onProgress?: (progress: number) 
     // Read compressed file
     const data = await ffmpeg.readFile(outputFileName);
     // Convert FileData to Uint8Array to ensure proper BlobPart type
-    const uint8Array = new Uint8Array(data);
-    const compressedBlob = new Blob([uint8Array], { type: 'video/mp4' });
-    
-    // Clean up
-    await ffmpeg.deleteFile(inputFileName);
-    await ffmpeg.deleteFile(outputFileName);
-    
-    onProgress?.(100);
-    
-    const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '.mp4'), {
-      type: 'video/mp4',
-    });
-    
-    // If still too large, return original (compression didn't help enough)
-    const compressedSizeMB = compressedFile.size / (1024 * 1024);
-    if (compressedSizeMB > MAX_VIDEO_SIZE_MB * 1.1) {
-      console.warn(`Compressed video is still ${compressedSizeMB.toFixed(2)}MB. Original file may be too large to compress effectively.`);
-      return file;
+    // FileData can be string | Uint8Array, but for binary video files it's Uint8Array
+    if (data instanceof Uint8Array) {
+      // Already a Uint8Array, use directly
+      const compressedBlob = new Blob([data], { type: 'video/mp4' });
+      // Clean up
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+      
+      onProgress?.(100);
+      
+      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '.mp4'), {
+        type: 'video/mp4',
+      });
+      
+      // If still too large, return original (compression didn't help enough)
+      const compressedSizeMB = compressedFile.size / (1024 * 1024);
+      if (compressedSizeMB > MAX_VIDEO_SIZE_MB * 1.1) {
+        console.warn(`Compressed video is still ${compressedSizeMB.toFixed(2)}MB. Original file may be too large to compress effectively.`);
+        return file;
+      }
+      
+      return compressedFile;
+    } else {
+      // Should not happen for binary video files, but handle it
+      throw new Error('Expected Uint8Array from FFmpeg readFile for video file');
     }
-    
-    return compressedFile;
   } catch (error) {
     console.error('Video compression error:', error);
     // If compression fails, return original
