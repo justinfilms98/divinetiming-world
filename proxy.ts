@@ -35,6 +35,16 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Only match admin routes - don't interfere with homepage or other routes
-  matcher: ['/admin/:path*'],
+  // Match all routes, but only process /admin paths internally
+  // This ensures the proxy doesn't block other routes
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
