@@ -118,8 +118,10 @@ export async function compressVideo(file: File, onProgress?: (progress: number) 
     // Convert FileData to Uint8Array to ensure proper BlobPart type
     // FileData can be string | Uint8Array, but for binary video files it's Uint8Array
     if (data instanceof Uint8Array) {
-      // Already a Uint8Array, use directly
-      const compressedBlob = new Blob([data], { type: 'video/mp4' });
+      // Use slice() to create a new Uint8Array with a proper ArrayBuffer
+      // This ensures Blob constructor gets ArrayBuffer, not ArrayBufferLike
+      const uint8Array = data.slice();
+      const compressedBlob = new Blob([uint8Array], { type: 'video/mp4' });
       // Clean up
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
