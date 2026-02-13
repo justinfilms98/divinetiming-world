@@ -1,31 +1,51 @@
 import { HeroMedia } from '@/components/home/HeroMedia';
-import { PulsingLogo } from '@/components/home/PulsingLogo';
+import { DivineTimingIntro } from '@/components/home/DivineTimingIntro';
+import { HeroContent } from '@/components/home/HeroContent';
 import { MemberNames } from '@/components/home/MemberNames';
+import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content';
 
-// Force static rendering - no cookies, headers, or server-side data fetching
-export const dynamic = 'force-static';
-export const revalidate = 3600; // Revalidate every hour
+// Dynamic: fetch from DB on every request for immediate admin reflection
+export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
-  // Use defaults - no Supabase server client calls (avoids cookies())
-  // Settings will be loaded client-side if needed via API routes
-  // Components handle null/undefined gracefully
+export default async function HomePage() {
+  const [heroSection, siteSettings, pageSettings] = await Promise.all([
+    getHeroSection('home'),
+    getSiteSettings(),
+    getPageSettings('home'),
+  ]);
+
+  const mediaType = heroSection?.media_type ?? siteSettings?.hero_media_type ?? null;
+  const mediaUrl = heroSection?.media_url ?? siteSettings?.hero_media_url ?? null;
+  const overlayOpacity = heroSection?.overlay_opacity ?? 0.4;
+  const artistName = heroSection?.headline ?? siteSettings?.artist_name ?? pageSettings?.seo_title ?? 'DIVINE:TIMING';
+  const animationType = (heroSection?.animation_type as 'warp' | 'clock' | 'none') ?? 'warp';
+  const animationEnabled = heroSection?.animation_enabled ?? true;
 
   return (
     <div className="relative min-h-screen flex items-center justify-center">
-      {/* Hero Media Background */}
-      <HeroMedia mediaType={null} mediaUrl={null} />
-
-      {/* Pulsing Logo */}
-      <PulsingLogo 
-        artistName="DIVINE:TIMING"
+      <MemberNames
+        member1Name={siteSettings?.member_1_name ?? undefined}
+        member2Name={siteSettings?.member_2_name ?? undefined}
       />
 
-      {/* Member Names - positioned above social links */}
-      <MemberNames 
-        member1Name={undefined}
-        member2Name={undefined}
+      <HeroMedia
+        mediaType={mediaType}
+        mediaUrl={mediaUrl}
+        overlayOpacity={Number(overlayOpacity)}
       />
+
+      <div className="relative z-10 flex flex-col items-center justify-center">
+        <DivineTimingIntro
+          artistName={artistName}
+          animationType={animationType}
+          animationEnabled={animationEnabled}
+        />
+        <HeroContent
+          subtext={heroSection?.subtext}
+          ctaText={heroSection?.cta_text}
+          ctaUrl={heroSection?.cta_url}
+        />
+      </div>
     </div>
   );
 }

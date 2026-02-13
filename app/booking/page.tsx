@@ -1,57 +1,64 @@
-import { createClient } from '@/lib/supabase/server';
-import { GlassPanel } from '@/components/ui/GlassPanel';
+import {
+  getSiteSettings,
+  getBookingContent,
+  getHeroSection,
+  getPageSettings,
+} from '@/lib/content';
+import { BookingHero } from '@/components/booking/BookingHero';
+import { BookingPresentationSections } from '@/components/booking/BookingPresentationSections';
+import { BookingForm } from '@/components/booking/BookingForm';
+
+export const dynamic = 'force-dynamic';
 
 export default async function BookingPage() {
-  const supabase = await createClient();
+  const [siteSettings, bookingSections, heroSection, pageSettings] = await Promise.all([
+    getSiteSettings(),
+    getBookingContent(),
+    getHeroSection('booking'),
+    getPageSettings('booking'),
+  ]);
 
-  const { data: settings } = await supabase
-    .from('site_settings')
-    .select('*')
-    .single();
+  const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Booking';
+  const pitch = heroSection?.subtext ?? bookingSections[0]?.description ??
+    'For booking inquiries, vendor information, and management requests, get in touch.';
+  const mediaType = heroSection?.media_type ?? null;
+  const mediaUrl = heroSection?.media_url ?? null;
+  const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-20 px-4">
-      <GlassPanel>
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-8 text-center tracking-tight">
-          BOOKING
-        </h1>
+    <div className="min-h-screen flex flex-col">
+      <BookingHero
+        mediaType={mediaType}
+        mediaUrl={mediaUrl}
+        overlayOpacity={Number(overlayOpacity)}
+        headline={headline}
+        pitch={pitch}
+      />
 
-        <p className="text-white/70 text-lg mb-12 max-w-2xl mx-auto text-center">
-          For booking inquiries, vendor information, and management requests, please contact us
-          using the information below.
-        </p>
+      <BookingPresentationSections sections={bookingSections} />
 
-        <div className="space-y-8">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-[var(--accent)] mb-3 tracking-wider uppercase">Phone</h2>
+      <BookingForm />
+
+      {/* Contact fallback */}
+      <section className="py-12 px-4 border-t border-white/10">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-white/60 mb-6">Or reach us directly</p>
+          <div className="flex flex-wrap justify-center gap-8">
             <a
-              href={`tel:${settings?.booking_phone || '+33 635 640 200'}`}
-              className="text-white text-xl hover:text-[var(--accent)] transition-colors"
+              href={`tel:${siteSettings?.booking_phone || '+33 635 640 200'}`}
+              className="text-[var(--accent)] hover:text-[var(--accent2)] transition-colors font-medium"
             >
-              {settings?.booking_phone || '+33 635 640 200'}
+              {siteSettings?.booking_phone || '+33 635 640 200'}
             </a>
-          </div>
-
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-[var(--accent)] mb-3 tracking-wider uppercase">Email</h2>
             <a
-              href={`mailto:${settings?.booking_email || 'info@divinetimingmusic.com'}`}
-              className="text-white text-xl hover:text-[var(--accent)] transition-colors"
+              href={`mailto:${siteSettings?.booking_email || 'info@divinetimingmusic.com'}`}
+              className="text-[var(--accent)] hover:text-[var(--accent2)] transition-colors font-medium"
             >
-              {settings?.booking_email || 'info@divinetimingmusic.com'}
-            </a>
-          </div>
-
-          <div className="pt-8 border-t border-white/10 text-center">
-            <a
-              href={`mailto:${settings?.booking_email || 'info@divinetimingmusic.com'}`}
-              className="inline-block px-8 py-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent2)] transition-colors font-semibold text-lg"
-            >
-              Book Now
+              {siteSettings?.booking_email || 'info@divinetimingmusic.com'}
             </a>
           </div>
         </div>
-      </GlassPanel>
+      </section>
     </div>
   );
 }

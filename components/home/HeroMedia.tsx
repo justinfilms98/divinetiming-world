@@ -1,68 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
 
 interface HeroMediaProps {
   mediaType?: string | null;
   mediaUrl?: string | null;
+  overlayOpacity?: number;
 }
 
-export function HeroMedia({ mediaType, mediaUrl }: HeroMediaProps) {
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mediaQuery.matches);
-  }, []);
-
-  // Determine what to show
-  const useVideo = mediaType === 'video' && mediaUrl && !hasError;
-  const useImage = mediaType === 'image' && mediaUrl && !hasError;
-  const useFallback = !useVideo && !useImage;
+export function HeroMedia({ mediaType, mediaUrl, overlayOpacity = 0.4 }: HeroMediaProps) {
+  const opacity = Math.max(0, Math.min(1, overlayOpacity));
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Video */}
-      {useVideo && (
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={() => setHasError(true)}
-        >
-          <source src={mediaUrl} type="video/mp4" />
-          <source src={mediaUrl} type="video/webm" />
-        </video>
-      )}
+      <MediaAssetRenderer
+        url={mediaUrl ?? null}
+        mediaType={mediaType ?? 'default'}
+        alt="DIVINE:TIMING"
+        fallback={HeroEclipseFallback}
+        priority
+        sizes="100vw"
+      />
 
-      {/* Image */}
-      {useImage && (
-        <Image
-          src={mediaUrl}
-          alt="DIVINE:TIMING"
-          fill
-          className="object-cover"
-          priority
-          onError={() => setHasError(true)}
-        />
-      )}
-
-      {/* Fallback Eclipse */}
-      {useFallback && (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#1a0f1f] to-[#0f0c10]">
-          {/* Eclipse placeholder - you can replace with actual image */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-96 h-96 rounded-full bg-gradient-radial from-[var(--accent)]/20 via-transparent to-transparent blur-3xl" />
-          </div>
-        </div>
-      )}
-
-      {/* Vignette overlay */}
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/40" />
+      {/* Dark gradient overlay - adjustable opacity */}
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60"
+        style={{ opacity }}
+      />
+      <div
+        className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-black/50"
+        style={{ opacity: opacity * 0.8 }}
+      />
 
       {/* Subtle grain */}
       <div
