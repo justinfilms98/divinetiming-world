@@ -20,9 +20,15 @@ Create a `.env.local` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY=your_uploadcare_public_key
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 ```
+
+**Required for admin media uploads (Uploadcare):**
+- `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` – client-side; used by UniversalUploader (device, Google Drive, OneDrive)
+- `SUPABASE_SERVICE_ROLE_KEY` – server-side; used by `/api/assets/external` to insert into `external_media_assets` (bypasses RLS)
 
 ### 2. Supabase Setup
 

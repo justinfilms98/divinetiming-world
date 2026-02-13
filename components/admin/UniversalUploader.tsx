@@ -91,9 +91,14 @@ export function UniversalUploader({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ provider: 'uploadcare', files }),
+            credentials: 'same-origin',
           })
             .then((r) => r.json())
             .then((data) => {
+              if (data.error) {
+                alert('Upload failed: ' + data.error);
+                return;
+              }
               if (data.assets && data.assets.length > 0) {
                 const assets = data.assets as ExternalMediaAsset[];
                 onSelectedRef.current(multiple ? assets : [assets[0]]);

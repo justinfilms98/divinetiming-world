@@ -16,6 +16,8 @@ interface MediaAssetRendererProps {
   priority?: boolean;
   sizes?: string;
   onError?: () => void;
+  /** Optional: 'uploadcare' | 'google_drive' - detected from URL if not set */
+  provider?: 'uploadcare' | 'google_drive' | string | null;
   /** Fallback when no media URL (e.g. default hero) */
   fallback?: React.ReactNode;
   /** Fallback when media fails to load (e.g. Drive inaccessible). Defaults to MediaUnavailableFallback */
@@ -53,10 +55,13 @@ export function MediaAssetRenderer({
   priority = false,
   sizes = '100vw',
   onError,
+  provider: providerProp,
   fallback = HeroEclipseFallback,
   errorFallback = MediaUnavailableFallback,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
+  const [imgFallbackFailed, setImgFallbackFailed] = useState(false);
+  const isUploadcare = providerProp === 'uploadcare' || (!providerProp && url?.includes('ucarecdn.com'));
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
   const [driveInaccessible, setDriveInaccessible] = useState(false);
 
@@ -95,7 +100,7 @@ export function MediaAssetRenderer({
   if (!url || !effectiveType) {
     return <>{fallback}</>;
   }
-  if (hasError) {
+  if (hasError && !(effectiveType === 'image' && isUploadcare && !imgFallbackFailed)) {
     return <>{errorFallback}</>;
   }
   if (isDriveVideo && driveHealthChecked && driveInaccessible) {
@@ -103,6 +108,22 @@ export function MediaAssetRenderer({
   }
 
   const isDriveImage = effectiveType === 'image' && url.includes('drive.google.com');
+
+  // Uploadcare image: Next/Image with img fallback on error
+  if (effectiveType === 'image' && isUploadcare && hasError && !imgFallbackFailed) {
+    return (
+      <img
+        src={url}
+        alt={alt}
+        className={`w-full h-full ${className}`}
+        style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
+        onError={() => setImgFallbackFailed(true)}
+      />
+    );
+  }
+  if (effectiveType === 'image' && isUploadcare && hasError && imgFallbackFailed) {
+    return <>{errorFallback}</>;
+  }
 
   // Video: native for uploadcare + direct URLs, iframe for Google Drive
   if (effectiveType === 'video') {
