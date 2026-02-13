@@ -1,5 +1,7 @@
 'use client';
 
+import type { SiteSettings } from '@/lib/types/content';
+
 const defaultSocials = {
   instagram: 'https://www.instagram.com/divinetiming_ofc',
   youtube: 'https://www.youtube.com/@divinetimingworld',
@@ -7,12 +9,23 @@ const defaultSocials = {
   appleMusic: 'https://music.apple.com/es/artist/divine-timing/1851580045',
 };
 
-export function SocialDock() {
+interface SocialDockProps {
+  siteSettings?: SiteSettings | null;
+}
+
+export function SocialDock({ siteSettings }: SocialDockProps) {
+  const socials = {
+    instagram: siteSettings?.instagram_url || defaultSocials.instagram,
+    youtube: siteSettings?.youtube_url || defaultSocials.youtube,
+    spotify: siteSettings?.spotify_url || defaultSocials.spotify,
+    appleMusic: siteSettings?.apple_music_url || defaultSocials.appleMusic,
+  };
+
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-20 right-6 z-50">
       <div className="flex items-center gap-4 bg-[var(--bg)]/40 backdrop-blur-md border border-white/10 rounded-full px-6 py-3">
         <a
-          href={defaultSocials.instagram}
+          href={socials.instagram}
           target="_blank"
           rel="noopener noreferrer"
           className="text-white/70 hover:text-white transition-colors"
@@ -24,7 +37,7 @@ export function SocialDock() {
         </a>
 
         <a
-          href={defaultSocials.youtube}
+          href={socials.youtube}
           target="_blank"
           rel="noopener noreferrer"
           className="text-white/70 hover:text-white transition-colors"
@@ -36,7 +49,7 @@ export function SocialDock() {
         </a>
 
         <a
-          href={defaultSocials.spotify}
+          href={socials.spotify}
           target="_blank"
           rel="noopener noreferrer"
           className="text-white/70 hover:text-white transition-colors"
@@ -48,7 +61,7 @@ export function SocialDock() {
         </a>
 
         <a
-          href={defaultSocials.appleMusic}
+          href={socials.appleMusic}
           target="_blank"
           rel="noopener noreferrer"
           className="text-white/70 hover:text-white transition-colors"

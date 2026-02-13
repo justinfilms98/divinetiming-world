@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { Save, Check, ChevronRight, Upload, X, Cloud } from 'lucide-react';
-import { GoogleDrivePicker } from '@/components/admin/GoogleDrivePicker';
-import { compressMedia } from '@/lib/utils/compressMedia';
+import { Save, Check, ChevronRight, X } from 'lucide-react';
+import { UniversalUploader } from '@/components/admin/UniversalUploader';
 import { revalidatePaths } from '@/lib/revalidate';
 import Link from 'next/link';
 
@@ -48,9 +47,6 @@ export default function AdminPagesPage() {
   const [expandedPage, setExpandedPage] = useState<string | null>('home');
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<string | null>(null);
-  const [drivePickerPage, setDrivePickerPage] = useState<string | null>(null);
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const supabase = createClient();
 
   useEffect(() => {
@@ -127,61 +123,21 @@ export default function AdminPagesPage() {
     setSaving(null);
   };
 
-  const handleDriveSelect = (asset: { id: string; url: string; mediaType: 'image' | 'video' }) => {
-    if (!drivePickerPage) return;
+  const handleMediaSelected = (pageSlug: string) => (assets: { id: string; preview_url: string; mime_type: string | null }[]) => {
+    const asset = assets[0];
+    if (!asset) return;
+    const hero = heroSections[pageSlug];
+    if (!hero) return;
+    const mediaType = asset.mime_type?.startsWith('video/') ? 'video' : 'image';
     setHeroSections((prev) => ({
       ...prev,
-      [drivePickerPage]: {
-        ...prev[drivePickerPage],
-        media_url: asset.url,
-        media_type: asset.mediaType,
+      [pageSlug]: {
+        ...prev[pageSlug],
+        media_url: asset.preview_url,
+        media_type: mediaType,
         external_media_asset_id: asset.id,
       },
     }));
-    setDrivePickerPage(null);
-  };
-
-  const handleFileUpload = async (pageSlug: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const hero = heroSections[pageSlug];
-    if (!file || !hero) return;
-
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    if (!isImage && !isVideo) {
-      alert('Please upload an image or video.');
-      return;
-    }
-
-    setUploading(pageSlug);
-    try {
-      const compressed = await compressMedia(file);
-      const ext = compressed.name.split('.').pop() || (isImage ? 'jpg' : 'mp4');
-      const path = `hero-media/${pageSlug}-${Date.now()}.${ext}`;
-
-      const { error } = await supabase.storage.from('media').upload(path, compressed, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
-      setHeroSections((prev) => ({
-        ...prev,
-        [pageSlug]: {
-          ...prev[pageSlug],
-          media_url: urlData.publicUrl,
-          media_type: isImage ? 'image' : 'video',
-          external_media_asset_id: null,
-        },
-      }));
-    } catch (err: any) {
-      alert('Upload failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setUploading(null);
-      const input = fileInputRefs.current[pageSlug];
-      if (input) input.value = '';
-    }
   };
 
   return (
@@ -335,34 +291,11 @@ export default function AdminPagesPage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex flex-wrap gap-2">
-                            <input
-                              ref={(el) => {
-                                fileInputRefs.current[pageSlug] = el;
-                              }}
-                              type="file"
-                              accept="image/*,video/*"
-                              onChange={(e) => handleFileUpload(pageSlug, e)}
-                              className="hidden"
-                              id={`hero-upload-${pageSlug}`}
-                              disabled={!!uploading}
-                            />
-                            <label
-                              htmlFor={`hero-upload-${pageSlug}`}
-                              className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg cursor-pointer text-sm ${uploading === pageSlug ? 'opacity-50' : 'hover:border-[var(--accent)]'}`}
-                            >
-                              <Upload className="w-4 h-4" />
-                              {uploading === pageSlug ? 'Uploading...' : 'Upload'}
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => setDrivePickerPage(pageSlug)}
-                              className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg text-sm hover:border-[var(--accent)]"
-                            >
-                              <Cloud className="w-4 h-4" />
-                              Select from Drive
-                            </button>
-                          </div>
+                          <UniversalUploader
+                            acceptedTypes={['image', 'video']}
+                            onSelected={handleMediaSelected(pageSlug)}
+                            className="text-sm"
+                          />
                         )}
                       </div>
 
@@ -477,13 +410,6 @@ export default function AdminPagesPage() {
           );
         })}
       </div>
-
-      <GoogleDrivePicker
-        isOpen={!!drivePickerPage}
-        onClose={() => setDrivePickerPage(null)}
-        onSelect={handleDriveSelect}
-        acceptedTypes={['image', 'video']}
-      />
     </>
   );
 }

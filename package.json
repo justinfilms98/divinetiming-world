@@ -14,6 +14,7 @@
     "@stripe/stripe-js": "^8.4.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.81.1",
+    "@uploadcare/file-uploader": "^1.27.0",
     "browser-image-compression": "^2.0.2",
     "framer-motion": "^12.23.24",
     "googleapis": "^171.4.0",

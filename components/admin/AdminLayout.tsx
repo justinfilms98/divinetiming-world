@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
+  Home,
   Calendar,
   Image as ImageIcon,
   ShoppingBag,
@@ -16,14 +17,20 @@ import {
   X,
   LogOut,
   User,
+  Mail,
+  FileText,
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'Homepage', href: '/admin/homepage', icon: Home },
   { label: 'Events', href: '/admin/events', icon: Calendar },
   { label: 'Media', href: '/admin/media', icon: ImageIcon },
   { label: 'Shop', href: '/admin/shop', icon: ShoppingBag },
+  { label: 'Booking', href: '/admin/booking', icon: Mail },
+  { label: 'About', href: '/admin/about', icon: FileText },
   { label: 'Orders', href: '/admin/orders', icon: Package },
+  { label: 'Page Settings', href: '/admin/pages', icon: Settings },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

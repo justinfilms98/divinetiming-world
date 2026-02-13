@@ -3,6 +3,7 @@ import { Footer } from '@/components/layout/Footer';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
 
 export default async function ProductPage({ params }: { params: { slug: string } }) {
@@ -38,6 +39,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
                       src={product.product_images[0].image_url}
                       alt={product.name}
                       fill
+                      priority
+                      placeholder="blur"
+                      blurDataURL={BLUR_PLACEHOLDER}
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-cover"
                     />
                   </div>

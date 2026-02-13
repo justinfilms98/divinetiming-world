@@ -21,8 +21,11 @@
 │   ├── admin/             # Admin components
 │   ├── home/              # Home page components
 │   ├── layout/            # Layout components
+│   ├── media/             # Media/gallery components
 │   └── shop/              # Shop components
 ├── lib/                   # Utility functions
+│   ├── content/           # Centralized content API (Phase 1)
+│   ├── types/             # TypeScript types
 │   └── supabase/          # Supabase clients
 ├── supabase/
 │   └── migrations/        # Database migrations
@@ -34,16 +37,29 @@
 
 All tables use UUID primary keys and include `created_at`/`updated_at` timestamps.
 
+### Phase 1 Content Architecture (Centralized)
+
+All pages pull from DB via `lib/content`. No hardcoded content.
+
+- `page_settings` - Per-page SEO, meta (page_slug: home, events, media, shop, booking, about)
+- `hero_sections` - Per-page hero: media_type, media_url, overlay, headline, subtext, CTA, animation
+- `galleries` - Gallery collections (name, slug, cover, description)
+- `gallery_media` - Media items in galleries (image/video, url, caption)
+- `booking_content` - EPK-style sections for booking page
+- `about_content` - Bio text
+- `about_photos` - Reorderable about photos
+- `about_timeline` - Timeline sections
+
 ### Core Tables
-- `site_settings` - Single row with all site configuration
+- `site_settings` - Single row: artist name, member names, social links, booking contact
 - `admin_users` - Admin allowlist
 - `presskit` - Single row with press kit content
 
 ### Content Tables
-- `events` - Tour dates
+- `events` - Tour dates (enhanced: title, description, time, thumbnail_url, display_order)
 - `videos` - YouTube videos
-- `photo_albums` - Photo collections
-- `photos` - Individual photos (linked to albums)
+- `photo_albums` - Legacy (deprecated; admin uses galleries)
+- `photos` - Legacy (deprecated; admin uses gallery_media)
 
 ### E-commerce Tables
 - `products` - Merch products

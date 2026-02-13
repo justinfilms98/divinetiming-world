@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
-import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown, Upload, Cloud } from 'lucide-react';
-import { compressMedia } from '@/lib/utils/compressMedia';
+import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
-import { GoogleDrivePicker } from '@/components/admin/GoogleDrivePicker';
+import { UniversalUploader } from '@/components/admin/UniversalUploader';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 
 interface Event {
@@ -31,10 +30,7 @@ export default function AdminEventsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
-  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -63,14 +59,14 @@ export default function AdminEventsPage() {
     setModalOpen(true);
   };
 
-  const handleDriveSelect = (asset: { id: string; url: string; mediaType: 'image' | 'video' }) => {
-    if (asset.mediaType !== 'image') return;
+  const handleThumbnailSelected = (assets: { id: string; preview_url: string }[]) => {
+    const asset = assets[0];
+    if (!asset) return;
     const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
     const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
-    if (input) input.value = asset.url;
+    if (input) input.value = asset.preview_url;
     if (extInput) extInput.value = asset.id;
-    setPreviewThumbnail(asset.url);
-    setDrivePickerOpen(false);
+    setPreviewThumbnail(asset.preview_url);
   };
 
   const closeModal = () => {
@@ -130,33 +126,6 @@ export default function AdminEventsPage() {
     await supabase.from('events').update({ display_order: aOrder, updated_at: new Date().toISOString() }).eq('id', b.id);
     await loadEvents();
     await revalidateAfterSave('events');
-  };
-
-  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-
-    setUploading(true);
-    try {
-      const compressed = await compressMedia(file);
-      const ext = compressed.name.split('.').pop() || 'jpg';
-      const path = `event-thumbnails/${Date.now()}.${ext}`;
-
-      const { error } = await supabase.storage.from('media').upload(path, compressed, { cacheControl: '3600', upsert: false });
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
-      const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
-      const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
-      if (input) input.value = urlData.publicUrl;
-      if (extInput) extInput.value = '';
-      setPreviewThumbnail(urlData.publicUrl);
-    } catch (err: any) {
-      alert('Upload failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -355,19 +324,11 @@ export default function AdminEventsPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <input type="file" ref={fileInputRef} accept="image/*" onChange={handleThumbnailUpload} className="hidden" id="thumb-upload" />
-                      <label htmlFor="thumb-upload" className={`inline-flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg cursor-pointer text-sm ${uploading ? 'opacity-50' : 'hover:border-white/20'}`}>
-                        <Upload className="w-4 h-4" />
-                        {uploading ? 'Uploading...' : 'Replace'}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setDrivePickerOpen(true)}
+                      <UniversalUploader
+                        acceptedTypes={['image']}
+                        onSelected={handleThumbnailSelected}
                         className="inline-flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-white/20"
-                      >
-                        <Cloud className="w-4 h-4" />
-                        From Drive
-                      </button>
+                      />
                       <button
                         type="button"
                         onClick={() => {
@@ -385,21 +346,11 @@ export default function AdminEventsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    <input type="file" ref={fileInputRef} accept="image/*" onChange={handleThumbnailUpload} className="hidden" id="thumb-upload" />
-                    <label htmlFor="thumb-upload" className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg cursor-pointer ${uploading ? 'opacity-50' : 'hover:border-[var(--accent)]'}`}>
-                      <Upload className="w-4 h-4" />
-                      {uploading ? 'Uploading...' : 'Upload'}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setDrivePickerOpen(true)}
-                      className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg hover:border-[var(--accent)]"
-                    >
-                      <Cloud className="w-4 h-4" />
-                      Select from Drive
-                    </button>
-                  </div>
+                  <UniversalUploader
+                    acceptedTypes={['image']}
+                    onSelected={handleThumbnailSelected}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg hover:border-[var(--accent)]"
+                  />
                 )}
               </div>
 
@@ -499,13 +450,6 @@ export default function AdminEventsPage() {
           </div>
         </div>
       )}
-
-      <GoogleDrivePicker
-        isOpen={drivePickerOpen}
-        onClose={() => setDrivePickerOpen(false)}
-        onSelect={handleDriveSelect}
-        acceptedTypes={['image']}
-      />
     </>
   );
 }

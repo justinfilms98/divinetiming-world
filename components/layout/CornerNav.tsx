@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 const navItems = [
-  { label: 'TOUR', href: '/tour', position: 'top-left' },
+  { label: 'EVENTS', href: '/events', position: 'top-left' },
   { label: 'MEDIA', href: '/media', position: 'top-right' },
   { label: 'SHOP', href: '/shop', position: 'bottom-left' },
   { label: 'BOOKING', href: '/booking', position: 'bottom-right' },

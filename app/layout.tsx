@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Playfair_Display } from 'next/font/google';
+import { getSiteSettings } from '@/lib/content';
 
 const playfairDisplay = Playfair_Display({
   weight: ['400', '700', '900'],
@@ -15,15 +16,17 @@ export const metadata: Metadata = {
   description: 'Live, evolving, in motion.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const siteSettings = await getSiteSettings();
+
   return (
     <html lang="en">
       <body className={`min-h-screen antialiased ${playfairDisplay.variable}`} suppressHydrationWarning>
-        <PublicLayout>{children}</PublicLayout>
+        <PublicLayout siteSettings={siteSettings}>{children}</PublicLayout>
       </body>
     </html>
   );

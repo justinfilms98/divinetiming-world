@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useCart } from './CartContext';
 
 interface ProductVariant {
   id: string;
@@ -14,9 +14,11 @@ interface ProductVariant {
 interface Product {
   id: string;
   name: string;
+  slug: string;
   price_cents: number;
   stripe_product_id: string | null;
   product_variants: ProductVariant[];
+  product_images?: { image_url: string }[];
 }
 
 interface ProductDetailClientProps {
@@ -24,15 +26,31 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
+  const { addItem } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<string | null>(
-    product.product_variants.length > 0 ? product.product_variants[0].id : null
+    product.product_variants?.length ? product.product_variants[0].id : null
   );
+  const hasVariants = product.product_variants && product.product_variants.length > 0;
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const selectedVariantData = product.product_variants.find((v) => v.id === selectedVariant);
+  const selectedVariantData = product.product_variants?.find((v) => v.id === selectedVariant);
   const priceCents = selectedVariantData?.price_cents ?? product.price_cents;
   const stripePriceId = selectedVariantData?.stripe_price_id;
+  const imageUrl = product.product_images?.[0]?.image_url ?? null;
+
+  const handleAddToCart = () => {
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      variantId: hasVariants ? selectedVariant : null,
+      variantName: selectedVariantData?.name ?? null,
+      priceCents: (priceCents ?? product.price_cents) as number,
+      imageUrl,
+      quantity,
+    });
+  };
 
   const handleCheckout = async () => {
     setIsLoading(true);
@@ -67,7 +85,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   return (
     <div>
       {/* Variant Selection */}
-      {product.product_variants.length > 0 && (
+      {product.product_variants && product.product_variants.length > 0 && (
         <div className="mb-6">
           <label className="block text-[var(--text)] font-semibold mb-2">Select Option</label>
           <select
@@ -107,18 +125,25 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </div>
       </div>
 
-      {/* Buy Button */}
-      <button
-        onClick={handleCheckout}
-        disabled={isLoading || (selectedVariantData && selectedVariantData.inventory_count < quantity)}
-        className="w-full px-6 py-4 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors glow font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading
-          ? 'Processing...'
-          : selectedVariantData && selectedVariantData.inventory_count < quantity
-          ? 'Out of Stock'
-          : 'Buy Now'}
-      </button>
+      {/* Add to Cart & Buy Buttons */}
+      <div className="flex gap-4">
+        <button
+          onClick={handleAddToCart}
+          disabled={(hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity) || (!hasVariants && false)}
+          className="flex-1 px-6 py-4 bg-white/10 text-white border border-white/20 rounded-md hover:bg-white/20 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity
+            ? 'Out of Stock'
+            : 'Add to Cart'}
+        </button>
+        <button
+          onClick={handleCheckout}
+          disabled={isLoading || (hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity)}
+          className="flex-1 px-6 py-4 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors glow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Processing...' : 'Buy Now'}
+        </button>
+      </div>
     </div>
   );
 }

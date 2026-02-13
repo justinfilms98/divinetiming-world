@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { Save, Check, Upload, X, Cloud } from 'lucide-react';
-import { compressMedia } from '@/lib/utils/compressMedia';
+import { Save, Check, X } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
-import { GoogleDrivePicker } from '@/components/admin/GoogleDrivePicker';
+import { UniversalUploader } from '@/components/admin/UniversalUploader';
 
 interface HeroSection {
   id: string;
@@ -29,10 +28,6 @@ export default function AdminHomepagePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -82,44 +77,16 @@ export default function AdminHomepagePage() {
     setIsSaving(false);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !hero) return;
-
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    if (!isImage && !isVideo) {
-      alert('Please upload an image or video file.');
-      return;
-    }
-
-    const newMediaType = isImage ? 'image' : 'video';
-    setHero({ ...hero, media_type: newMediaType });
-    setUploading(true);
-    setUploadProgress(0);
-
-    try {
-      const compressedFile = await compressMedia(file, (p) => setUploadProgress(Math.floor(p * 0.8)));
-      const fileExt = compressedFile.name.split('.').pop() || file.name.split('.').pop();
-      const filePath = `hero-media/home-${Date.now()}.${fileExt}`;
-
-      const { error } = await supabase.storage.from('media').upload(filePath, compressedFile, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
-      setHero({ ...hero, media_url: urlData.publicUrl, media_type: newMediaType });
-      setUploadProgress(100);
-    } catch (err: any) {
-      alert('Upload failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+  const handleMediaSelected = (assets: { id: string; preview_url: string; mime_type: string | null }[]) => {
+    const asset = assets[0];
+    if (!asset || !hero) return;
+    const mediaType = asset.mime_type?.startsWith('video/') ? 'video' : 'image';
+    setHero({
+      ...hero,
+      media_url: asset.preview_url,
+      media_type: mediaType,
+      external_media_asset_id: asset.id,
+    });
   };
 
   if (isLoading) {
@@ -232,32 +199,11 @@ export default function AdminHomepagePage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="hero-upload"
-                    disabled={uploading}
-                  />
-                  <label
-                    htmlFor="hero-upload"
-                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 border-2 border-dashed border-white/20 rounded-lg cursor-pointer transition-colors ${uploading ? 'opacity-50' : 'hover:border-[var(--accent)]'}`}
-                  >
-                    <Upload className="w-5 h-5" />
-                    <span>{uploading ? `Uploading ${uploadProgress}%` : 'Upload File'}</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setDrivePickerOpen(true)}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 border-2 border-dashed border-white/20 rounded-lg hover:border-[var(--accent)] transition-colors"
-                  >
-                    <Cloud className="w-5 h-5" />
-                    Select from Google Drive
-                  </button>
-                </div>
+                <UniversalUploader
+                  acceptedTypes={['image', 'video']}
+                  onSelected={handleMediaSelected}
+                  className="flex-1"
+                />
               )}
             </div>
 
@@ -336,21 +282,6 @@ export default function AdminHomepagePage() {
           </button>
         </div>
       </form>
-
-      <GoogleDrivePicker
-        isOpen={drivePickerOpen}
-        onClose={() => setDrivePickerOpen(false)}
-        onSelect={(asset) => {
-          setHero({
-            ...hero!,
-            media_url: asset.url,
-            media_type: asset.mediaType,
-            external_media_asset_id: asset.id,
-          });
-          setDrivePickerOpen(false);
-        }}
-        acceptedTypes={['image', 'video']}
-      />
     </>
   );
 }

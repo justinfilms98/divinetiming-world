@@ -55,8 +55,8 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-[var(--text)] mb-4 uppercase tracking-wide">Quick Links</h4>
             <div className="flex flex-col gap-2">
-              <Link href="/tour" className="text-[var(--text)]/70 hover:text-[var(--accent)] transition-colors text-sm">
-                Tour
+              <Link href="/events" className="text-[var(--text)]/70 hover:text-[var(--accent)] transition-colors text-sm">
+                Events
               </Link>
               <Link href="/shop" className="text-[var(--text)]/70 hover:text-[var(--accent)] transition-colors text-sm">
                 Shop

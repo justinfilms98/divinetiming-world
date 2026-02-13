@@ -29,22 +29,20 @@ export async function POST(request: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-
-    // Get line items
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
 
     if (lineItems.data.length === 0) {
       return NextResponse.json({ error: 'No line items' }, { status: 400 });
     }
 
-    const lineItem = lineItems.data[0];
-    const { productId, variantId, quantity } = session.metadata || {};
+    const cartItems: { productId: string; variantId: string | null; quantity: number }[] = session.metadata?.cartItems
+      ? JSON.parse(session.metadata.cartItems)
+      : [{
+          productId: session.metadata?.productId || '',
+          variantId: session.metadata?.variantId || null,
+          quantity: parseInt(session.metadata?.quantity || '1'),
+        }];
 
-    if (!productId) {
-      return NextResponse.json({ error: 'No product ID' }, { status: 400 });
-    }
-
-    // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -63,43 +61,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
     }
 
-    // Get product details
-    const { data: product } = await supabase
-      .from('products')
-      .select('name')
-      .eq('id', productId)
-      .single();
+    for (let i = 0; i < lineItems.data.length; i++) {
+      const lineItem = lineItems.data[i];
+      const cartItem = cartItems[i] || cartItems[0];
+      const { productId, variantId, quantity } = cartItem;
 
-    // Get variant details if exists
-    let variantName = null;
-    if (variantId) {
-      const { data: variant } = await supabase
-        .from('product_variants')
+      const { data: product } = await supabase
+        .from('products')
         .select('name')
-        .eq('id', variantId)
+        .eq('id', productId)
         .single();
-      variantName = variant?.name || null;
-    }
 
-    // Create order item
-    await supabase.from('order_items').insert({
-      order_id: order.id,
-      product_id: productId,
-      variant_id: variantId || null,
-      product_name: product?.name || 'Unknown Product',
-      variant_name: variantName,
-      quantity: parseInt(quantity || '1'),
-      price_cents: lineItem.price?.unit_amount || 0,
-    });
+      let variantName = null;
+      if (variantId) {
+        const { data: variant } = await supabase
+          .from('product_variants')
+          .select('name')
+          .eq('id', variantId)
+          .single();
+        variantName = variant?.name || null;
+      }
 
-    // Decrement inventory if variant exists
-    if (variantId) {
-      const { error: invError } = await supabase.rpc('decrement_inventory', {
-        variant_id: variantId,
-        quantity: parseInt(quantity || '1'),
+      await supabase.from('order_items').insert({
+        order_id: order.id,
+        product_id: productId,
+        variant_id: variantId || null,
+        product_name: product?.name || 'Unknown Product',
+        variant_name: variantName,
+        quantity,
+        price_cents: lineItem.price?.unit_amount || 0,
       });
-      if (invError) {
-        console.error('Inventory decrement error:', invError);
+
+      if (variantId) {
+        await supabase.rpc('decrement_inventory', {
+          variant_id: variantId,
+          quantity,
+        });
       }
     }
   }

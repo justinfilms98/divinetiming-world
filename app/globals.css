@@ -18,6 +18,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* Offset for fixed header when scrolling to anchors */
 }
 
 body {
@@ -87,6 +88,37 @@ body {
   }
   100% {
     transform: translateY(100vh) translateX(50px);
+    opacity: 0;
+  }
+}
+
+/* Phase 2: Divine Timing intro animations */
+.warp-ripple-effect {
+  animation: warp-ripple 2s ease-out forwards;
+}
+
+.clock-sweep-effect {
+  animation: clock-sweep 1.5s ease-out forwards;
+}
+
+@keyframes warp-ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+@keyframes clock-sweep {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotate(360deg);
     opacity: 0;
   }
 }

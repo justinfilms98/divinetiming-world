@@ -87,7 +87,7 @@ The admin email is hardcoded in the allowlist. Only this email can access the ad
 
 ### Public Routes
 - `/` - Home page
-- `/tour` - Tour dates
+- `/events` - Events (redirects from legacy `/tour`)
 - `/shop` - Product listing
 - `/shop/[slug]` - Product detail
 - `/media` - Photos and videos

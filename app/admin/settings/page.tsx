@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/admin/PageHeader';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Save, Check, Upload, X } from 'lucide-react';
 import { compressMedia } from '@/lib/utils/compressMedia';
+import { revalidatePaths } from '@/lib/revalidate';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -41,6 +42,7 @@ export default function AdminSettingsPage() {
     if (error) {
       alert('Error saving settings: ' + error.message);
     } else {
+      await revalidatePaths(['/', '/events', '/media', '/shop', '/booking', '/about']);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }

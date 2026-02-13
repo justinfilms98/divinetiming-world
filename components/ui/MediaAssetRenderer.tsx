@@ -104,7 +104,7 @@ export function MediaAssetRenderer({
 
   const isDriveImage = effectiveType === 'image' && url.includes('drive.google.com');
 
-  // Video: native for uploads, iframe for Google Drive
+  // Video: native for uploadcare + direct URLs, iframe for Google Drive
   if (effectiveType === 'video') {
     if (isDriveVideo) {
       return (
@@ -134,7 +134,7 @@ export function MediaAssetRenderer({
     );
   }
 
-  // Image: Next.js Image for non-Drive, img for Drive (avoids domain config)
+  // Image: Next.js Image for uploadcare + allowed domains, img for Drive
   if (effectiveType === 'image') {
     if (isDriveImage) {
       return (

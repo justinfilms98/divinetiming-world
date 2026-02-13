@@ -165,10 +165,19 @@ export function extractFileIdFromUrl(url: string): string | null {
 }
 
 /**
+ * Check if Drive is configured (service account available)
+ */
+export function isDriveConfigured(): boolean {
+  return !!process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON;
+}
+
+/**
  * Check if a Drive file is accessible (service account can read metadata)
+ * Returns false when Drive is not configured (non-blocking)
  */
 export async function checkFileAccessible(fileId: string): Promise<boolean> {
   try {
+    if (!isDriveConfigured()) return false;
     const drive = getDriveClient();
     await drive.files.get({ fileId, fields: 'id' });
     return true;

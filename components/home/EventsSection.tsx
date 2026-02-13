@@ -86,7 +86,7 @@ export function EventsSection({ events }: EventsSectionProps) {
           className="text-center mt-12"
         >
           <Link
-            href="/tour"
+            href="/events"
             className="text-[var(--accent)] hover:text-[var(--accent2)] transition-colors font-semibold"
           >
             View All Events →

@@ -6,84 +6,99 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-10-29.clover',
 });
 
+type CartItem = { productId: string; variantId: string | null; quantity: number };
+
+async function getOrCreateStripePrice(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  stripe: Stripe,
+  product: any,
+  variant: any,
+  productId: string,
+  variantId: string | null
+) {
+  const priceCents = variant?.price_cents ?? product.price_cents;
+  let stripePriceId = variant?.stripe_price_id;
+
+  let stripeProductId = product.stripe_product_id;
+  if (!stripeProductId) {
+    const stripeProduct = await stripe.products.create({
+      name: product.name,
+      description: product.description || undefined,
+      images: product.product_images?.map((img: any) => img.image_url) || [],
+    });
+    stripeProductId = stripeProduct.id;
+    await supabase.from('products').update({ stripe_product_id: stripeProductId }).eq('id', productId);
+  }
+
+  if (!stripePriceId) {
+    const stripePrice = await stripe.prices.create({
+      product: stripeProductId,
+      unit_amount: priceCents,
+      currency: 'usd',
+    });
+    stripePriceId = stripePrice.id;
+    if (variant) {
+      await supabase
+        .from('product_variants')
+        .update({ stripe_price_id: stripePriceId })
+        .eq('id', variantId);
+    }
+  }
+
+  return stripePriceId;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { productId, variantId, quantity } = await request.json();
+    const body = await request.json();
+    const items: CartItem[] = body.items
+      ? body.items
+      : [{ productId: body.productId, variantId: body.variantId || null, quantity: body.quantity || 1 }];
+
+    if (items.length === 0) {
+      return NextResponse.json({ error: 'No items' }, { status: 400 });
+    }
 
     const supabase = await createClient();
+    const lineItems: { price: string; quantity: number }[] = [];
+    let cancelSlug = 'shop';
 
-    // Get product
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('*, product_variants(*), product_images(*)')
-      .eq('id', productId)
-      .single();
-
-    if (productError || !product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-    }
-
-    // Get variant if provided
-    let variant = null;
-    if (variantId) {
-      variant = product.product_variants.find((v: any) => v.id === variantId);
-    }
-
-    const priceCents = variant?.price_cents ?? product.price_cents;
-    const stripePriceId = variant?.stripe_price_id;
-
-    // Create or get Stripe product
-    let stripeProductId = product.stripe_product_id;
-    if (!stripeProductId) {
-      const stripeProduct = await stripe.products.create({
-        name: product.name,
-        description: product.description || undefined,
-        images: product.product_images?.map((img: any) => img.image_url) || [],
-      });
-      stripeProductId = stripeProduct.id;
-
-      // Update product with Stripe ID
-      await supabase
+    for (const item of items) {
+      const { data: product, error: productError } = await supabase
         .from('products')
-        .update({ stripe_product_id: stripeProductId })
-        .eq('id', productId);
-    }
+        .select('*, product_variants(*), product_images(*)')
+        .eq('id', item.productId)
+        .single();
 
-    // Create or get Stripe price
-    let finalStripePriceId = stripePriceId;
-    if (!finalStripePriceId) {
-      const stripePrice = await stripe.prices.create({
-        product: stripeProductId,
-        unit_amount: priceCents,
-        currency: 'usd',
-      });
-      finalStripePriceId = stripePrice.id;
-
-      // Update variant with Stripe price ID if variant exists
-      if (variant) {
-        await supabase
-          .from('product_variants')
-          .update({ stripe_price_id: finalStripePriceId })
-          .eq('id', variantId);
+      if (productError || !product) {
+        return NextResponse.json({ error: `Product ${item.productId} not found` }, { status: 404 });
       }
+
+      cancelSlug = product.slug;
+      const variant = item.variantId
+        ? product.product_variants?.find((v: any) => v.id === item.variantId)
+        : null;
+
+      const priceId = await getOrCreateStripePrice(
+        supabase,
+        stripe,
+        product,
+        variant,
+        item.productId,
+        item.variantId
+      );
+
+      lineItems.push({ price: priceId, quantity: item.quantity });
     }
 
-    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: finalStripePriceId,
-          quantity,
-        },
-      ],
+      line_items: lineItems,
       mode: 'payment',
       success_url: `${request.nextUrl.origin}/shop?success=true`,
-      cancel_url: `${request.nextUrl.origin}/shop/${product.slug}?canceled=true`,
+      cancel_url: `${request.nextUrl.origin}/shop/${cancelSlug}?canceled=true`,
       metadata: {
-        productId,
-        variantId: variantId || '',
-        quantity: quantity.toString(),
+        cartItems: JSON.stringify(items),
       },
     });
 

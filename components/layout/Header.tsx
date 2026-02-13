@@ -25,8 +25,8 @@ export function Header() {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="/tour" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
-                Tour
+              <Link href="/events" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+                Events
               </Link>
               <Link href="/shop" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
                 Shop
@@ -89,11 +89,11 @@ export function Header() {
                   Home
                 </Link>
                 <Link
-                  href="/tour"
+                  href="/events"
                   onClick={() => setIsMenuOpen(false)}
                   className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
                 >
-                  Tour
+                  Events
                 </Link>
                 <Link
                   href="/shop"

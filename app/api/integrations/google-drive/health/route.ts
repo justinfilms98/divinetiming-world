@@ -27,16 +27,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!fileId) {
-      return NextResponse.json({ accessible: false, error: 'Could not resolve file ID' }, { status: 400 });
+      return NextResponse.json({ accessible: false, error: 'Could not resolve file ID' });
     }
 
     const accessible = await checkFileAccessible(fileId);
     return NextResponse.json({ accessible });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Check failed';
     console.error('Drive health-check error:', err);
-    return NextResponse.json(
-      { accessible: false, error: err.message || 'Check failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ accessible: false, error: msg });
   }
 }

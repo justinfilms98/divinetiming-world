@@ -76,10 +76,10 @@ export function HeroSection({ settings }: HeroSectionProps) {
             Listen
           </Link>
           <Link
-            href="/tour"
+            href="/events"
             className="px-6 py-3 bg-transparent border-2 border-[var(--accent)] text-[var(--text)] rounded-md hover:bg-[var(--accent)]/20 transition-colors font-semibold"
           >
-            Tour Dates
+            Events
           </Link>
           <Link
             href="/shop"
