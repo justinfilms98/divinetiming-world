@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 
+// EPK is only linked from Booking page, not global nav.
 const navItems = [
   { label: 'EVENTS', href: '/events', position: 'top-left' },
   { label: 'MEDIA', href: '/media', position: 'top-right' },
   { label: 'SHOP', href: '/shop', position: 'bottom-left' },
   { label: 'BOOKING', href: '/booking', position: 'bottom-right' },
 ];
+const mobileNavItems = navItems;
 
 export function CornerNav() {
   const pathname = usePathname();
@@ -45,11 +47,12 @@ export function CornerNav() {
 
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          const positionClasses = {
+          const positionClasses: Record<string, string> = {
             'top-left': 'top-6 left-6',
             'top-right': 'top-6 right-6',
             'bottom-left': 'bottom-6 left-6',
             'bottom-right': 'bottom-6 right-6',
+            'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2',
           };
 
           return (
@@ -121,7 +124,7 @@ export function CornerNav() {
             >
               HOME
             </Link>
-            {navItems.map((item) => (
+            {mobileNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
