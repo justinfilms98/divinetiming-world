@@ -173,7 +173,7 @@ export default function AdminSettingsPage() {
                     buttonLabel="Upload Image"
                   />
                   <p className="text-white/50 text-xs">
-                    Uses Uploadcare. Leave empty to use default eclipse image.
+                    Uses Uploadcare. Leave empty to use default eclipse image. For hero video or to edit the home hero, use <strong>Homepage</strong> or <strong>Heroes</strong> in the sidebar.
                   </p>
                 </div>
               )}
