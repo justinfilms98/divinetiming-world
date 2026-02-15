@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { Save, Check, X } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
-import { UniversalUploader } from '@/components/admin/UniversalUploader';
+import { Uploader } from '@/components/admin/Uploader';
 
 interface HeroSection {
   id: string;
@@ -50,9 +51,12 @@ export default function AdminHomepagePage() {
     setIsSaving(true);
     setSaved(false);
 
-    const { error } = await supabase
-      .from('hero_sections')
-      .update({
+    const res = await fetch('/api/admin/hero', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        page_slug: 'home',
         media_type: hero.media_type,
         media_url: hero.media_url,
         external_media_asset_id: hero.external_media_asset_id ?? null,
@@ -63,13 +67,14 @@ export default function AdminHomepagePage() {
         cta_url: hero.cta_url,
         animation_type: hero.animation_type,
         animation_enabled: hero.animation_enabled,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', hero.id);
+      }),
+    });
 
-    if (error) {
-      alert('Error saving: ' + error.message);
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error saving: ' + (data.error || res.statusText));
     } else {
+      if (data.hero) setHero(data.hero);
       await revalidateAfterSave('home');
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -91,29 +96,25 @@ export default function AdminHomepagePage() {
 
   if (isLoading) {
     return (
-      <div>
-        <PageHeader title="Homepage" description="Edit homepage hero and content" />
-        <div className="text-white/60">Loading...</div>
-      </div>
+      <PageShell title="Homepage" subtitle="Edit homepage hero and content">
+        <div className="text-white/60">Loading…</div>
+      </PageShell>
     );
   }
 
   if (!hero) {
     return (
-      <div>
-        <PageHeader title="Homepage" description="Edit homepage hero and content" />
+      <PageShell title="Homepage" subtitle="Edit homepage hero and content">
         <div className="text-white/60">Hero section not found. Run migrations.</div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Homepage Editor"
-        description="Visual preview — changes update instantly. Save to push live."
-      />
-
+    <PageShell
+      title="Homepage Editor"
+      subtitle="Visual preview — changes update instantly. Save to push live."
+    >
       <form onSubmit={handleSave} className="space-y-6">
         {/* Hero Preview */}
         <AdminCard>
@@ -199,7 +200,7 @@ export default function AdminHomepagePage() {
                   </div>
                 </div>
               ) : (
-                <UniversalUploader
+                <Uploader
                   acceptedTypes={['image', 'video']}
                   onSelected={handleMediaSelected}
                   className="flex-1"
@@ -273,15 +274,16 @@ export default function AdminHomepagePage() {
         </AdminCard>
 
         <div className="flex justify-end">
-          <button
+          <LuxuryButton
             type="submit"
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50"
+            loading={isSaving && !saved}
+            className="flex items-center gap-2"
           >
-            {saved ? <><Check className="w-4 h-4" />Saved!</> : <><Save className="w-4 h-4" />{isSaving ? 'Saving...' : 'Save & Push Live'}</>}
-          </button>
+            {saved ? <><Check className="w-4 h-4" />Saved!</> : <><Save className="w-4 h-4" />Save & Push Live</>}
+          </LuxuryButton>
         </div>
       </form>
-    </>
+    </PageShell>
   );
 }

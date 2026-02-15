@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { EmptyState } from '@/components/admin/EmptyState';
-import { UniversalUploader, type ExternalMediaAsset } from '@/components/admin/UniversalUploader';
+import { Uploader, type ExternalMediaAsset } from '@/components/admin/Uploader';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 import {
   Plus,
@@ -15,12 +16,10 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
-  Upload,
   X,
   Copy,
   Check,
 } from 'lucide-react';
-import { compressMedia } from '@/lib/utils/compressMedia';
 import { revalidateAfterSave } from '@/lib/revalidate';
 import type { Gallery, GalleryMedia } from '@/lib/types/content';
 import Image from 'next/image';
@@ -65,8 +64,6 @@ export default function AdminMediaPage() {
   const [showGalleryForm, setShowGalleryForm] = useState(false);
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [mediaModalGallery, setMediaModalGallery] = useState<GalleryWithMedia | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const supabase = createClient();
 
   const loadLibrary = useCallback(async () => {
@@ -132,9 +129,13 @@ export default function AdminMediaPage() {
 
   const handleDeleteAsset = async () => {
     if (!selectedAsset || !confirm('Remove this asset from the library?')) return;
-    const { error } = await supabase.from('external_media_assets').delete().eq('id', selectedAsset.id);
-    if (error) {
-      alert('Error: ' + error.message);
+    const res = await fetch(`/api/admin/media-library?id=${encodeURIComponent(selectedAsset.id)}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
       return;
     }
     setLibraryAssets((prev) => prev.filter((a) => a.id !== selectedAsset.id));
@@ -150,57 +151,54 @@ export default function AdminMediaPage() {
     setShowMediaModal(true);
   };
 
-  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !mediaModalGallery) return;
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    if (!isImage && !isVideo) {
-      alert('Please upload an image or video.');
-      return;
-    }
-    setUploading(true);
-    try {
-      const compressed = await compressMedia(file);
-      const ext = compressed.name.split('.').pop() || (isImage ? 'jpg' : 'mp4');
-      const path = `gallery-media/${mediaModalGallery.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('media').upload(path, compressed, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
-      const order = mediaModalGallery.gallery_media?.length ?? 0;
-      await supabase.from('gallery_media').insert({
+  const handleMediaFromLibrary = (asset: ExternalMediaAsset) => {
+    if (!mediaModalGallery) return;
+    const mediaType = (asset.mime_type || '').startsWith('video/') ? 'video' : 'image';
+    fetch('/api/admin/gallery-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
         gallery_id: mediaModalGallery.id,
-        media_type: isImage ? 'image' : 'video',
-        url: urlData.publicUrl,
-        thumbnail_url: isImage ? urlData.publicUrl : null,
-        display_order: order,
+        media_type: mediaType,
+        url: asset.preview_url,
+        thumbnail_url: asset.thumbnail_url || asset.preview_url,
+        external_media_asset_id: asset.id,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) {
+          alert('Error: ' + data.error);
+          return;
+        }
+        loadGalleries();
+        revalidateAfterSave('media');
+        supabase.from('galleries').select('*, gallery_media(*)').eq('id', mediaModalGallery!.id).single().then(({ data: d }) => {
+          if (d) setMediaModalGallery(d as GalleryWithMedia);
+        });
       });
-      await loadGalleries();
-      await revalidateAfterSave('media');
-      const updated = (await supabase.from('galleries').select('*, gallery_media(*)').eq('id', mediaModalGallery.id).single()).data;
-      if (updated) setMediaModalGallery(updated as GalleryWithMedia);
-    } catch (err: any) {
-      alert('Upload failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
   };
 
   const handleAddVideo = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const maxOrder = videos.length > 0 ? Math.max(...videos.map((v: any) => v.display_order ?? 0)) : -1;
-    await supabase.from('videos').insert({
-      title: formData.get('title') as string,
-      youtube_id: formData.get('youtube_id') as string,
-      thumbnail_url: (formData.get('thumbnail_url') as string) || null,
-      is_featured: formData.get('is_featured') === 'on',
-      display_order: maxOrder + 1,
+    const res = await fetch('/api/admin/videos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        title: formData.get('title'),
+        youtube_id: formData.get('youtube_id'),
+        thumbnail_url: (formData.get('thumbnail_url') as string) || null,
+        is_featured: formData.get('is_featured') === 'on',
+      }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadVideos();
     await revalidateAfterSave('media');
     (e.target as HTMLFormElement).reset();
@@ -211,19 +209,20 @@ export default function AdminMediaPage() {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const name = formData.get('title') as string;
-    let slug = slugify(name) || `gallery-${Date.now()}`;
-    const { data: existing } = await supabase.from('galleries').select('id').eq('slug', slug).maybeSingle();
-    if (existing) slug = `${slug}-${Date.now().toString(36).slice(-6)}`;
-    const maxOrder = galleries.length > 0 ? Math.max(...galleries.map((g) => g.display_order ?? 0)) : -1;
-    const { error } = await supabase.from('galleries').insert({
-      name,
-      slug,
-      description: (formData.get('description') as string) || null,
-      cover_image_url: (formData.get('cover_image_url') as string) || null,
-      display_order: maxOrder + 1,
+    const res = await fetch('/api/admin/galleries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        name,
+        description: (formData.get('description') as string) || null,
+        cover_url: (formData.get('cover_url') as string) || null,
+        cover_external_asset_id: (formData.get('cover_external_asset_id') as string) || null,
+      }),
     });
-    if (error) {
-      alert(`Error: ${error.message}`);
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
       return;
     }
     await loadGalleries();
@@ -234,14 +233,24 @@ export default function AdminMediaPage() {
 
   const handleDeleteVideo = async (id: string) => {
     if (!confirm('Delete this video?')) return;
-    await supabase.from('videos').delete().eq('id', id);
+    const res = await fetch(`/api/admin/videos?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadVideos();
     await revalidateAfterSave('media');
   };
 
   const handleDeleteGallery = async (id: string) => {
     if (!confirm('Delete this gallery? All media will be deleted.')) return;
-    await supabase.from('galleries').delete().eq('id', id);
+    const res = await fetch(`/api/admin/galleries?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     setExpandedGalleryId((prev) => (prev === id ? null : prev));
     await loadGalleries();
     await revalidateAfterSave('media');
@@ -249,11 +258,16 @@ export default function AdminMediaPage() {
 
   const handleDeleteMedia = async (id: string) => {
     if (!confirm('Remove this media from the gallery?')) return;
-    await supabase.from('gallery_media').delete().eq('id', id);
+    const res = await fetch(`/api/admin/gallery-media?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadGalleries();
     await revalidateAfterSave('media');
     if (mediaModalGallery) {
-      const updated = (await supabase.from('galleries').select('*, gallery_media(*)').eq('id', mediaModalGallery.id).single()).data;
+      const { data: updated } = await supabase.from('galleries').select('*, gallery_media(*)').eq('id', mediaModalGallery.id).single();
       if (updated) setMediaModalGallery(updated as GalleryWithMedia);
     }
   };
@@ -263,8 +277,17 @@ export default function AdminMediaPage() {
     if (target < 0 || target >= galleries.length) return;
     const a = galleries[index];
     const b = galleries[target];
-    await supabase.from('galleries').update({ display_order: b.display_order, updated_at: new Date().toISOString() }).eq('id', a.id);
-    await supabase.from('galleries').update({ display_order: a.display_order, updated_at: new Date().toISOString() }).eq('id', b.id);
+    const res = await fetch('/api/admin/galleries', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ swap: [a, b] }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadGalleries();
     await revalidateAfterSave('media');
   };
@@ -275,11 +298,20 @@ export default function AdminMediaPage() {
     if (target < 0 || target >= items.length) return;
     const a = items[index];
     const b = items[target];
-    await supabase.from('gallery_media').update({ display_order: b.display_order, updated_at: new Date().toISOString() }).eq('id', a.id);
-    await supabase.from('gallery_media').update({ display_order: a.display_order, updated_at: new Date().toISOString() }).eq('id', b.id);
+    const res = await fetch('/api/admin/gallery-media', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ items: [a, b] }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadGalleries();
     if (mediaModalGallery?.id === gallery.id) {
-      const updated = (await supabase.from('galleries').select('*, gallery_media(*)').eq('id', gallery.id).single()).data;
+      const { data: updated } = await supabase.from('galleries').select('*, gallery_media(*)').eq('id', gallery.id).single();
       if (updated) setMediaModalGallery(updated as GalleryWithMedia);
     }
   };
@@ -292,18 +324,26 @@ export default function AdminMediaPage() {
     let mediaType = formData.get('media_type') as 'image' | 'video';
     if (!url) return;
     if (url.includes('youtube.com') || url.includes('youtu.be')) mediaType = 'video';
-    const order = mediaModalGallery.gallery_media?.length ?? 0;
-    await supabase.from('gallery_media').insert({
-      gallery_id: mediaModalGallery.id,
-      media_type: mediaType,
-      url,
-      thumbnail_url: (formData.get('thumbnail_url') as string) || null,
-      caption: (formData.get('caption') as string) || null,
-      display_order: order,
+    const res = await fetch('/api/admin/gallery-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        gallery_id: mediaModalGallery.id,
+        media_type: mediaType,
+        url,
+        thumbnail_url: (formData.get('thumbnail_url') as string) || null,
+        caption: (formData.get('caption') as string) || null,
+      }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadGalleries();
     await revalidateAfterSave('media');
-    const updated = (await supabase.from('galleries').select('*, gallery_media(*)').eq('id', mediaModalGallery.id).single()).data;
+    const { data: updated } = await supabase.from('galleries').select('*, gallery_media(*)').eq('id', mediaModalGallery.id).single();
     if (updated) setMediaModalGallery(updated as GalleryWithMedia);
     (e.target as HTMLFormElement).reset();
   };
@@ -315,30 +355,28 @@ export default function AdminMediaPage() {
   ];
 
   return (
-    <>
-      <PageHeader
-        title="Media"
-        description="Library, galleries, and videos"
-        actions={
-          activeTab === 'library' ? (
-            <UniversalUploader
-              multiple
-              onSelected={handleLibraryUpload}
-              buttonLabel="Upload"
-              className="inline-flex"
-            />
-          ) : (
-            <button
-              onClick={() => (activeTab === 'videos' ? setShowVideoForm(true) : setShowGalleryForm(true))}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              {activeTab === 'videos' ? 'Add Video' : 'Create Gallery'}
-            </button>
-          )
-        }
-      />
-
+    <PageShell
+      title="Media"
+      subtitle="Library, galleries, and videos"
+      actions={
+        activeTab === 'library' ? (
+          <Uploader
+            multiple
+            onSelected={handleLibraryUpload}
+            buttonLabel="Upload"
+            className="inline-flex"
+          />
+        ) : (
+          <LuxuryButton
+            onClick={() => (activeTab === 'videos' ? setShowVideoForm(true) : setShowGalleryForm(true))}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            {activeTab === 'videos' ? 'Add Video' : 'Create Gallery'}
+          </LuxuryButton>
+        )
+      }
+    >
       <div className="flex gap-4 mb-6 border-b border-white/10">
         {tabs.map(({ id, label }) => (
           <button
@@ -386,7 +424,7 @@ export default function AdminMediaPage() {
                   title="No media in library"
                   description="Upload images or videos to reuse across heroes, events, and galleries."
                   action={
-                    <UniversalUploader
+                    <Uploader
                       multiple
                       onSelected={handleLibraryUpload}
                       buttonLabel="Upload Media"
@@ -524,8 +562,20 @@ export default function AdminMediaPage() {
                   <textarea name="description" rows={3} className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
                 </div>
                 <div>
-                  <label className="block text-white/70 text-sm mb-2">Cover Image URL (optional)</label>
-                  <input type="url" name="cover_image_url" className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white" />
+                  <label className="block text-white/70 text-sm mb-2">Cover image (optional)</label>
+                  <Uploader
+                    multiple={false}
+                    onSelected={(assets) => {
+                      const a = assets[0];
+                      if (a) {
+                        (document.querySelector('input[name="cover_external_asset_id"]') as HTMLInputElement).value = a.id;
+                        (document.querySelector('input[name="cover_url"]') as HTMLInputElement).value = a.preview_url;
+                      }
+                    }}
+                    buttonLabel="Upload cover image"
+                  />
+                  <input type="hidden" name="cover_external_asset_id" />
+                  <input type="hidden" name="cover_url" />
                 </div>
                 <div className="flex gap-3">
                   <button type="submit" className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg font-medium">Create</button>
@@ -700,19 +750,13 @@ export default function AdminMediaPage() {
             <div className="p-4 space-y-4">
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Upload file</label>
-                <input
-                  ref={fileInputRef}
-                  id="media-upload"
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleMediaUpload}
-                  className="hidden"
-                  disabled={uploading}
+                <Uploader
+                  multiple
+                  onSelected={(assets) => {
+                    assets.forEach((a) => handleMediaFromLibrary(a));
+                  }}
+                  buttonLabel="Upload image or video"
                 />
-                <label htmlFor="media-upload" className={`flex items-center justify-center gap-2 px-4 py-6 border-2 border-dashed border-white/20 rounded-lg cursor-pointer ${uploading ? 'opacity-50' : 'hover:border-[var(--accent)]'}`}>
-                  <Upload className="w-5 h-5" />
-                  {uploading ? 'Uploading…' : 'Upload image or video'}
-                </label>
               </div>
               <p className="text-white/50 text-sm text-center">— or add by URL —</p>
               <form onSubmit={handleAddMediaUrl} className="space-y-4">
@@ -741,6 +785,6 @@ export default function AdminMediaPage() {
           </div>
         </div>
       )}
-    </>
+    </PageShell>
   );
 }

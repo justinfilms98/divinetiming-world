@@ -142,6 +142,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* Uploadcare key missing banner (admin-only) */}
+        {typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY && (
+          <div className="mx-4 md:mx-8 mt-2 px-4 py-2 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-200 text-sm">
+            Uploads disabled: add <code className="bg-white/10 px-1 rounded">NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY</code> to <code className="bg-white/10 px-1 rounded">.env.local</code>
+          </div>
+        )}
+
         {/* Page Content - Centered */}
         <main className="p-4 md:p-8 flex justify-center">
           <div className="w-full max-w-4xl">{children}</div>

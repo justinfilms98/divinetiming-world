@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { Save, Check, ChevronRight, X } from 'lucide-react';
-import { UniversalUploader } from '@/components/admin/UniversalUploader';
+import { Uploader } from '@/components/admin/Uploader';
 import { revalidatePaths } from '@/lib/revalidate';
 import Link from 'next/link';
 
@@ -24,6 +25,10 @@ interface PageSettings {
   page_slug: string;
   seo_title: string | null;
   seo_description: string | null;
+  booking_about_title?: string | null;
+  booking_about_body?: string | null;
+  booking_about_asset_id?: string | null;
+  booking_about_image_url?: string | null;
 }
 
 interface HeroSection {
@@ -83,19 +88,11 @@ export default function AdminPagesPage() {
       return;
     }
 
-    const [psError, heroError] = await Promise.all([
-      supabase
-        .from('page_settings')
-        .update({
-          seo_title: ps.seo_title,
-          seo_description: ps.seo_description,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', ps.id)
-        .then((r) => r.error),
-      supabase
-        .from('hero_sections')
-        .update({
+    const body: Record<string, unknown> = {
+      page_slug: pageSlug,
+      seo_title: ps.seo_title,
+      seo_description: ps.seo_description,
+      hero: {
           media_type: hero.media_type,
           media_url: hero.media_url,
           external_media_asset_id: hero.external_media_asset_id ?? null,
@@ -106,14 +103,24 @@ export default function AdminPagesPage() {
           cta_url: hero.cta_url,
           animation_type: hero.animation_type,
           animation_enabled: hero.animation_enabled,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', hero.id)
-        .then((r) => r.error),
-    ]);
+        },
+    };
+    if (pageSlug === 'booking') {
+      body.booking_about_title = (ps as PageSettings).booking_about_title ?? '';
+      body.booking_about_body = (ps as PageSettings).booking_about_body ?? '';
+      body.booking_about_asset_id = (ps as PageSettings).booking_about_asset_id ?? null;
+      body.booking_about_image_url = (ps as PageSettings).booking_about_image_url ?? null;
+    }
+    const res = await fetch('/api/admin/page-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body),
+    });
 
-    if (psError || heroError) {
-      alert('Error saving: ' + (psError?.message || heroError?.message));
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error saving: ' + (data.error || res.statusText));
     } else {
       const paths = pageSlug === 'home' ? ['/'] : [`/${pageSlug}`];
       await revalidatePaths(paths);
@@ -141,28 +148,24 @@ export default function AdminPagesPage() {
   };
 
   return (
-    <>
-      <PageHeader
-        title="Page Settings"
-        description="SEO and hero settings for each page"
-        actions={
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin/heroes"
-              className="px-4 py-2 bg-[var(--accent)]/20 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/30 transition-colors text-sm font-medium"
-            >
+    <PageShell
+      title="Page Settings"
+      subtitle="SEO and hero settings for each page"
+      actions={
+        <div className="flex items-center gap-2">
+          <Link href="/admin/heroes">
+            <LuxuryButton variant="subtle" size="sm" className="text-[var(--accent)]">
               Hero Manager →
-            </Link>
-            <Link
-              href="/admin/homepage"
-              className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors text-sm"
-            >
+            </LuxuryButton>
+          </Link>
+          <Link href="/admin/homepage">
+            <LuxuryButton variant="ghost" size="sm">
               Full Home Hero Editor
-            </Link>
-          </div>
-        }
-      />
-
+            </LuxuryButton>
+          </Link>
+        </div>
+      }
+    >
       <div className="space-y-2">
         {PAGE_SLUGS.map((pageSlug) => {
           const ps = pageSettings[pageSlug];
@@ -299,7 +302,7 @@ export default function AdminPagesPage() {
                             </button>
                           </div>
                         ) : (
-                          <UniversalUploader
+                          <Uploader
                             acceptedTypes={['image', 'video']}
                             onSelected={handleMediaSelected(pageSlug)}
                             className="text-sm"
@@ -393,6 +396,90 @@ export default function AdminPagesPage() {
                     </div>
                   </div>
 
+                  {/* Booking About (only for booking page) */}
+                  {pageSlug === 'booking' && (
+                    <div>
+                      <h3 className="text-sm font-medium text-white/80 mb-3">About Section (right of inquiries)</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-white/60 text-xs mb-1">About Title</label>
+                          <input
+                            type="text"
+                            value={(ps as PageSettings).booking_about_title || ''}
+                            onChange={(e) =>
+                              setPageSettings((prev) => ({
+                                ...prev,
+                                [pageSlug]: { ...prev[pageSlug], booking_about_title: e.target.value },
+                              }))
+                            }
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+                            placeholder="About DIVINE:TIMING"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-white/60 text-xs mb-1">About Body</label>
+                          <textarea
+                            value={(ps as PageSettings).booking_about_body || ''}
+                            onChange={(e) =>
+                              setPageSettings((prev) => ({
+                                ...prev,
+                                [pageSlug]: { ...prev[pageSlug], booking_about_body: e.target.value },
+                              }))
+                            }
+                            rows={4}
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm resize-none"
+                            placeholder="Tell promoters about your act..."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-white/60 text-xs mb-1">About Image</label>
+                          {(ps as PageSettings).booking_about_image_url ? (
+                            <div className="relative inline-block">
+                              <img
+                                src={(ps as PageSettings).booking_about_image_url!}
+                                alt=""
+                                className="w-32 h-20 object-cover rounded-lg border border-white/10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPageSettings((prev) => ({
+                                    ...prev,
+                                    [pageSlug]: {
+                                      ...prev[pageSlug],
+                                      booking_about_image_url: null,
+                                      booking_about_asset_id: null,
+                                    },
+                                  }))
+                                }
+                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <Uploader
+                              acceptedTypes={['image']}
+                              onSelected={(assets) => {
+                                const a = assets[0];
+                                if (!a) return;
+                                setPageSettings((prev) => ({
+                                  ...prev,
+                                  [pageSlug]: {
+                                    ...prev[pageSlug],
+                                    booking_about_image_url: a.preview_url,
+                                    booking_about_asset_id: a.id,
+                                  },
+                                }));
+                              }}
+                              className="text-sm"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex justify-end">
                     <button
                       onClick={() => handleSavePage(pageSlug)}
@@ -418,6 +505,6 @@ export default function AdminPagesPage() {
           );
         })}
       </div>
-    </>
+    </PageShell>
   );
 }

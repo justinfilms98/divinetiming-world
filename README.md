@@ -29,7 +29,7 @@ STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 ```
 
 **Required for admin media uploads (Uploadcare):**
-- `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` – client-side; used by UniversalUploader (device, camera, URL, Google Drive, OneDrive, Dropbox)
+- `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` – client-side; used by admin Uploader (Uploadcare upload-client)
 - `SUPABASE_SERVICE_ROLE_KEY` – server-side; used by `/api/assets/external` and `/api/admin/events` (bypasses RLS)
 
 **Optional:** `ADMIN_EMAILS` – comma-separated list of emails that can access admin and save assets/events (alternative to `admin_users` table)

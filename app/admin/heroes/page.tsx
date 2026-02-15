@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { UniversalUploader } from '@/components/admin/UniversalUploader';
+import { Uploader } from '@/components/admin/Uploader';
 import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
 import { revalidatePaths } from '@/lib/revalidate';
 import Link from 'next/link';
@@ -88,9 +88,12 @@ export default function AdminHeroesPage() {
     if (!hero) return;
     setSaving(true);
     setSaved(false);
-    const { error } = await supabase
-      .from('hero_sections')
-      .update({
+    const res = await fetch('/api/admin/hero', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        page_slug: selectedSlug,
         media_type: hero.media_type,
         media_url: hero.media_url,
         external_media_asset_id: hero.external_media_asset_id ?? null,
@@ -99,13 +102,13 @@ export default function AdminHeroesPage() {
         subtext: hero.subtext,
         animation_type: hero.animation_type,
         animation_enabled: hero.animation_enabled,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', hero.id);
-
-    if (error) {
-      alert('Error saving: ' + error.message);
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error saving: ' + (data.error || res.statusText));
     } else {
+      if (data.hero) setHeroSections((prev) => ({ ...prev, [selectedSlug]: { ...prev[selectedSlug], ...data.hero } }));
       const path = selectedSlug === 'home' ? '/' : `/${selectedSlug}`;
       await revalidatePaths([path]);
       setSaved(true);
@@ -181,7 +184,7 @@ export default function AdminHeroesPage() {
                   )}
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <UniversalUploader
+                  <Uploader
                     acceptedTypes={['image', 'video']}
                     multiple={false}
                     onSelected={handleReplaceMedia}

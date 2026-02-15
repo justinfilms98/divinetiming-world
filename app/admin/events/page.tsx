@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
+import { LuxuryButton } from '@/components/ui/LuxuryButton';
+import { LuxurySkeletonGrid } from '@/components/ui/LuxurySkeleton';
 import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
-import { UniversalUploader } from '@/components/admin/UniversalUploader';
+import { Uploader } from '@/components/admin/Uploader';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 
 interface Event {
@@ -144,11 +146,18 @@ export default function AdminEventsPage() {
 
     const a = events[index];
     const b = events[targetIndex];
-    const aOrder = a.display_order;
-    const bOrder = b.display_order;
 
-    await supabase.from('events').update({ display_order: bOrder, updated_at: new Date().toISOString() }).eq('id', a.id);
-    await supabase.from('events').update({ display_order: aOrder, updated_at: new Date().toISOString() }).eq('id', b.id);
+    const res = await fetch('/api/admin/events', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ swap: [a, b] }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadEvents();
     await revalidateAfterSave('events');
   };
@@ -163,29 +172,23 @@ export default function AdminEventsPage() {
 
   if (isLoading) {
     return (
-      <div>
-        <PageHeader title="Events" description="Manage tour dates and events" />
-        <div className="text-white/60">Loading...</div>
-      </div>
+      <PageShell title="Events" subtitle="Manage tour dates and events">
+        <LuxurySkeletonGrid count={3} />
+      </PageShell>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Events"
-        description="Manage tour dates and upcoming shows"
-        actions={
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Create Event
-          </button>
-        }
-      />
-
+    <PageShell
+      title="Events"
+      subtitle="Manage tour dates and upcoming shows"
+      actions={
+        <LuxuryButton onClick={openCreate} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Create Event
+        </LuxuryButton>
+      }
+    >
       {events.length === 0 ? (
         <AdminCard>
           <EmptyState
@@ -193,13 +196,10 @@ export default function AdminEventsPage() {
             title="No events yet"
             description="Create your first event to start building your tour schedule."
             action={
-              <button
-                onClick={openCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-medium mx-auto"
-              >
+              <LuxuryButton onClick={openCreate} className="flex items-center gap-2 mx-auto">
                 <Plus className="w-4 h-4" />
                 Create Your First Event
-              </button>
+              </LuxuryButton>
             }
           />
         </AdminCard>
@@ -349,7 +349,7 @@ export default function AdminEventsPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <UniversalUploader
+                      <Uploader
                         acceptedTypes={['image']}
                         onSelected={handleThumbnailSelected}
                         className="inline-flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-white/20"
@@ -371,7 +371,7 @@ export default function AdminEventsPage() {
                     </div>
                   </div>
                 ) : (
-                  <UniversalUploader
+                  <Uploader
                     acceptedTypes={['image']}
                     onSelected={handleThumbnailSelected}
                     className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg hover:border-[var(--accent)]"
@@ -475,6 +475,6 @@ export default function AdminEventsPage() {
           </div>
         </div>
       )}
-    </>
+    </PageShell>
   );
 }

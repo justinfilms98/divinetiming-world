@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
-import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X, Upload } from 'lucide-react';
-import { compressMedia } from '@/lib/utils/compressMedia';
+import { LuxuryButton } from '@/components/ui/LuxuryButton';
+import { LuxurySkeletonGrid } from '@/components/ui/LuxurySkeleton';
+import { Uploader } from '@/components/admin/Uploader';
+import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 import Image from 'next/image';
 
@@ -42,8 +44,7 @@ export default function AdminShopPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImages, setPendingImages] = useState<{ url: string; id?: string }[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -91,148 +92,124 @@ export default function AdminShopPage() {
     let slug = formData.get('slug') as string;
     if (!slug) slug = slugify(formData.get('name') as string) || `product-${Date.now()}`;
 
-    const productData = {
-      name: formData.get('name') as string,
-      slug,
-      description: (formData.get('description') as string) || null,
-      price_cents: Math.round(parseFloat((formData.get('price') as string) || '0') * 100),
-      is_featured: formData.get('is_featured') === 'on',
-      is_active: formData.get('is_active') === 'on',
-      updated_at: new Date().toISOString(),
-    };
+    const textareaUrls = ((formData.get('image_urls') as string) || '')
+      .split(/\r?\n/)
+      .map((u) => u.trim())
+      .filter(Boolean)
+      .map((url) => ({ url }));
 
-    if (editingProduct) {
-      await supabase.from('products').update(productData).eq('id', editingProduct.id);
-    } else {
-      const maxOrder = products.length > 0 ? Math.max(...products.map((p) => p.display_order ?? 0)) : -1;
-      const { data: inserted } = await supabase
-        .from('products')
-        .insert({ ...productData, display_order: maxOrder + 1 })
-        .select('id')
-        .single();
+    const images = [...pendingImages.map((p) => ({ url: p.url, external_media_asset_id: p.id })), ...textareaUrls].filter((i) => i.url);
 
-      if (inserted) {
-        const uploadedUrls = (formData.getAll('image_url') as string[]).map((u) => u?.trim()).filter(Boolean);
-        const textareaUrls = ((formData.get('image_urls') as string) || '')
-          .split(/\r?\n/)
-          .map((u) => u.trim())
-          .filter(Boolean);
-        const imageUrls = [...uploadedUrls, ...textareaUrls];
-        for (let i = 0; i < imageUrls.length; i++) {
-          if (imageUrls[i]) {
-            await supabase.from('product_images').insert({
-              product_id: inserted.id,
-              image_url: imageUrls[i],
-              display_order: i,
-            });
-          }
-        }
-      }
+    const res = await fetch('/api/admin/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        id: editingProduct?.id,
+        name: formData.get('name'),
+        slug,
+        description: (formData.get('description') as string) || null,
+        price: parseFloat((formData.get('price') as string) || '0'),
+        is_featured: formData.get('is_featured') === 'on',
+        is_active: formData.get('is_active') === 'on',
+        images,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
     }
 
+    setPendingImages([]);
     await loadProducts();
     const paths = editingProduct?.slug ? ['/shop', `/shop/${editingProduct.slug}`] : ['/shop'];
     await revalidatePaths(paths);
     closeModal();
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-
-    setUploading(true);
-    try {
-      const compressed = await compressMedia(file);
-      const ext = compressed.name.split('.').pop() || 'jpg';
-      const path = `product-images/${Date.now()}.${ext}`;
-
-      const { error } = await supabase.storage.from('media').upload(path, compressed, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
-      const container = document.getElementById('product-images-list');
-      if (container) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'image_url';
-        input.value = urlData.publicUrl;
-        container.appendChild(input);
-      }
-      const preview = document.getElementById('product-images-preview');
-      if (preview) {
-        const div = document.createElement('div');
-        div.className = 'relative w-20 h-20 rounded-lg overflow-hidden bg-white/5 flex-shrink-0';
-        div.innerHTML = `<img src="${urlData.publicUrl}" alt="" class="w-full h-full object-cover" />`;
-        preview.appendChild(div);
-      }
-    } catch (err: any) {
-      alert('Upload failed: ' + (err.message || 'Unknown error'));
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+  const handleImageSelected = (assets: { id: string; preview_url: string }[]) => {
+    setPendingImages((prev) => [...prev, ...assets.map((a) => ({ url: a.preview_url, id: a.id }))]);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this product? This cannot be undone.')) return;
-    await supabase.from('products').delete().eq('id', id);
+    const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadProducts();
     await revalidateAfterSave('shop');
   };
 
   const handleRemoveImage = async (productId: string, imageId: string, productSlug?: string) => {
-    await supabase.from('product_images').delete().eq('id', imageId);
+    const res = await fetch(`/api/admin/product-images?id=${imageId}&slug=${productSlug || ''}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadProducts();
     await revalidatePaths(productSlug ? ['/shop', `/shop/${productSlug}`] : ['/shop']);
-    setEditingProduct((prev) =>
-      prev && prev.id === productId
-        ? { ...prev, product_images: (prev.product_images || []).filter((img) => img.id !== imageId) }
-        : prev
-    );
+    const { data: d } = await supabase
+      .from('products')
+      .select('*, product_images(id, image_url, display_order)')
+      .eq('id', productId)
+      .single();
+    if (d) setEditingProduct({ ...d, product_images: (d.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
   };
 
   const handleAddImageToProduct = async (productId: string, url: string, productSlug?: string) => {
-    const images = editingProduct?.product_images || [];
-    const maxOrder = images.length > 0 ? Math.max(...images.map((i) => i.display_order ?? 0)) : -1;
-    await supabase.from('product_images').insert({
-      product_id: productId,
-      image_url: url.trim(),
-      display_order: maxOrder + 1,
+    const res = await fetch('/api/admin/product-images', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        product_id: productId,
+        url: url.trim(),
+        slug: productSlug,
+      }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error: ' + (data.error || res.statusText));
+      return;
+    }
     await loadProducts();
     await revalidatePaths(productSlug ? ['/shop', `/shop/${productSlug}`] : ['/shop']);
-    const { data } = await supabase.from('products').select('*, product_images(id, image_url, display_order)').eq('id', productId).single();
-    if (data) setEditingProduct({ ...data, product_images: (data.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
+    const { data: d } = await supabase
+      .from('products')
+      .select('*, product_images(id, image_url, display_order)')
+      .eq('id', productId)
+      .single();
+    if (d) setEditingProduct({ ...d, product_images: (d.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
   };
 
   if (isLoading) {
     return (
-      <div>
-        <PageHeader title="Shop" description="Manage products and inventory" />
-        <div className="text-white/60">Loading...</div>
-      </div>
+      <PageShell title="Shop" subtitle="Manage products and inventory">
+        <LuxurySkeletonGrid count={6} />
+      </PageShell>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Shop"
-        description="Manage your merchandise and products"
-        actions={
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </button>
-        }
-      />
-
+    <PageShell
+      title="Shop"
+      subtitle="Manage your merchandise and products"
+      actions={
+        <LuxuryButton onClick={openCreate} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Product
+        </LuxuryButton>
+      }
+    >
       {products.length === 0 ? (
         <AdminCard>
           <EmptyState
@@ -240,13 +217,10 @@ export default function AdminShopPage() {
             title="No products yet"
             description="Add your first product to start selling merchandise."
             action={
-              <button
-                onClick={openCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-medium mx-auto"
-              >
+              <LuxuryButton onClick={openCreate} className="flex items-center gap-2 mx-auto">
                 <Plus className="w-4 h-4" />
                 Add Your First Product
-              </button>
+              </LuxuryButton>
             }
           />
         </AdminCard>
@@ -387,24 +361,28 @@ export default function AdminShopPage() {
               {!editingProduct && (
                 <div>
                   <label className="block text-white/70 text-sm font-medium mb-2">Product Images</label>
-                  <div id="product-images-list" className="hidden" />
-                  <div id="product-images-preview" className="flex flex-wrap gap-2 mb-2" />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="product-image-upload"
-                    disabled={uploading}
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {pendingImages.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5">
+                          <Image src={img.url} alt="" width={80} height={80} className="w-full h-full object-cover" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPendingImages((p) => p.filter((_, j) => j !== i))}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <Uploader
+                    multiple
+                    acceptedTypes={['image']}
+                    onSelected={handleImageSelected}
+                    buttonLabel="Upload image"
                   />
-                  <label
-                    htmlFor="product-image-upload"
-                    className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg cursor-pointer transition-colors ${uploading ? 'opacity-50' : 'hover:border-[var(--accent)]'}`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    {uploading ? 'Uploading...' : 'Upload image'}
-                  </label>
                   <p className="text-white/50 text-xs mt-1">Or add image URLs (one per line) below</p>
                   <textarea
                     name="image_urls"
@@ -457,40 +435,16 @@ export default function AdminShopPage() {
                       Add URL
                     </button>
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !editingProduct) return;
-                      setUploading(true);
-                      try {
-                        const compressed = await compressMedia(file);
-                        const ext = compressed.name.split('.').pop() || 'jpg';
-                        const path = `product-images/${Date.now()}.${ext}`;
-                        const { error } = await supabase.storage.from('media').upload(path, compressed, { cacheControl: '3600', upsert: false });
-                        if (error) throw error;
-                        const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
-                        await handleAddImageToProduct(editingProduct.id, urlData.publicUrl, editingProduct.slug);
-                      } catch (err: any) {
-                        alert('Upload failed: ' + (err.message || 'Unknown error'));
-                      } finally {
-                        setUploading(false);
-                        if (fileInputRef.current) fileInputRef.current.value = '';
-                      }
+                  <Uploader
+                    multiple={false}
+                    acceptedTypes={['image']}
+                    onSelected={(assets) => {
+                      const a = assets[0];
+                      if (a && editingProduct) handleAddImageToProduct(editingProduct.id, a.preview_url, editingProduct.slug);
                     }}
-                    className="hidden"
-                    id="edit-product-image-upload"
-                    disabled={uploading}
+                    buttonLabel="Upload image"
+                    className="mt-2"
                   />
-                  <label
-                    htmlFor="edit-product-image-upload"
-                    className={`inline-flex items-center gap-2 px-4 py-2 mt-2 bg-white/5 border border-white/10 rounded-lg cursor-pointer text-sm ${uploading ? 'opacity-50' : 'hover:border-white/20'}`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    {uploading ? 'Uploading...' : 'Upload image'}
-                  </label>
                 </div>
               )}
 
@@ -530,6 +484,6 @@ export default function AdminShopPage() {
           </div>
         </div>
       )}
-    </>
+    </PageShell>
   );
 }
