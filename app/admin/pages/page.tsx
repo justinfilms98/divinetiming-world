@@ -146,12 +146,20 @@ export default function AdminPagesPage() {
         title="Page Settings"
         description="SEO and hero settings for each page"
         actions={
-          <Link
-            href="/admin/homepage"
-            className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors text-sm"
-          >
-            Full Home Hero Editor →
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/heroes"
+              className="px-4 py-2 bg-[var(--accent)]/20 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/30 transition-colors text-sm font-medium"
+            >
+              Hero Manager →
+            </Link>
+            <Link
+              href="/admin/homepage"
+              className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors text-sm"
+            >
+              Full Home Hero Editor
+            </Link>
+          </div>
         }
       />
 

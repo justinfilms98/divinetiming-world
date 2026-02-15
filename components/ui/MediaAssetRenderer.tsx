@@ -18,6 +18,8 @@ interface MediaAssetRendererProps {
   onError?: () => void;
   /** Optional: 'uploadcare' | 'google_drive' - detected from URL if not set */
   provider?: 'uploadcare' | 'google_drive' | string | null;
+  /** For video: show controls (play/pause, volume). Default false for hero-style autoplay. */
+  controls?: boolean;
   /** Fallback when no media URL (e.g. default hero) */
   fallback?: React.ReactNode;
   /** Fallback when media fails to load (e.g. Drive inaccessible). Defaults to MediaUnavailableFallback */
@@ -56,12 +58,14 @@ export function MediaAssetRenderer({
   sizes = '100vw',
   onError,
   provider: providerProp,
+  controls = false,
   fallback = HeroEclipseFallback,
   errorFallback = MediaUnavailableFallback,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [imgFallbackFailed, setImgFallbackFailed] = useState(false);
-  const isUploadcare = providerProp === 'uploadcare' || (!providerProp && url?.includes('ucarecdn.com'));
+  const isUploadcare =
+    providerProp === 'uploadcare' || (!providerProp && url?.includes('ucarecdn.com'));
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
   const [driveInaccessible, setDriveInaccessible] = useState(false);
 
@@ -136,6 +140,22 @@ export function MediaAssetRenderer({
           allow="autoplay"
           title={alt || 'Video'}
         />
+      );
+    }
+    if (controls) {
+      return (
+        <video
+          src={url}
+          controls
+          playsInline
+          preload="metadata"
+          className={`w-full h-full ${className}`}
+          style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
+          onError={handleError}
+        >
+          <source src={url} type="video/mp4" />
+          <source src={url} type="video/webm" />
+        </video>
       );
     }
     return (

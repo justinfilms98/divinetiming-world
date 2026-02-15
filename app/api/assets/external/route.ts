@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceRoleClient } from '@/lib/supabase/server-role';
+import { getServiceClient } from '@/lib/supabase/service';
 
 interface UploadcareFile {
   uuid: string;
@@ -8,6 +8,15 @@ interface UploadcareFile {
   mimeType: string;
   size?: number;
   name?: string;
+}
+
+function isAdmin(email: string): boolean {
+  const admins = process.env.ADMIN_EMAILS;
+  if (admins) {
+    const list = admins.split(',').map((e) => e.trim().toLowerCase());
+    if (list.includes(email.toLowerCase())) return true;
+  }
+  return false;
 }
 
 /**
@@ -23,18 +32,23 @@ export async function POST(request: NextRequest) {
     if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { data } = await authClient
-      .from('admin_users')
-      .select('id')
-      .eq('email', user.email.toLowerCase())
-      .single();
-    if (!data) {
+    const email = user.email.toLowerCase();
+    let allowed = isAdmin(email);
+    if (!allowed) {
+      const { data } = await authClient
+        .from('admin_users')
+        .select('id')
+        .eq('email', email)
+        .single();
+      allowed = !!data;
+    }
+    if (!allowed) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     let supabase;
     try {
-      supabase = createServiceRoleClient();
+      supabase = getServiceClient();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'SUPABASE_SERVICE_ROLE_KEY not configured';
       return NextResponse.json({ error: msg }, { status: 500 });
@@ -48,6 +62,14 @@ export async function POST(request: NextRequest) {
     }
     if (!Array.isArray(files) || files.length === 0) {
       return NextResponse.json({ error: 'files array required' }, { status: 400 });
+    }
+    for (const f of files) {
+      if (!f.cdnUrl || typeof f.cdnUrl !== 'string' || !f.cdnUrl.includes('ucarecdn.com')) {
+        return NextResponse.json(
+          { error: 'Each file must have a valid cdnUrl from ucarecdn.com' },
+          { status: 400 }
+        );
+      }
     }
 
     const rows = files.map((f) => {

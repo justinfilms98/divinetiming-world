@@ -67,6 +67,13 @@ export default function AdminEventsPage() {
     if (input) input.value = asset.preview_url;
     if (extInput) extInput.value = asset.id;
     setPreviewThumbnail(asset.preview_url);
+    if (editingEvent) {
+      setEditingEvent({
+        ...editingEvent,
+        thumbnail_url: asset.preview_url,
+        external_thumbnail_asset_id: asset.id,
+      });
+    }
   };
 
   const closeModal = () => {
@@ -80,7 +87,7 @@ export default function AdminEventsPage() {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
-    const eventData = {
+    const payload: Record<string, unknown> = {
       date: formData.get('date') as string,
       city: formData.get('city') as string,
       venue: formData.get('venue') as string,
@@ -91,14 +98,24 @@ export default function AdminEventsPage() {
       time: (formData.get('time') as string) || null,
       thumbnail_url: (formData.get('thumbnail_url') as string) || null,
       external_thumbnail_asset_id: (formData.get('external_thumbnail_asset_id') as string) || null,
-      updated_at: new Date().toISOString(),
     };
-
     if (editingEvent) {
-      await supabase.from('events').update(eventData).eq('id', editingEvent.id);
+      payload.id = editingEvent.id;
     } else {
       const maxOrder = events.length > 0 ? Math.max(...events.map((e) => e.display_order)) : -1;
-      await supabase.from('events').insert({ ...eventData, display_order: maxOrder + 1 });
+      payload.display_order = maxOrder + 1;
+    }
+
+    const res = await fetch('/api/admin/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'same-origin',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert('Error saving event: ' + (data.error || res.statusText));
+      return;
     }
 
     await loadEvents();
@@ -108,7 +125,15 @@ export default function AdminEventsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this event?')) return;
-    await supabase.from('events').delete().eq('id', id);
+    const res = await fetch(`/api/admin/events?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert('Error deleting event: ' + (data.error || res.statusText));
+      return;
+    }
     await loadEvents();
     await revalidateAfterSave('events');
   };

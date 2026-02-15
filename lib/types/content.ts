@@ -19,6 +19,7 @@ export interface HeroSection {
   page_slug: PageSlug;
   media_type: 'image' | 'video' | 'default';
   media_url: string | null;
+  external_media_asset_id?: string | null;
   overlay_opacity: number;
   headline: string | null;
   subtext: string | null;
