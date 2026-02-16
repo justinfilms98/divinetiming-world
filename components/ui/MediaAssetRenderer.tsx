@@ -1,10 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
-
-const BLUR_PLACEHOLDER =
-  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEAAhEAL/2gAMAwEAAhEDEQA/AL8A/9k=';
 
 interface MediaAssetRendererProps {
   url: string | null;
@@ -45,8 +41,6 @@ export const HeroEclipseFallback = (
   </div>
 );
 
-const DEFAULT_FALLBACK = MediaUnavailableFallback;
-
 export function MediaAssetRenderer({
   url,
   mediaType,
@@ -63,9 +57,6 @@ export function MediaAssetRenderer({
   errorFallback = MediaUnavailableFallback,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
-  const [imgFallbackFailed, setImgFallbackFailed] = useState(false);
-  const isUploadcare =
-    providerProp === 'uploadcare' || (!providerProp && url?.includes('ucarecdn.com'));
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
   const [driveInaccessible, setDriveInaccessible] = useState(false);
 
@@ -104,30 +95,8 @@ export function MediaAssetRenderer({
   if (!url || !effectiveType) {
     return <>{fallback}</>;
   }
-  if (hasError && !(effectiveType === 'image' && isUploadcare && !imgFallbackFailed)) {
-    return <>{errorFallback}</>;
-  }
-  if (isDriveVideo && driveHealthChecked && driveInaccessible) {
-    return <>{errorFallback}</>;
-  }
-
-  const isDriveImage = effectiveType === 'image' && url.includes('drive.google.com');
-
-  // Uploadcare image: Next/Image with img fallback on error
-  if (effectiveType === 'image' && isUploadcare && hasError && !imgFallbackFailed) {
-    return (
-      <img
-        src={url}
-        alt={alt}
-        className={`w-full h-full ${className}`}
-        style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
-        onError={() => setImgFallbackFailed(true)}
-      />
-    );
-  }
-  if (effectiveType === 'image' && isUploadcare && hasError && imgFallbackFailed) {
-    return <>{errorFallback}</>;
-  }
+  if (hasError) return <>{errorFallback}</>;
+  if (isDriveVideo && driveHealthChecked && driveInaccessible) return <>{errorFallback}</>;
 
   // Video: native for uploadcare + direct URLs, iframe for Google Drive
   if (effectiveType === 'video') {
@@ -175,29 +144,16 @@ export function MediaAssetRenderer({
     );
   }
 
-  // Image: Next.js Image for uploadcare + allowed domains, img for Drive
+  // Image: direct CDN rendering (no proxy). Native <img> for Uploadcare + Drive.
+  // Phase 29A: Never use /image?url= proxy. Uploadcare CDN is public, fast, cached.
   if (effectiveType === 'image') {
-    if (isDriveImage) {
-      return (
-        <img
-          src={url}
-          alt={alt}
-          className={`w-full h-full ${className}`}
-          style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
-          onError={handleError}
-        />
-      );
-    }
     return (
-      <Image
+      <img
         src={url}
         alt={alt}
-        fill={fill}
-        className={`${objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${className}`}
-        priority={priority}
-        placeholder="blur"
-        blurDataURL={BLUR_PLACEHOLDER}
-        sizes={sizes}
+        className={`w-full h-full ${objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${className}`}
+        style={fill ? { position: 'absolute', inset: 0 } : undefined}
+        loading={priority ? 'eager' : 'lazy'}
         onError={handleError}
       />
     );
