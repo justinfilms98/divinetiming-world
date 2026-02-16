@@ -5,11 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
-import { LuxuryButton } from '@/components/ui/LuxuryButton';
-import { LuxurySkeletonGrid } from '@/components/ui/LuxurySkeleton';
 import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
-import { Uploader } from '@/components/admin/Uploader';
+import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 
 interface Event {
@@ -61,19 +59,19 @@ export default function AdminEventsPage() {
     setModalOpen(true);
   };
 
-  const handleThumbnailSelected = (assets: { id: string; preview_url: string }[]) => {
-    const asset = assets[0];
-    if (!asset) return;
+  const handleThumbnailSelected = (files: UploadedFile[]) => {
+    const file = files[0];
+    if (!file) return;
     const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
     const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
-    if (input) input.value = asset.preview_url;
-    if (extInput) extInput.value = asset.id;
-    setPreviewThumbnail(asset.preview_url);
+    if (input) input.value = file.url;
+    if (extInput) extInput.value = file.id || '';
+    setPreviewThumbnail(file.url);
     if (editingEvent) {
       setEditingEvent({
         ...editingEvent,
-        thumbnail_url: asset.preview_url,
-        external_thumbnail_asset_id: asset.id,
+        thumbnail_url: file.url,
+        external_thumbnail_asset_id: file.id ?? null,
       });
     }
   };
@@ -173,7 +171,7 @@ export default function AdminEventsPage() {
   if (isLoading) {
     return (
       <AdminPage title="Events" subtitle="Manage tour dates and events">
-        <LuxurySkeletonGrid count={3} />
+        <div className="text-slate-500">Loading…</div>
       </AdminPage>
     );
   }
@@ -183,10 +181,14 @@ export default function AdminEventsPage() {
       title="Events"
       subtitle="Manage tour dates and upcoming shows"
       actions={
-        <LuxuryButton onClick={openCreate} className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={openCreate}
+          className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+        >
           <Plus className="w-4 h-4" />
-          Create Event
-        </LuxuryButton>
+          New Event
+        </button>
       }
     >
       {events.length === 0 ? (
@@ -196,10 +198,14 @@ export default function AdminEventsPage() {
             title="No events yet"
             description="Create your first event to start building your tour schedule."
             action={
-              <LuxuryButton onClick={openCreate} className="flex items-center gap-2 mx-auto">
+              <button
+                type="button"
+                onClick={openCreate}
+                className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium mx-auto"
+              >
                 <Plus className="w-4 h-4" />
                 Create Your First Event
-              </LuxuryButton>
+              </button>
             }
           />
         </AdminCard>
@@ -349,10 +355,10 @@ export default function AdminEventsPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Uploader
+                      <UniversalUploader
                         acceptedTypes={['image']}
                         onSelected={handleThumbnailSelected}
-                        className="inline-flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm hover:border-white/20"
+                        className="inline-flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg text-sm hover:border-slate-400"
                       />
                       <button
                         type="button"
@@ -371,10 +377,10 @@ export default function AdminEventsPage() {
                     </div>
                   </div>
                 ) : (
-                  <Uploader
+                  <UniversalUploader
                     acceptedTypes={['image']}
                     onSelected={handleThumbnailSelected}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-white/20 rounded-lg hover:border-[var(--accent)]"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-500"
                   />
                 )}
               </div>

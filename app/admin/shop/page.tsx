@@ -5,9 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
-import { LuxuryButton } from '@/components/ui/LuxuryButton';
-import { LuxurySkeletonGrid } from '@/components/ui/LuxurySkeleton';
-import { Uploader } from '@/components/admin/Uploader';
+import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 import Image from 'next/image';
@@ -129,8 +127,8 @@ export default function AdminShopPage() {
     closeModal();
   };
 
-  const handleImageSelected = (assets: { id: string; preview_url: string }[]) => {
-    setPendingImages((prev) => [...prev, ...assets.map((a) => ({ url: a.preview_url, id: a.id }))]);
+  const handleImageSelected = (files: UploadedFile[]) => {
+    setPendingImages((prev) => [...prev, ...files.map((f) => ({ url: f.url, id: f.id }))]);
   };
 
   const handleDelete = async (id: string) => {
@@ -194,7 +192,7 @@ export default function AdminShopPage() {
   if (isLoading) {
     return (
       <AdminPage title="Shop" subtitle="Manage products and inventory">
-        <LuxurySkeletonGrid count={6} />
+        <div className="text-slate-500">Loading…</div>
       </AdminPage>
     );
   }
@@ -204,10 +202,14 @@ export default function AdminShopPage() {
       title="Shop"
       subtitle="Manage your merchandise and products"
       actions={
-        <LuxuryButton onClick={openCreate} className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={openCreate}
+          className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+        >
           <Plus className="w-4 h-4" />
-          Add Product
-        </LuxuryButton>
+          New Product
+        </button>
       }
     >
       {products.length === 0 ? (
@@ -217,10 +219,14 @@ export default function AdminShopPage() {
             title="No products yet"
             description="Add your first product to start selling merchandise."
             action={
-              <LuxuryButton onClick={openCreate} className="flex items-center gap-2 mx-auto">
+              <button
+                type="button"
+                onClick={openCreate}
+                className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium mx-auto"
+              >
                 <Plus className="w-4 h-4" />
                 Add Your First Product
-              </LuxuryButton>
+              </button>
             }
           />
         </AdminCard>
@@ -377,7 +383,7 @@ export default function AdminShopPage() {
                       </div>
                     ))}
                   </div>
-                  <Uploader
+                  <UniversalUploader
                     multiple
                     acceptedTypes={['image']}
                     onSelected={handleImageSelected}
@@ -435,12 +441,12 @@ export default function AdminShopPage() {
                       Add URL
                     </button>
                   </div>
-                  <Uploader
+                  <UniversalUploader
                     multiple={false}
                     acceptedTypes={['image']}
-                    onSelected={(assets) => {
-                      const a = assets[0];
-                      if (a && editingProduct) handleAddImageToProduct(editingProduct.id, a.preview_url, editingProduct.slug);
+                    onSelected={(files) => {
+                      const f = files[0];
+                      if (f && editingProduct) handleAddImageToProduct(editingProduct.id, f.url, editingProduct.slug);
                     }}
                     buttonLabel="Upload image"
                     className="mt-2"

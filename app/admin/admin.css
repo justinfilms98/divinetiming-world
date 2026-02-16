@@ -1,0 +1,81 @@
+/* Admin-only theme: neutral tooling UI, distinct from public site. */
+/* Loaded only by AdminShell (app/admin/layout). Do not import on public pages. */
+/* Applied only when admin layout is mounted (html.admin-active). No public gradients. */
+
+html.admin-active,
+html.admin-active body {
+  overflow-x: hidden;
+}
+
+.admin-root {
+  --admin-bg: 248 250 252; /* slate-50 */
+  --admin-sidebar: 241 245 249; /* slate-100 */
+  --admin-card-border: 226 232 240; /* slate-200 */
+  --admin-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --admin-input-border: 203 213 225; /* slate-300 */
+  --admin-accent: 51 65 85; /* slate-700 */
+  --admin-accent-hover: 30 41 59; /* slate-800 */
+}
+
+.dark-admin .admin-root {
+  --admin-bg: 15 23 42; /* slate-900 */
+  --admin-sidebar: 30 41 59; /* slate-800 */
+  --admin-card-border: 51 65 85;
+  --admin-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --admin-input-border: 71 85 105;
+  --admin-accent: 148 163 184;
+  --admin-accent-hover: 203 213 225;
+}
+
+.admin-root {
+  background-color: rgb(var(--admin-bg));
+  color: rgb(15 23 42);
+}
+
+.admin-sidebar {
+  background-color: rgb(var(--admin-sidebar));
+  border-right: 1px solid rgb(var(--admin-card-border));
+}
+
+.admin-card {
+  background: white;
+  border: 1px solid rgb(var(--admin-card-border));
+  box-shadow: var(--admin-card-shadow);
+  border-radius: 0.75rem;
+}
+
+.dark-admin .admin-card {
+  background: rgb(30 41 59);
+  border-color: rgb(var(--admin-card-border));
+  color: rgb(226 232 240);
+}
+
+.admin-btn-primary {
+  background: rgb(var(--admin-accent));
+  color: white;
+}
+
+.admin-btn-primary:hover {
+  background: rgb(var(--admin-accent-hover));
+}
+
+.dark-admin .admin-btn-primary {
+  background: rgb(51 65 85);
+  color: rgb(226 232 240);
+}
+
+.dark-admin .admin-btn-primary:hover {
+  background: rgb(71 85 105);
+}
+
+.admin-input {
+  border: 1px solid rgb(var(--admin-input-border));
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.dark-admin .admin-input {
+  background: rgb(30 41 59);
+  border-color: rgb(71 85 105);
+  color: rgb(226 232 240);
+}

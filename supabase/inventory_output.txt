@@ -1,0 +1,4 @@
+# Supabase inventory output
+# Paste here the full text output from running supabase/inventory_queries.sql in Supabase SQL Editor.
+# Then run: node scripts/supabase-inventory.mjs
+# This file will be parsed to suggest safe-to-uncomment DROP lines for 019_phase30i_cleanup_audit.sql Section 3.
