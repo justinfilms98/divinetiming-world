@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { track } from '@/lib/analytics/track';
 
 const BUDGET_OPTIONS = [
   'Under $1,000',
@@ -40,6 +41,7 @@ export function BookingForm() {
         throw new Error(data.error || 'Failed to submit');
       }
 
+      track({ event_name: 'booking_submit' });
       setStatus('success');
       setFormData({
         name: '',

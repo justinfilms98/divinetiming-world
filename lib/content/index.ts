@@ -50,6 +50,20 @@ export async function getHeroSection(pageSlug: string): Promise<HeroSection | nu
   return data as HeroSection;
 }
 
+/** Get event by slug or id (for detail page) */
+export async function getEventBySlug(slugOrId: string): Promise<Event | null> {
+  const supabase = await createClient();
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isUuid = uuidRegex.test(slugOrId);
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .or(isUuid ? `id.eq.${slugOrId}` : `slug.eq.${slugOrId}`)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as Event;
+}
+
 /** Get all events (upcoming first, then by display_order) */
 export async function getEvents(options?: { upcomingOnly?: boolean }): Promise<Event[]> {
   const supabase = await createClient();

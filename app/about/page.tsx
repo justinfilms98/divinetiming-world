@@ -8,7 +8,7 @@ import {
   getHeroSection,
   getPageSettings,
 } from '@/lib/content';
-import { AboutHero } from '@/components/about/AboutHero';
+import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { AboutContent } from '@/components/about/AboutContent';
 
 export const dynamic = 'force-dynamic';
@@ -35,12 +35,13 @@ export default async function AboutPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 pt-16">
-        <AboutHero
-          mediaType={mediaType}
-          mediaUrl={mediaUrl}
+        <UnifiedHero
+          mediaType={mediaType ?? undefined}
+          mediaUrl={mediaUrl ?? undefined}
           overlayOpacity={Number(overlayOpacity)}
           headline={headline}
-          subtext={subtext}
+          subtext={subtext ?? undefined}
+          heightPreset="standard"
         />
 
         <AboutContent

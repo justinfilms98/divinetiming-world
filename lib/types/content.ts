@@ -10,6 +10,10 @@ export interface PageSettings {
   page_slug: PageSlug;
   seo_title: string | null;
   seo_description: string | null;
+  booking_about_title?: string | null;
+  booking_about_body?: string | null;
+  booking_about_asset_id?: string | null;
+  booking_about_image_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +37,7 @@ export interface HeroSection {
 
 export interface Event {
   id: string;
+  slug?: string | null;
   date: string;
   city: string;
   venue: string;

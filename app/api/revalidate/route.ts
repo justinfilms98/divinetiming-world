@@ -8,6 +8,8 @@ const ALLOWED_EXACT = ['/', '/events', '/media', '/shop', '/booking', '/about'];
 function isPathAllowed(path: string): boolean {
   if (ALLOWED_EXACT.includes(path)) return true;
   if (path.startsWith('/shop/') && path.length > 6) return true;
+  if (path.startsWith('/media/') && path.length > 7) return true;
+  if (path.startsWith('/events/') && path.length > 8) return true; // e.g. /events/my-event-2024-04-29
   return false;
 }
 

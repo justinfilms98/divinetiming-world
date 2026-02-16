@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import Image from 'next/image';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import { motion, AnimatePresence } from 'framer-motion';
+import { track } from '@/lib/analytics/track';
 import type { Gallery, GalleryMedia } from '@/lib/types/content';
 
 interface Video {
@@ -200,19 +202,19 @@ export function MediaPageClient({
                 hidden: {},
               }}
             >
-              {galleries.map((gallery, i) => (
-                <motion.button
+              {galleries.map((gallery) => (
+                <Link
                   key={gallery.id}
+                  href={gallery.gallery_media?.length ? `/media/galleries/${gallery.slug}` : '#'}
+                  className={!gallery.gallery_media?.length ? 'pointer-events-none cursor-default' : ''}
+                  onClick={() => gallery.gallery_media?.length && track({ event_name: 'gallery_click', entity_type: 'gallery', entity_id: gallery.id })}
+                >
+                <motion.div
                   variants={{
                     visible: { opacity: 1, y: 0 },
                     hidden: { opacity: 0, y: 20 },
                   }}
-                  onClick={() =>
-                    gallery.gallery_media?.length
-                      ? setSelectedGallery(gallery.id)
-                      : null
-                  }
-                  className="text-left group"
+                  className="text-left group block"
                 >
                   <div className="relative aspect-square bg-white/5 rounded-xl overflow-hidden mb-4 border border-white/10 shadow-lg hover:shadow-xl hover:border-white/20 transition-all duration-300">
                     {gallery.cover_image_url ? (
@@ -236,7 +238,8 @@ export function MediaPageClient({
                   {gallery.description && (
                     <div className="text-white/70 text-sm mt-1">{gallery.description}</div>
                   )}
-                </motion.button>
+                </motion.div>
+                </Link>
               ))}
             </motion.div>
           )

@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import type { Event } from '@/lib/types/content';
 import { MediaAssetRenderer, MediaUnavailableFallback } from '@/components/ui/MediaAssetRenderer';
 import { motion } from 'framer-motion';
+import { track } from '@/lib/analytics/track';
 
 interface EventCardProps {
   event: Event;
@@ -20,15 +22,22 @@ export function EventCard({ event }: EventCardProps) {
   const location = [event.venue, event.city].filter(Boolean).join(' · ');
   const title = event.title ?? event.city;
 
+  const href = event.slug ? `/events/${event.slug}` : `/events/${event.id}`;
+
+  const handleClick = () => {
+    track({ event_name: 'event_card_click', entity_type: 'event', entity_id: event.id });
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
+      whileHover={{ scale: 1.01 }}
       className="flex flex-col md:flex-row gap-6 p-6 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 overflow-hidden"
     >
-      {/* Thumbnail */}
-      <div className="md:w-48 md:flex-shrink-0">
+      {/* Thumbnail - clickable to detail */}
+      <Link href={href} className="md:w-48 md:flex-shrink-0 block" onClick={handleClick}>
         {event.thumbnail_url ? (
           <div className="relative aspect-video md:aspect-square rounded-xl overflow-hidden bg-white/5">
             <MediaAssetRenderer
@@ -53,10 +62,11 @@ export function EventCard({ event }: EventCardProps) {
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <Link href={href} className="flex-1 min-w-0" onClick={handleClick}>
         <div>
           <div className="text-[var(--accent)] text-sm font-semibold tracking-wider uppercase">
             {formatDate(event.date)}
@@ -68,6 +78,7 @@ export function EventCard({ event }: EventCardProps) {
             <p className="text-white/60 text-sm mt-2 line-clamp-2">{event.description}</p>
           )}
         </div>
+        </Link>
 
         {event.ticket_url && (
           <a

@@ -1,12 +1,14 @@
 import { getEvents, getHeroSection, getPageSettings } from '@/lib/content';
-import { EventsHero } from '@/components/events/EventsHero';
+import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { EventCard } from '@/components/events/EventCard';
+import { Reveal } from '@/components/motion/Reveal';
+import { EventsListClient } from '@/components/events/EventsListClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EventsPage() {
-  const [events, heroSection, pageSettings] = await Promise.all([
-    getEvents({ upcomingOnly: true }),
+  const [allEvents, heroSection, pageSettings] = await Promise.all([
+    getEvents(),
     getHeroSection('events'),
     getPageSettings('events'),
   ]);
@@ -17,31 +19,35 @@ export default async function EventsPage() {
   const mediaUrl = heroSection?.media_url ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
+  const now = new Date();
+  const upcomingEvents = (allEvents || []).filter((e) => new Date(e.date) >= now);
+  const pastEvents = (allEvents || []).filter((e) => new Date(e.date) < now).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Full-width hero banner with rounded lower corners */}
-      <EventsHero
-        mediaType={mediaType}
-        mediaUrl={mediaUrl}
+      <UnifiedHero
+        mediaType={mediaType ?? undefined}
+        mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
-        subtext={subtext}
+        subtext={subtext ?? undefined}
+        heightPreset="standard"
+        showScrollCue
       />
 
-      {/* Event grid below hero */}
       <section className="flex-1 py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          {events && events.length > 0 ? (
-            <div className="space-y-8">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-white/70 py-16">
-              <p className="text-lg">No upcoming events. Check back soon!</p>
-            </div>
-          )}
+          <Reveal>
+            <p className="section-label text-center mb-10">
+              DIVINE:TIMING / EVENTS
+            </p>
+            <EventsListClient
+              upcomingEvents={upcomingEvents}
+              pastEvents={pastEvents}
+            />
+          </Reveal>
         </div>
       </section>
     </div>
