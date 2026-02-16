@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/admin/EmptyState';
 import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
+import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 
 interface Event {
@@ -31,6 +32,7 @@ export default function AdminEventsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -72,6 +74,21 @@ export default function AdminEventsPage() {
         ...editingEvent,
         thumbnail_url: file.url,
         external_thumbnail_asset_id: file.id ?? null,
+      });
+    }
+  };
+
+  const handleLibraryThumbnailSelect = (asset: { id: string; preview_url: string }) => {
+    const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
+    const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
+    if (input) input.value = asset.preview_url;
+    if (extInput) extInput.value = asset.id;
+    setPreviewThumbnail(asset.preview_url);
+    if (editingEvent) {
+      setEditingEvent({
+        ...editingEvent,
+        thumbnail_url: asset.preview_url,
+        external_thumbnail_asset_id: asset.id,
       });
     }
   };
@@ -362,6 +379,13 @@ export default function AdminEventsPage() {
                       />
                       <button
                         type="button"
+                        onClick={() => setLibraryPickerOpen(true)}
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:border-slate-400"
+                      >
+                        Choose from library
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => {
                           const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
                           const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
@@ -377,13 +401,30 @@ export default function AdminEventsPage() {
                     </div>
                   </div>
                 ) : (
-                  <UniversalUploader
-                    acceptedTypes={['image']}
-                    onSelected={handleThumbnailSelected}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-500"
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    <UniversalUploader
+                      acceptedTypes={['image']}
+                      onSelected={handleThumbnailSelected}
+                      className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLibraryPickerOpen(true)}
+                      className="px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:border-slate-500"
+                    >
+                      Choose from library
+                    </button>
+                  </div>
                 )}
               </div>
+
+              <MediaLibraryPicker
+                open={libraryPickerOpen}
+                onClose={() => setLibraryPickerOpen(false)}
+                onSelect={handleLibraryThumbnailSelect}
+                filter="image"
+                title="Choose thumbnail from library"
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

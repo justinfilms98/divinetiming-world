@@ -43,21 +43,16 @@ export default function AdminMediaPage() {
     setAssets((data || []) as LibraryAsset[]);
   }, [supabase]);
 
+  const displayUrl = (asset: LibraryAsset) =>
+    asset.preview_url || asset.thumbnail_url || '';
+
   useEffect(() => {
     loadLibrary();
   }, [loadLibrary]);
 
-  const handleUpload = (files: UploadedFile[]) => {
-    const withCreatedAt = files.map((f) => ({
-      id: f.id || '',
-      preview_url: f.url,
-      thumbnail_url: f.url,
-      mime_type: f.mimeType || null,
-      name: f.name || null,
-      size_bytes: f.size ?? null,
-      created_at: new Date().toISOString(),
-    }));
-    setAssets((prev) => [...withCreatedAt, ...prev]);
+  const handleUpload = async (files: UploadedFile[]) => {
+    if (files.length === 0) return;
+    await loadLibrary();
   };
 
   const filtered = assets.filter((a) => {
@@ -129,7 +124,7 @@ export default function AdminMediaPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filtered.map((asset) => {
             const isImage = (asset.mime_type || '').startsWith('image/');
-            const thumb = asset.thumbnail_url || asset.preview_url;
+            const thumb = asset.thumbnail_url || asset.preview_url || displayUrl(asset);
             return (
               <AdminCard key={asset.id} className="p-0 overflow-hidden">
                 <div className="aspect-square relative bg-slate-100">
@@ -141,6 +136,7 @@ export default function AdminMediaPage() {
                         fill
                         className="object-cover"
                         sizes="160px"
+                        unoptimized={thumb.includes('ucarecdn')}
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -164,7 +160,7 @@ export default function AdminMediaPage() {
                 <div className="flex gap-2 p-3 border-t border-slate-200">
                   <button
                     type="button"
-                    onClick={() => handleCopyUrl(asset.preview_url, asset.id)}
+                    onClick={() => handleCopyUrl(displayUrl(asset) || asset.preview_url, asset.id)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-medium"
                   >
                     {copiedId === asset.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}

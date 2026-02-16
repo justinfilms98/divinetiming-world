@@ -122,20 +122,18 @@ export function UniversalUploader({
           });
         }
         setProgress(100);
-        const res = await fetch('/api/assets/external', {
+        const payload = results.map((r) => ({
+          uuid: r.uuid,
+          cdnUrl: r.cdnUrl,
+          originalFilename: r.name || undefined,
+          mimeType: r.mimeType,
+          size: r.size,
+        }));
+        const res = await fetch('/api/admin/media/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({
-            provider: 'uploadcare',
-            files: results.map((r) => ({
-              uuid: r.uuid,
-              cdnUrl: r.cdnUrl,
-              mimeType: r.mimeType,
-              size: r.size,
-              name: r.name || undefined,
-            })),
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {

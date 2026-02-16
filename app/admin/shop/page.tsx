@@ -6,6 +6,7 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
+import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 import Image from 'next/image';
@@ -43,6 +44,7 @@ export default function AdminShopPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [pendingImages, setPendingImages] = useState<{ url: string; id?: string }[]>([]);
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export default function AdminShopPage() {
 
   const openCreate = () => {
     setEditingProduct(null);
+    setPendingImages([]);
     setModalOpen(true);
   };
 
@@ -78,6 +81,7 @@ export default function AdminShopPage() {
   const closeModal = () => {
     setModalOpen(false);
     setEditingProduct(null);
+    setPendingImages([]);
   };
 
   const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -129,6 +133,14 @@ export default function AdminShopPage() {
 
   const handleImageSelected = (files: UploadedFile[]) => {
     setPendingImages((prev) => [...prev, ...files.map((f) => ({ url: f.url, id: f.id }))]);
+  };
+
+  const handleLibraryImageSelect = (asset: { id: string; preview_url: string }) => {
+    if (editingProduct) {
+      handleAddImageToProduct(editingProduct.id, asset.preview_url, editingProduct.slug);
+    } else {
+      setPendingImages((prev) => [...prev, { url: asset.preview_url, id: asset.id }]);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -383,12 +395,21 @@ export default function AdminShopPage() {
                       </div>
                     ))}
                   </div>
-                  <UniversalUploader
-                    multiple
-                    acceptedTypes={['image']}
-                    onSelected={handleImageSelected}
-                    buttonLabel="Upload image"
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    <UniversalUploader
+                      multiple
+                      acceptedTypes={['image']}
+                      onSelected={handleImageSelected}
+                      buttonLabel="Upload image"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLibraryPickerOpen(true)}
+                      className="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:border-slate-400"
+                    >
+                      Add from library
+                    </button>
+                  </div>
                   <p className="text-white/50 text-xs mt-1">Or add image URLs (one per line) below</p>
                   <textarea
                     name="image_urls"
@@ -419,11 +440,18 @@ export default function AdminShopPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setLibraryPickerOpen(true)}
+                      className="px-4 py-2 border border-white/20 rounded-lg text-white/90 hover:bg-white/10 text-sm"
+                    >
+                      Add from library
+                    </button>
                     <input
                       type="url"
                       placeholder="https://..."
-                      className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+                      className="flex-1 min-w-[200px] px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
                       id="edit-image-url"
                     />
                     <button
@@ -490,6 +518,14 @@ export default function AdminShopPage() {
           </div>
         </div>
       )}
+
+      <MediaLibraryPicker
+        open={libraryPickerOpen}
+        onClose={() => setLibraryPickerOpen(false)}
+        onSelect={handleLibraryImageSelect}
+        filter="image"
+        title="Add image from library"
+      />
     </AdminPage>
   );
 }

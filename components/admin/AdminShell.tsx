@@ -62,7 +62,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         {/* Main: min-w-0 to prevent overflow */}
         <div className="min-w-0 flex flex-col">
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="mx-auto w-full max-w-[1100px] px-6 py-8">
+            <div className="mx-auto w-full max-w-[1200px] px-6 py-8">
               {children}
             </div>
           </main>
