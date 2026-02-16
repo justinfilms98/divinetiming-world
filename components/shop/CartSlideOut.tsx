@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useCart } from './CartContext';
@@ -70,7 +71,15 @@ export function CartSlideOut() {
               {items.length === 0 ? (
                 <p className="text-white/50 text-center py-12">Your cart is empty</p>
               ) : (
-                <ul className="space-y-6">
+                <>
+                  <Link
+                    href="/cart"
+                    onClick={closeCart}
+                    className="text-sm text-[var(--accent)] hover:underline mb-4 block"
+                  >
+                    View full cart →
+                  </Link>
+                  <ul className="space-y-6">
                   {items.map((item) => (
                     <li
                       key={`${item.productId}-${item.variantId}`}
@@ -127,6 +136,7 @@ export function CartSlideOut() {
                     </li>
                   ))}
                 </ul>
+                </>
               )}
             </div>
 

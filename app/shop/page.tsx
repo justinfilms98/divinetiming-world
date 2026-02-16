@@ -1,5 +1,6 @@
 import { getProducts, getHeroSection, getPageSettings } from '@/lib/content';
-import { ShopHero } from '@/components/shop/ShopHero';
+import { UnifiedHero } from '@/components/hero/UnifiedHero';
+import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { ShopPageClient } from '@/components/shop/ShopPageClient';
 
 export const dynamic = 'force-dynamic';
@@ -19,13 +20,15 @@ export default async function ShopPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <ShopHero
-        mediaType={mediaType}
-        mediaUrl={mediaUrl}
+      <UnifiedHero
+        mediaType={mediaType ?? undefined}
+        mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
-        tagline={tagline}
+        subtext={tagline ?? undefined}
+        heightPreset="tall"
       />
+      <SignatureDivider />
       <ShopPageClient products={products} />
     </div>
   );

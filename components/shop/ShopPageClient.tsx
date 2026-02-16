@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import Link from 'next/link';
 import { useCart } from './CartContext';
+import { track } from '@/lib/analytics/track';
 import type { Product } from '@/lib/types/content';
 
 interface ShopPageClientProps {
@@ -46,7 +47,11 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
                   className="group relative flex flex-col items-center text-center"
                 >
                   {/* Floating product image - no box */}
-                  <Link href={`/shop/${product.slug}`} className="block w-full">
+                  <Link
+                    href={`/shop/${product.slug}`}
+                    className="block w-full"
+                    onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}
+                  >
                     <div className="relative aspect-square w-full max-w-sm mx-auto mb-6">
                       {mainImage ? (
                         <Image
@@ -78,7 +83,8 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
                   {/* Quick add-to-cart (or link to product if variants) */}
                   {(!product.product_variants || product.product_variants.length === 0) ? (
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        track({ event_name: 'add_to_cart', entity_type: 'product', entity_id: product.id });
                         addItem({
                           productId: product.id,
                           productName: product.name,
@@ -87,8 +93,8 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
                           variantName: null,
                           priceCents: product.price_cents,
                           imageUrl: mainImage ?? null,
-                        })
-                      }
+                        });
+                      }}
                       className="text-sm uppercase tracking-widest text-white/70 hover:text-[var(--accent)] transition-colors border-b border-transparent hover:border-[var(--accent)] pb-0.5"
                     >
                       Add to Cart
@@ -96,6 +102,7 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
                   ) : (
                     <Link
                       href={`/shop/${product.slug}`}
+                      onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}
                       className="text-sm uppercase tracking-widest text-white/70 hover:text-[var(--accent)] transition-colors border-b border-transparent hover:border-[var(--accent)] pb-0.5"
                     >
                       View Options

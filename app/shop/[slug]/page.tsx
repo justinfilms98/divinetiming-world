@@ -1,18 +1,17 @@
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const supabase = await createClient();
 
   const { data: product } = await supabase
     .from('products')
     .select('*, product_images(*), product_variants(*)')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('is_active', true)
     .single();
 
@@ -26,8 +25,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 pt-16">
+      <main className="flex-1 pt-8">
         <section className="py-20 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -72,7 +70,6 @@ export default async function ProductPage({ params }: { params: { slug: string }
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   );
 }

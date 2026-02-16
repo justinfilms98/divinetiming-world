@@ -8,7 +8,8 @@ export function CartTrigger() {
   const { openCart, itemCount } = useCart();
 
   const isShopPage = pathname?.startsWith('/shop');
-  if (!isShopPage && itemCount === 0) return null;
+  const isCartPage = pathname === '/cart';
+  if (!isShopPage && !isCartPage && itemCount === 0) return null;
 
   return (
     <button
