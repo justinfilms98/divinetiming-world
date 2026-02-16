@@ -35,7 +35,7 @@ export function CornerNav() {
               href="/"
               className="
                 text-xl tracking-[0.1em] uppercase font-bold
-                transition-all duration-300
+                transition-colors duration-250 ease-out
                 text-white/90 hover:text-white
                 hover:drop-shadow-[0_0_8px_rgba(209,98,23,0.6)]
               "
@@ -67,7 +67,7 @@ export function CornerNav() {
                 href={item.href}
                 className={`
                   text-sm tracking-[0.2em] uppercase font-medium
-                  transition-all duration-300
+                  transition-colors duration-250 ease-out
                   ${isActive ? 'text-[var(--accent)]' : 'text-white/80 hover:text-white'}
                   hover:drop-shadow-[0_0_8px_rgba(209,98,23,0.6)]
                 `}

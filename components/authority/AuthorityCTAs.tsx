@@ -32,7 +32,7 @@ export function AuthorityCTAs({
       {showBook && (
         <Link
           href="/booking"
-          className="px-6 py-3 bg-[var(--accent)] text-[var(--bg)] rounded-lg font-semibold hover:bg-[var(--accent2)] transition-colors shadow-[0_0_20px_rgba(209,98,23,0.2)]"
+          className="px-6 py-3 bg-[var(--accent)] text-[var(--bg)] rounded-lg font-semibold hover:bg-[var(--accent2)] transition-colors duration-250 ease-out shadow-[0_0_20px_rgba(209,98,23,0.2)]"
         >
           Book
         </Link>
@@ -42,7 +42,7 @@ export function AuthorityCTAs({
           href={appleMusic}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-6 py-3 border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
+          className="px-6 py-3 border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-colors duration-250 ease-out"
         >
           Apple Music
         </a>
@@ -52,7 +52,7 @@ export function AuthorityCTAs({
           href={spotify}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-6 py-3 border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
+          className="px-6 py-3 border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-colors duration-250 ease-out"
         >
           Spotify
         </a>
@@ -60,7 +60,7 @@ export function AuthorityCTAs({
       {showEPK && (
         <Link
           href="/epk"
-          className="px-6 py-3 text-white/80 hover:text-white transition-colors text-sm font-medium"
+          className="px-6 py-3 text-white/80 hover:text-white transition-colors duration-250 ease-out text-sm font-medium"
         >
           View EPK
         </Link>

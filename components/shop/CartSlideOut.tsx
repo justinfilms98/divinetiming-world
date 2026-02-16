@@ -52,13 +52,13 @@ export function CartSlideOut() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--bg)] border-l border-white/10 z-50 flex flex-col shadow-2xl"
+            className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--bg)] border-l border-white/10 z-50 flex flex-col shadow-[0_-4px_24px_rgba(0,0,0,0.35)]"
           >
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white tracking-tight">Cart</h2>
               <button
                 onClick={closeCart}
-                className="text-white/60 hover:text-white transition-colors p-2"
+                className="text-white/60 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-white/5"
                 aria-label="Close cart"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
