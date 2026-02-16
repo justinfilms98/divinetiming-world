@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { Mail, Download } from 'lucide-react';
@@ -71,20 +71,17 @@ export default function AdminBookingPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto">
-        <PageHeader title="Booking Inquiries" description="View and manage booking requests" />
+      <AdminPage title="Booking Inquiries" subtitle="View and manage booking requests">
         <div className="text-white/60">Loading...</div>
-      </div>
+      </AdminPage>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Booking Inquiries"
-        description="Inquiries submitted through the booking form"
-      />
-
+    <AdminPage
+      title="Booking Inquiries"
+      subtitle="Inquiries submitted through the booking form"
+    >
       {inquiries.length > 0 && (
         <div className="mb-6 flex justify-end">
           <button
@@ -151,6 +148,6 @@ export default function AdminBookingPage() {
           ))}
         </div>
       )}
-    </>
+    </AdminPage>
   );
 }

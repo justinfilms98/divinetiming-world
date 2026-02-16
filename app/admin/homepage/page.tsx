@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageShell } from '@/components/layout/PageShell';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { Save, Check, X } from 'lucide-react';
@@ -96,22 +96,22 @@ export default function AdminHomepagePage() {
 
   if (isLoading) {
     return (
-      <PageShell title="Homepage" subtitle="Edit homepage hero and content">
+      <AdminPage title="Homepage" subtitle="Edit homepage hero and content">
         <div className="text-white/60">Loading…</div>
-      </PageShell>
+      </AdminPage>
     );
   }
 
   if (!hero) {
     return (
-      <PageShell title="Homepage" subtitle="Edit homepage hero and content">
+      <AdminPage title="Homepage" subtitle="Edit homepage hero and content">
         <div className="text-white/60">Hero section not found. Run migrations.</div>
-      </PageShell>
+      </AdminPage>
     );
   }
 
   return (
-    <PageShell
+    <AdminPage
       title="Homepage Editor"
       subtitle="Visual preview — changes update instantly. Save to push live."
     >
@@ -284,6 +284,6 @@ export default function AdminHomepagePage() {
           </LuxuryButton>
         </div>
       </form>
-    </PageShell>
+    </AdminPage>
   );
 }

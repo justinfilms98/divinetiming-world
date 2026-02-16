@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { Package, CheckCircle, Clock, XCircle } from 'lucide-react';
@@ -65,20 +65,17 @@ export default function AdminOrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto">
-        <PageHeader title="Orders" description="View and manage customer orders" />
+      <AdminPage title="Orders" subtitle="View and manage customer orders">
         <div className="text-white/60">Loading...</div>
-      </div>
+      </AdminPage>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Orders"
-        description="View and manage customer orders from Stripe"
-      />
-
+    <AdminPage
+      title="Orders"
+      subtitle="View and manage customer orders from Stripe"
+    >
       {orders.length === 0 ? (
         <AdminCard>
           <EmptyState
@@ -135,6 +132,6 @@ export default function AdminOrdersPage() {
           ))}
         </div>
       )}
-    </>
+    </AdminPage>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageShell } from '@/components/layout/PageShell';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { Save, Check, ChevronRight, X } from 'lucide-react';
@@ -148,7 +148,7 @@ export default function AdminPagesPage() {
   };
 
   return (
-    <PageShell
+    <AdminPage
       title="Page Settings"
       subtitle="SEO and hero settings for each page"
       actions={
@@ -505,6 +505,6 @@ export default function AdminPagesPage() {
           );
         })}
       </div>
-    </PageShell>
+    </AdminPage>
   );
 }

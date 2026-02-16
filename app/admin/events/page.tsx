@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageShell } from '@/components/layout/PageShell';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
@@ -172,14 +172,14 @@ export default function AdminEventsPage() {
 
   if (isLoading) {
     return (
-      <PageShell title="Events" subtitle="Manage tour dates and events">
+      <AdminPage title="Events" subtitle="Manage tour dates and events">
         <LuxurySkeletonGrid count={3} />
-      </PageShell>
+      </AdminPage>
     );
   }
 
   return (
-    <PageShell
+    <AdminPage
       title="Events"
       subtitle="Manage tour dates and upcoming shows"
       actions={
@@ -475,6 +475,6 @@ export default function AdminEventsPage() {
           </div>
         </div>
       )}
-    </PageShell>
+    </AdminPage>
   );
 }

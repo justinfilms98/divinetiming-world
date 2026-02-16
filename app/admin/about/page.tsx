@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { Save, Check, Plus, Trash2, ChevronUp, ChevronDown, Upload, X } from 'lucide-react';
@@ -159,26 +159,22 @@ export default function AdminAboutPage() {
 
   if (isLoading) {
     return (
-      <div>
-        <PageHeader title="About" description="Edit about page content" />
+      <AdminPage title="About" subtitle="Edit about page content">
         <div className="text-white/60">Loading...</div>
-      </div>
+      </AdminPage>
     );
   }
 
   if (!bio) {
     return (
-      <div>
-        <PageHeader title="About" description="Edit about page content" />
+      <AdminPage title="About" subtitle="Edit about page content">
         <div className="text-white/60">About content not found. Run migrations.</div>
-      </div>
+      </AdminPage>
     );
   }
 
   return (
-    <>
-      <PageHeader title="About Editor" description="Bio, photos, and timeline" />
-
+    <AdminPage title="About Editor" subtitle="Bio, photos, and timeline">
       {/* Bio */}
       <AdminCard className="mb-6">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -326,6 +322,6 @@ export default function AdminAboutPage() {
           </div>
         </div>
       )}
-    </>
+    </AdminPage>
   );
 }

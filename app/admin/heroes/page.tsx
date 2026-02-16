@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Uploader } from '@/components/admin/Uploader';
 import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
@@ -126,20 +126,18 @@ export default function AdminHeroesPage() {
   };
 
   return (
-    <>
-      <PageHeader
-        title="Hero Manager"
-        description="Set hero image or video, overlay, and copy for each page"
-        actions={
-          <Link
-            href="/admin/pages"
-            className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors text-sm"
-          >
-            ← Page Settings
-          </Link>
-        }
-      />
-
+    <AdminPage
+      title="Hero Manager"
+      subtitle="Set hero image or video, overlay, and copy for each page"
+      actions={
+        <Link
+          href="/admin/pages"
+          className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors text-sm"
+        >
+          ← Page Settings
+        </Link>
+      }
+    >
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: page list */}
         <div className="lg:w-56 flex-shrink-0">
@@ -286,6 +284,6 @@ export default function AdminHeroesPage() {
           )}
         </div>
       </div>
-    </>
+    </AdminPage>
   );
 }

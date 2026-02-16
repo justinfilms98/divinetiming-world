@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageShell } from '@/components/layout/PageShell';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { Save, Check, X } from 'lucide-react';
@@ -77,14 +77,14 @@ export default function AdminSettingsPage() {
 
   if (isLoading) {
     return (
-      <PageShell title="Settings" subtitle="Manage site settings and configuration">
+      <AdminPage title="Settings" subtitle="Manage site settings and configuration">
         <div className="text-white/60">Loading…</div>
-      </PageShell>
+      </AdminPage>
     );
   }
 
   return (
-    <PageShell
+    <AdminPage
       title="Settings"
       subtitle="Manage your site settings, branding, and integrations"
     >
@@ -271,6 +271,6 @@ export default function AdminSettingsPage() {
           </LuxuryButton>
         </div>
       </form>
-    </PageShell>
+    </AdminPage>
   );
 }

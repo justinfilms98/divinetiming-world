@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageShell } from '@/components/layout/PageShell';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
 import { EmptyState } from '@/components/admin/EmptyState';
@@ -355,7 +355,7 @@ export default function AdminMediaPage() {
   ];
 
   return (
-    <PageShell
+    <AdminPage
       title="Media"
       subtitle="Library, galleries, and videos"
       actions={
@@ -785,6 +785,6 @@ export default function AdminMediaPage() {
           </div>
         </div>
       )}
-    </PageShell>
+    </AdminPage>
   );
 }

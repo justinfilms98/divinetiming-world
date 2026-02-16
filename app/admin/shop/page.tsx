@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PageShell } from '@/components/layout/PageShell';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { LuxuryButton } from '@/components/ui/LuxuryButton';
@@ -193,14 +193,14 @@ export default function AdminShopPage() {
 
   if (isLoading) {
     return (
-      <PageShell title="Shop" subtitle="Manage products and inventory">
+      <AdminPage title="Shop" subtitle="Manage products and inventory">
         <LuxurySkeletonGrid count={6} />
-      </PageShell>
+      </AdminPage>
     );
   }
 
   return (
-    <PageShell
+    <AdminPage
       title="Shop"
       subtitle="Manage your merchandise and products"
       actions={
@@ -484,6 +484,6 @@ export default function AdminShopPage() {
           </div>
         </div>
       )}
-    </PageShell>
+    </AdminPage>
   );
 }

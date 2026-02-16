@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import Link from 'next/link';
-import { Plus, Calendar, Image as ImageIcon, ShoppingBag, Package } from 'lucide-react';
+import { Calendar, Home, Image as ImageIcon, ShoppingBag, Package } from 'lucide-react';
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -46,12 +46,7 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        description="Overview of your content and activity"
-      />
-
+    <AdminPage title="Dashboard" subtitle="Overview of your content and activity">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat) => {
@@ -77,6 +72,13 @@ export default async function AdminDashboard() {
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
+            href="/admin/homepage"
+            className="flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors"
+          >
+            <Home className="w-5 h-5 text-amber-400" />
+            <span className="text-white font-medium">Edit Home Hero</span>
+          </Link>
+          <Link
             href="/admin/events?create=true"
             className="flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors"
           >
@@ -99,6 +101,6 @@ export default async function AdminDashboard() {
           </Link>
         </div>
       </AdminCard>
-    </>
+    </AdminPage>
   );
 }
