@@ -4,9 +4,12 @@ import {
   getHeroSection,
   getPageSettings,
 } from '@/lib/content';
-import { BookingHero } from '@/components/booking/BookingHero';
+import { UnifiedHero } from '@/components/hero/UnifiedHero';
+import { SignatureDivider } from '@/components/brand/SignatureDivider';
+import { AuthorityCTAs } from '@/components/authority/AuthorityCTAs';
 import { BookingPresentationSections } from '@/components/booking/BookingPresentationSections';
 import { BookingForm } from '@/components/booking/BookingForm';
+import { BookingAboutCard } from '@/components/booking/BookingAboutCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,17 +30,55 @@ export default async function BookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <BookingHero
-        mediaType={mediaType}
-        mediaUrl={mediaUrl}
+      <UnifiedHero
+        mediaType={mediaType ?? undefined}
+        mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
-        pitch={pitch}
+        subtext={pitch}
+        heightPreset="tall"
       />
+
+      <SignatureDivider />
+      <section className="py-8 px-4 flex justify-center">
+        <AuthorityCTAs showBook showListen showEPK={false} />
+      </section>
+      <SignatureDivider />
 
       <BookingPresentationSections sections={bookingSections} />
 
-      <BookingForm />
+      {/* Inquiry form + About section side by side */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-12">
+          <div className="lg:col-span-3">
+            <BookingForm />
+          </div>
+          <div className="lg:col-span-2 space-y-8">
+            <BookingAboutCard
+              title={pageSettings?.booking_about_title}
+              body={pageSettings?.booking_about_body}
+              imageUrl={pageSettings?.booking_about_image_url}
+            />
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+              <h3 className="text-sm font-medium uppercase tracking-widest text-white/70 mb-4">Press / EPK</h3>
+              <div className="flex flex-col gap-3">
+                <a
+                  href="/epk"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30 hover:bg-[var(--accent)]/30 transition-colors font-medium text-sm"
+                >
+                  View EPK
+                </a>
+                <a
+                  href="/media"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20 text-white/80 hover:bg-white/5 transition-colors text-sm"
+                >
+                  Download Press Photos
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Contact fallback */}
       <section className="py-12 px-4 border-t border-white/10">
