@@ -3,29 +3,35 @@ import {
   getBookingContent,
   getHeroSection,
   getPageSettings,
+  getAboutContent,
 } from '@/lib/content';
+import { getAuthorityConfig } from '@/lib/authority-config';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
+import { StatsRow } from '@/components/authority/StatsRow';
 import { AuthorityCTAs } from '@/components/authority/AuthorityCTAs';
 import { BookingPresentationSections } from '@/components/booking/BookingPresentationSections';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { BookingAboutCard } from '@/components/booking/BookingAboutCard';
+import { BookingBioSection } from '@/components/booking/BookingBioSection';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BookingPage() {
-  const [siteSettings, bookingSections, heroSection, pageSettings] = await Promise.all([
+  const [siteSettings, bookingSections, heroSection, pageSettings, aboutContent] = await Promise.all([
     getSiteSettings(),
     getBookingContent(),
     getHeroSection('booking'),
     getPageSettings('booking'),
+    getAboutContent(),
   ]);
+  const authority = getAuthorityConfig(null);
 
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Booking';
   const pitch = heroSection?.subtext ?? bookingSections[0]?.description ??
     'For booking inquiries, vendor information, and management requests, get in touch.';
   const mediaType = heroSection?.media_type ?? null;
-  const mediaUrl = heroSection?.media_url ?? null;
+  const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
@@ -36,10 +42,18 @@ export default async function BookingPage() {
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
         subtext={pitch}
-        heightPreset="tall"
+        heightPreset="compact"
       />
 
       <SignatureDivider />
+      {authority.stats?.length ? (
+        <>
+          <section className="py-8 md:py-12" aria-label="Stats">
+            <StatsRow stats={authority.stats} />
+          </section>
+          <SignatureDivider />
+        </>
+      ) : null}
       <section className="py-8 px-4 flex justify-center">
         <AuthorityCTAs showBook showListen showEPK={false} />
       </section>
@@ -54,6 +68,11 @@ export default async function BookingPage() {
             <BookingForm />
           </div>
           <div className="lg:col-span-2 space-y-8">
+            <BookingBioSection
+              bioHtml={aboutContent?.bio_html ?? null}
+              bioText={aboutContent?.bio_text ?? ''}
+              title="About"
+            />
             <BookingAboutCard
               title={pageSettings?.booking_about_title}
               body={pageSettings?.booking_about_body}

@@ -23,7 +23,13 @@ export interface HeroSection {
   page_slug: PageSlug;
   media_type: 'image' | 'video' | 'default';
   media_url: string | null;
+  /** Supabase Storage path in bucket media; when set, mediaFinalUrl is built from this */
+  media_storage_path?: string | null;
   external_media_asset_id?: string | null;
+  /** PNG logo URL (legacy); fallback when hero_logo_storage_path is empty */
+  hero_logo_url?: string | null;
+  /** Supabase Storage path for hero logo in bucket media; when set, logoFinalUrl is built from this */
+  hero_logo_storage_path?: string | null;
   overlay_opacity: number;
   headline: string | null;
   subtext: string | null;
@@ -33,6 +39,10 @@ export interface HeroSection {
   animation_enabled: boolean;
   created_at: string;
   updated_at: string;
+  /** Resolved URL for hero media: from storage path if set, else media_url */
+  mediaFinalUrl?: string | null;
+  /** Resolved URL for hero logo: from storage path if set, else hero_logo_url */
+  logoFinalUrl?: string | null;
 }
 
 export interface Event {
@@ -123,6 +133,7 @@ export interface BookingContentSection {
 export interface AboutContent {
   id: string;
   bio_text: string;
+  bio_html?: string | null;
   created_at: string;
   updated_at: string;
 }

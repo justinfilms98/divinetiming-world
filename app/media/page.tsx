@@ -21,7 +21,7 @@ export default async function MediaPage() {
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Media';
   const subtext = heroSection?.subtext;
   const mediaType = heroSection?.media_type ?? null;
-  const mediaUrl = heroSection?.media_url ?? null;
+  const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
@@ -32,7 +32,7 @@ export default async function MediaPage() {
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
         subtext={subtext ?? undefined}
-        heightPreset="standard"
+        heightPreset="compact"
       />
 
       <SignatureDivider />

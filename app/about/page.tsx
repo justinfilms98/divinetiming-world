@@ -27,8 +27,9 @@ export default async function AboutPage() {
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'About';
   const subtext = heroSection?.subtext;
   const bioText = aboutContent?.bio_text ?? '';
+  const bioHtml = aboutContent?.bio_html ?? null;
   const mediaType = heroSection?.media_type ?? null;
-  const mediaUrl = heroSection?.media_url ?? null;
+  const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
@@ -41,11 +42,12 @@ export default async function AboutPage() {
           overlayOpacity={Number(overlayOpacity)}
           headline={headline}
           subtext={subtext ?? undefined}
-          heightPreset="standard"
+          heightPreset="compact"
         />
 
         <AboutContent
           bioText={bioText}
+          bioHtml={bioHtml}
           photos={aboutPhotos}
           timeline={timeline}
           member1Name={siteSettings?.member_1_name || 'Liam Bongo'}

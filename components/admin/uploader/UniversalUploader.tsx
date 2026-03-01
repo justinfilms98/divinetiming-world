@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
-import { uploadFile } from '@uploadcare/upload-client';
-import { Upload, Loader2, X, Image as ImageIcon, Video } from 'lucide-react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { Upload, Loader2, X } from 'lucide-react';
+import { uploadOne, getUploadcarePublicKey } from '@/lib/uploadcare';
 
 export type UploadedFile = {
   url: string;
@@ -28,16 +28,12 @@ interface UniversalUploaderProps {
   children?: React.ReactNode;
   /** Max file size in bytes. Default from env NEXT_PUBLIC_UPLOAD_MAX_BYTES or 100MB. */
   maxSizeBytes?: number;
+  /** Override HTML accept and validate MIME (e.g. "image/png" for logo). */
+  acceptOverride?: string;
+  /** Notify parent when upload starts/ends so Save can be disabled during upload. */
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
-function getPubKey(): string {
-  if (typeof window === 'undefined') return '';
-  return (
-    process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY ||
-    (process.env as Record<string, string>).UPLOADCARE_PUBLIC_KEY ||
-    ''
-  );
-}
 
 function acceptAttribute(types: ('image' | 'video')[]): string {
   const mimes: string[] = [];
@@ -66,6 +62,8 @@ export function UniversalUploader({
   className = '',
   children,
   maxSizeBytes,
+  acceptOverride,
+  onUploadingChange,
 }: UniversalUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -74,16 +72,39 @@ export function UniversalUploader({
   const [success, setSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const key = getPubKey();
+  const key = getUploadcarePublicKey();
+  const hasKey = !!key;
   const maxBytes = getMaxBytes(maxSizeBytes);
+  const accept = acceptOverride ?? acceptAttribute(acceptedTypes);
+
+  useEffect(() => {
+    if (!uploading) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [uploading]);
 
   const processFiles = useCallback(
     async (files: FileList | File[]) => {
       const list = Array.isArray(files) ? files : Array.from(files);
       if (!list.length) return;
       if (!key) {
-        setError('Missing NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY. Add it to .env.local.');
+        setError('Uploads disabled: add NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY to .env.local. See docs/MEDIA_STORAGE.md');
         return;
+      }
+      if (acceptOverride) {
+        const allowed = acceptOverride.split(',').map((s) => s.trim().toLowerCase());
+        const invalid = list.find((f) => {
+          const t = (f.type || '').toLowerCase();
+          const ok = allowed.some((a) => a === t || a === '*/*' || (a.endsWith('/*') && t.startsWith(a.replace(/\/\*$/, '/'))));
+          return !ok;
+        });
+        if (invalid) {
+          setError(`"${invalid.name}" is not an allowed type. Allowed: ${acceptOverride}`);
+          return;
+        }
       }
       const oversized = list.find((f) => f.size > maxBytes);
       if (oversized) {
@@ -93,6 +114,7 @@ export function UniversalUploader({
       setError(null);
       setSuccess(false);
       setUploading(true);
+      onUploadingChange?.(true);
       const total = list.length;
       const results: Array<{
         uuid: string;
@@ -104,21 +126,17 @@ export function UniversalUploader({
       try {
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
-          setProgress(((i + 0) / total) * 100);
-          const uc = await uploadFile(file, {
+          setProgress((i / total) * 100);
+          const result = await uploadOne(file, {
             publicKey: key,
-            store: 'auto',
-            onProgress: (p) => {
-              if (p.isComputable)
-                setProgress(((i + p.value) / total) * 100);
-            },
+            onProgress: (value) => setProgress(((i + value) / total) * 100),
           });
           results.push({
-            uuid: uc.uuid,
-            cdnUrl: uc.cdnUrl,
-            mimeType: uc.mimeType || 'application/octet-stream',
-            size: uc.size ?? 0,
-            name: uc.originalFilename || uc.name || file.name || '',
+            uuid: result.uuid,
+            cdnUrl: result.url,
+            mimeType: result.mimeType,
+            size: result.size,
+            name: result.filename,
           });
         }
         setProgress(100);
@@ -164,17 +182,18 @@ export function UniversalUploader({
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          setError('Network error. Check connection and try again.');
+          setError('Upload failed — try again. Check your connection.');
         } else {
-          setError(msg || 'Upload failed.');
+          setError(msg || 'Upload failed — try again.');
         }
       } finally {
         setUploading(false);
         setProgress(null);
+        onUploadingChange?.(false);
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [key, multiple, onSelected, maxBytes]
+    [key, multiple, onSelected, maxBytes, acceptOverride, onUploadingChange]
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,11 +209,10 @@ export function UniversalUploader({
       setIsDragging(false);
       const files = e.dataTransfer.files;
       if (!files?.length) return;
-      const accept = acceptAttribute(acceptedTypes);
       const list = multiple ? Array.from(files) : [files[0]!];
       processFiles(list);
     },
-    [acceptedTypes, multiple, processFiles]
+    [multiple, processFiles]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -209,7 +227,7 @@ export function UniversalUploader({
     setIsDragging(false);
   };
 
-  if (!key) {
+  if (!hasKey) {
     return (
       <div
         className={`flex flex-col gap-2 px-4 py-3 border-2 border-dashed border-amber-500/40 rounded-lg text-amber-700 bg-amber-500/10 ${className}`}
@@ -219,22 +237,20 @@ export function UniversalUploader({
           <Upload className="w-4 h-4 shrink-0" />
           <span className="text-sm font-medium">Uploads disabled</span>
         </div>
-        <p className="text-sm">Add <code className="bg-amber-500/20 px-1 rounded">NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY</code> to <code className="bg-amber-500/20 px-1 rounded">.env.local</code> to enable.</p>
+        <p className="text-sm">
+          Add <code className="bg-amber-500/20 px-1 rounded">NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY</code> to{' '}
+          <code className="bg-amber-500/20 px-1 rounded">.env.local</code>. See docs/MEDIA_STORAGE.md.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className={`inline-flex flex-col gap-2 ${className}`}>
+    <div className={`inline-flex flex-col gap-3 ${className}`}>
       {error && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          <span className="flex-1">{error}</span>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            className="p-1 hover:bg-red-100 rounded"
-            aria-label="Dismiss"
-          >
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <span className="flex-1 min-w-0">{error.length > 120 ? `${error.slice(0, 120)}…` : error}</span>
+          <button type="button" onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded shrink-0" aria-label="Dismiss">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -269,7 +285,7 @@ export function UniversalUploader({
         <input
           ref={inputRef}
           type="file"
-          accept={acceptAttribute(acceptedTypes)}
+          accept={accept}
           multiple={multiple}
           onChange={handleFileSelect}
           disabled={uploading}
@@ -320,7 +336,7 @@ export function UploadedFilePreview({
   const isVideo = (file.mimeType || '').startsWith('video/');
   return (
     <div
-      className={`relative rounded-lg overflow-hidden bg-slate-100 border border-slate-200 aspect-video ${className}`}
+      className={`relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200 aspect-video max-h-40 ${className}`}
     >
       {isVideo ? (
         <video

@@ -23,7 +23,7 @@ export function SocialDock({ siteSettings }: SocialDockProps) {
 
   return (
     <div className="fixed bottom-20 right-6 z-50">
-      <div className="flex items-center gap-4 bg-[var(--bg)]/40 backdrop-blur-md border border-white/10 rounded-full px-6 py-3">
+      <div className="absolute left-[-817px] top-[32px] flex items-center gap-4 bg-[var(--bg)]/40 backdrop-blur-md border border-white/10 rounded-full px-6 py-3">
         <a
           href={socials.instagram}
           target="_blank"

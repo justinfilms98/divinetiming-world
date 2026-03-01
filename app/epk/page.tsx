@@ -26,7 +26,7 @@ export default async function EPKPage() {
   const authority = getAuthorityConfig(null);
   const epk = authority.epk ?? {};
   const headline = pageSettings?.seo_title ?? siteSettings?.artist_name ?? 'DIVINE:TIMING';
-  const mediaUrl = heroSection?.media_url ?? undefined;
+  const mediaUrl = heroSection?.mediaFinalUrl ?? undefined;
   const mediaType = heroSection?.media_type ?? undefined;
 
   return (

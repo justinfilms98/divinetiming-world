@@ -10,7 +10,7 @@ const navItems = [
   { label: 'EVENTS', href: '/events', position: 'top-left' },
   { label: 'MEDIA', href: '/media', position: 'top-right' },
   { label: 'SHOP', href: '/shop', position: 'bottom-left' },
-  { label: 'BOOKING', href: '/booking', position: 'bottom-right' },
+  { label: 'BOOKING', href: '/booking', position: 'bottom-right-inset' },
 ];
 const mobileNavItems = navItems;
 
@@ -52,6 +52,7 @@ export function CornerNav() {
             'top-right': 'top-6 right-6',
             'bottom-left': 'bottom-6 left-6',
             'bottom-right': 'bottom-6 right-6',
+            'bottom-right-inset': 'bottom-6 right-20', // leave space for cart (right-6)
             'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2',
           };
 
@@ -70,6 +71,7 @@ export function CornerNav() {
                   transition-colors duration-250 ease-out
                   ${isActive ? 'text-[var(--accent)]' : 'text-white/80 hover:text-white'}
                   hover:drop-shadow-[0_0_8px_rgba(209,98,23,0.6)]
+                  ${item.position === 'bottom-right-inset' ? 'absolute left-[-23px] top-[-21px]' : ''}
                 `}
               >
                 {item.label}

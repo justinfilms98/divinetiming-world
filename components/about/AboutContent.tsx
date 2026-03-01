@@ -6,6 +6,8 @@ import type { AboutPhoto, AboutTimelineItem } from '@/lib/types/content';
 
 interface AboutContentProps {
   bioText: string;
+  /** Sanitized HTML from DB; when present, used instead of bioText */
+  bioHtml?: string | null;
   photos: AboutPhoto[];
   timeline: AboutTimelineItem[];
   member1Name: string;
@@ -14,17 +16,34 @@ interface AboutContentProps {
 
 export function AboutContent({
   bioText,
+  bioHtml,
   photos,
   timeline,
   member1Name,
   member2Name,
 }: AboutContentProps) {
   const bioParagraphs = bioText ? bioText.split('\n\n').filter(Boolean) : [];
+  const useRichBio = bioHtml != null && bioHtml.trim() !== '';
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-16 md:py-24">
       {/* Bio with alternating layout when photos exist */}
-      {bioParagraphs.length > 0 && (
+      {useRichBio ? (
+        <motion.section
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5 }}
+          className="space-y-8"
+        >
+          <div
+            className="about-bio-content max-w-prose text-xl md:text-2xl lg:text-3xl text-white/90 leading-relaxed font-light [&_img]:max-w-full [&_img]:h-auto [&_img]:max-h-[400px] [&_p]:mb-6 [&_ul]:my-6 [&_ol]:my-6 [&_li]:mb-1 [&_a]:underline [&_a]:decoration-white/40 [&_a:hover]:opacity-90"
+            style={{ fontFamily: 'var(--font-playfair-display), serif' }}
+            dangerouslySetInnerHTML={{ __html: bioHtml }}
+          />
+        </motion.section>
+      ) : (
+        bioParagraphs.length > 0 && (
         <section className="space-y-16">
           {photos.length > 0 ? (
             bioParagraphs.map((para, i) => (
@@ -77,6 +96,7 @@ export function AboutContent({
             </motion.div>
           )}
         </section>
+        )
       )}
 
       {/* Remaining photos if more than bio paragraphs */}

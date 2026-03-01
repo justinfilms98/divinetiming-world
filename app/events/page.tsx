@@ -16,7 +16,7 @@ export default async function EventsPage() {
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Events';
   const subtext = heroSection?.subtext;
   const mediaType = heroSection?.media_type ?? null;
-  const mediaUrl = heroSection?.media_url ?? null;
+  const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   const now = new Date();
@@ -33,7 +33,7 @@ export default async function EventsPage() {
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
         subtext={subtext ?? undefined}
-        heightPreset="standard"
+        heightPreset="compact"
         showScrollCue
       />
 

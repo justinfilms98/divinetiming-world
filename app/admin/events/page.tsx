@@ -33,6 +33,7 @@ export default function AdminEventsPage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const [uploadInProgress, setUploadInProgress] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -104,6 +105,8 @@ export default function AdminEventsPage() {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
+    const thumbnailUrl = (formData.get('thumbnail_url') as string) || null;
+    const externalThumbId = (formData.get('external_thumbnail_asset_id') as string) || null;
     const payload: Record<string, unknown> = {
       date: formData.get('date') as string,
       city: formData.get('city') as string,
@@ -113,8 +116,8 @@ export default function AdminEventsPage() {
       title: (formData.get('title') as string) || null,
       description: (formData.get('description') as string) || null,
       time: (formData.get('time') as string) || null,
-      thumbnail_url: (formData.get('thumbnail_url') as string) || null,
-      external_thumbnail_asset_id: (formData.get('external_thumbnail_asset_id') as string) || null,
+      thumbnail_url: thumbnailUrl || (editingEvent?.thumbnail_url ?? null),
+      external_thumbnail_asset_id: externalThumbId || (editingEvent?.external_thumbnail_asset_id ?? null),
     };
     if (editingEvent) {
       payload.id = editingEvent.id;
@@ -135,6 +138,18 @@ export default function AdminEventsPage() {
       return;
     }
 
+    const updated = data.event as Event | undefined;
+    if (updated?.id) {
+      setEvents((prev) => {
+        const idx = prev.findIndex((e) => e.id === updated.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...updated };
+          return next;
+        }
+        return prev;
+      });
+    }
     await loadEvents();
     await revalidateAfterSave('events');
     closeModal();
@@ -344,9 +359,9 @@ export default function AdminEventsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <input type="hidden" name="thumbnail_url" defaultValue={editingEvent?.thumbnail_url || ''} />
-              <input type="hidden" name="external_thumbnail_asset_id" defaultValue={editingEvent?.external_thumbnail_asset_id || ''} />
+            <form key={editingEvent?.id ?? 'new'} onSubmit={handleSubmit} className="p-4 space-y-4">
+              <input type="hidden" name="thumbnail_url" defaultValue={editingEvent?.thumbnail_url ?? ''} />
+              <input type="hidden" name="external_thumbnail_asset_id" defaultValue={editingEvent?.external_thumbnail_asset_id ?? ''} />
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Title</label>
@@ -364,17 +379,24 @@ export default function AdminEventsPage() {
                 {(previewThumbnail || editingEvent?.thumbnail_url) ? (
                   <div className="flex items-center gap-3">
                     <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-white/5">
-                      <MediaAssetRenderer
-                        url={previewThumbnail || editingEvent!.thumbnail_url!}
-                        mediaType="image"
+                      <img
+                        src={previewThumbnail || editingEvent!.thumbnail_url!}
                         alt=""
-                        fallback={<div className="absolute inset-0 bg-white/5" />}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const t = e.target as HTMLImageElement;
+                          t.style.display = 'none';
+                          const fb = t.nextElementSibling as HTMLElement;
+                          if (fb) fb.classList.remove('hidden');
+                        }}
                       />
+                      <div className="absolute inset-0 hidden flex items-center justify-center bg-white/5 text-white/40 text-xs">Preview</div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <UniversalUploader
                         acceptedTypes={['image']}
                         onSelected={handleThumbnailSelected}
+                        onUploadingChange={setUploadInProgress}
                         className="inline-flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg text-sm hover:border-slate-400"
                       />
                       <button
@@ -405,6 +427,7 @@ export default function AdminEventsPage() {
                     <UniversalUploader
                       acceptedTypes={['image']}
                       onSelected={handleThumbnailSelected}
+                      onUploadingChange={setUploadInProgress}
                       className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-500"
                     />
                     <button
@@ -510,9 +533,10 @@ export default function AdminEventsPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium"
+                  disabled={uploadInProgress}
+                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {editingEvent ? 'Update' : 'Create'}
+                  {uploadInProgress ? 'Uploading…' : editingEvent ? 'Update' : 'Create'}
                 </button>
                 <button type="button" onClick={closeModal} className="px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
                   Cancel

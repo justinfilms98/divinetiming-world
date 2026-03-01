@@ -6,7 +6,6 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { Image as ImageIcon, Video, Trash2, Copy, Check } from 'lucide-react';
-import Image from 'next/image';
 
 type LibraryFilter = 'all' | 'image' | 'video';
 
@@ -130,14 +129,22 @@ export default function AdminMediaPage() {
                 <div className="aspect-square relative bg-slate-100">
                   {thumb ? (
                     isImage ? (
-                      <Image
-                        src={thumb}
-                        alt={asset.name || ''}
-                        fill
-                        className="object-cover"
-                        sizes="160px"
-                        unoptimized={thumb.includes('ucarecdn')}
-                      />
+                      <>
+                        <img
+                          src={thumb}
+                          alt={asset.name || ''}
+                          className="w-full h-full object-cover absolute inset-0"
+                          onError={(e) => {
+                            const t = e.target as HTMLImageElement;
+                            t.style.display = 'none';
+                            const fb = t.parentElement?.querySelector('.media-card-fallback');
+                            if (fb) (fb as HTMLElement).classList.remove('hidden');
+                          }}
+                        />
+                        <div className="media-card-fallback absolute inset-0 hidden flex items-center justify-center bg-slate-100">
+                          <ImageIcon className="w-10 h-10 text-slate-400" />
+                        </div>
+                      </>
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Video className="w-10 h-10 text-slate-400" />

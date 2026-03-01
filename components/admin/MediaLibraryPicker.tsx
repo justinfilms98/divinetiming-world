@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import Image from 'next/image';
 import { X } from 'lucide-react';
 
 export interface LibraryAsset {
@@ -98,15 +97,24 @@ export function MediaLibraryPicker({
                     className="relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-400 focus:border-slate-500 focus:outline-none"
                   >
                     {thumb && isImage ? (
-                      <Image
+                      <img
                         src={thumb}
                         alt={asset.name || ''}
-                        fill
-                        className="object-cover"
-                        sizes="120px"
-                        unoptimized={thumb.includes('ucarecdn')}
+                        className="w-full h-full object-cover absolute inset-0"
+                        onError={(e) => {
+                          const t = e.target as HTMLImageElement;
+                          t.style.display = 'none';
+                          const fb = t.parentElement?.querySelector('.lib-picker-fallback');
+                          if (fb) (fb as HTMLElement).classList.remove('hidden');
+                        }}
                       />
-                    ) : (
+                    ) : null}
+                    {isImage && thumb && (
+                      <div className="lib-picker-fallback absolute inset-0 hidden flex items-center justify-center bg-slate-100 text-slate-400">
+                        ?
+                      </div>
+                    )}
+                    {(!thumb || !isImage) && (
                       <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-slate-400">
                         {isImage ? '?' : '▶'}
                       </div>

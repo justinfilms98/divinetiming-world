@@ -6,12 +6,23 @@ import Link from 'next/link';
 interface HeroContentProps {
   headline?: string | null;
   subtext?: string | null;
+  /** Primary CTA (e.g. Listen Now) */
   ctaText?: string | null;
   ctaUrl?: string | null;
+  /** Secondary CTA (e.g. Booking) */
+  secondaryCtaText?: string | null;
+  secondaryCtaUrl?: string | null;
 }
 
-export function HeroContent({ headline, subtext, ctaText, ctaUrl }: HeroContentProps) {
-  if (!headline && !subtext && !ctaText) return null;
+export function HeroContent({
+  headline,
+  subtext,
+  ctaText,
+  ctaUrl,
+  secondaryCtaText,
+  secondaryCtaUrl,
+}: HeroContentProps) {
+  if (!headline && !subtext && !ctaText && !secondaryCtaText) return null;
 
   return (
     <motion.div
@@ -31,14 +42,24 @@ export function HeroContent({ headline, subtext, ctaText, ctaUrl }: HeroContentP
             {subtext}
           </p>
         )}
-        {ctaText && ctaUrl && (
-          <Link
-            href={ctaUrl}
-            className="inline-block px-8 py-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent2)] transition-colors font-semibold text-lg glow"
-          >
-            {ctaText}
-          </Link>
-        )}
+        <div className="flex flex-wrap justify-center gap-4">
+          {ctaText && ctaUrl && (
+            <Link
+              href={ctaUrl}
+              className="inline-block px-8 py-4 bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent2)] transition-colors font-semibold text-lg glow focus-ring"
+            >
+              {ctaText}
+            </Link>
+          )}
+          {secondaryCtaText && secondaryCtaUrl && (
+            <Link
+              href={secondaryCtaUrl}
+              className="inline-block px-8 py-4 border border-white/30 text-white rounded-md font-medium hover:bg-white/10 transition-colors duration-250 ease-out focus-ring"
+            >
+              {secondaryCtaText}
+            </Link>
+          )}
+        </div>
       </div>
     </motion.div>
   );

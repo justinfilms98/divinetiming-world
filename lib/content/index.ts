@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
 import type {
   PageSettings,
   HeroSection,
@@ -37,17 +38,27 @@ export async function getPageSettings(pageSlug: string): Promise<PageSettings | 
   return data as PageSettings;
 }
 
-/** Get hero section by page slug */
+const HERO_SELECT =
+  'page_slug, media_type, media_url, media_storage_path, hero_logo_url, hero_logo_storage_path, overlay_opacity, headline, subtext, cta_text, cta_url, animation_type, animation_enabled, id, created_at, updated_at, external_media_asset_id';
+
+/** Get hero section by page slug. Resolves mediaFinalUrl and logoFinalUrl from storage paths or legacy URLs. */
 export async function getHeroSection(pageSlug: string): Promise<HeroSection | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('hero_sections')
-    .select('*')
+    .select(HERO_SELECT)
     .eq('page_slug', pageSlug)
     .single();
 
   if (error || !data) return null;
-  return data as HeroSection;
+  const row = data as Record<string, unknown>;
+  const mediaFinalUrl = resolveHeroMediaUrl(row);
+  const logoFinalUrl = resolveHeroLogoUrl(row);
+  return {
+    ...row,
+    mediaFinalUrl: mediaFinalUrl ?? null,
+    logoFinalUrl: logoFinalUrl ?? null,
+  } as HeroSection;
 }
 
 /** Get event by slug or id (for detail page) */

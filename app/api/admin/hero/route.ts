@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
+import { validateHeroLogoUrl } from '@/lib/hero-validation';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -19,10 +20,21 @@ export async function POST(request: NextRequest) {
       const overlay = h.overlayOpacity ?? h.overlay_opacity ?? 0.4;
       const raw = typeof overlay === 'number' ? overlay : Number(overlay);
       const num = raw <= 1 && raw >= 0 ? raw : Math.min(1, Math.max(0, raw / 100));
+      const rawLogo = (h.hero_logo_url as string) ?? (h.heroLogoUrl as string) ?? null;
+      const hero_logo_url = validateHeroLogoUrl(rawLogo);
+      if (hero_logo_url === undefined) {
+        return NextResponse.json(
+          { error: 'hero_logo_url must be null or a valid http(s) URL' },
+          { status: 400 }
+        );
+      }
       heroData = {
         media_type: (h.type as string) ?? (h.media_type as string) ?? 'default',
         external_media_asset_id: (h.external_media_asset_id as string) ?? null,
         media_url: (h.url as string) ?? (h.media_url as string) ?? null,
+        media_storage_path: (h.media_storage_path as string) ?? null,
+        hero_logo_url,
+        hero_logo_storage_path: (h.hero_logo_storage_path as string) ?? null,
         overlay_opacity: Math.min(1, Math.max(0, num)),
         headline: (h.headline as string) ?? null,
         subtext: (h.subtext as string) ?? null,
@@ -38,6 +50,9 @@ export async function POST(request: NextRequest) {
         media_type,
         external_media_asset_id,
         media_url,
+        media_storage_path,
+        hero_logo_url: rawLogoFlat,
+        hero_logo_storage_path,
         overlay_opacity,
         headline,
         subtext,
@@ -46,10 +61,20 @@ export async function POST(request: NextRequest) {
         animation_type,
         animation_enabled,
       } = body;
+      const hero_logo_url = validateHeroLogoUrl(rawLogoFlat ?? null);
+      if (hero_logo_url === undefined) {
+        return NextResponse.json(
+          { error: 'hero_logo_url must be null or a valid http(s) URL' },
+          { status: 400 }
+        );
+      }
       heroData = {
         media_type: media_type ?? 'default',
         external_media_asset_id: external_media_asset_id ?? null,
         media_url: media_url ?? null,
+        media_storage_path: media_storage_path ?? null,
+        hero_logo_url,
+        hero_logo_storage_path: hero_logo_storage_path ?? null,
         overlay_opacity: overlay_opacity ?? 0.4,
         headline: headline ?? null,
         subtext: subtext ?? null,

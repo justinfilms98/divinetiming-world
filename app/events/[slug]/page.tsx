@@ -29,7 +29,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
 
   const location = [event.venue, event.city].filter(Boolean).join(' · ');
   const title = event.title ?? event.city;
-  const heroMediaUrl = event.thumbnail_url ?? eventsHero?.media_url ?? undefined;
+  const heroMediaUrl = event.thumbnail_url ?? eventsHero?.mediaFinalUrl ?? undefined;
   const heroMediaType = event.thumbnail_url ? 'image' : (eventsHero?.media_type ?? undefined);
 
   return (

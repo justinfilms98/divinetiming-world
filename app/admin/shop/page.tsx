@@ -9,7 +9,6 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
-import Image from 'next/image';
 
 interface ProductImage {
   id: string;
@@ -45,6 +44,7 @@ export default function AdminShopPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [pendingImages, setPendingImages] = useState<{ url: string; id?: string }[]>([]);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const [uploadInProgress, setUploadInProgress] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -124,9 +124,22 @@ export default function AdminShopPage() {
       return;
     }
 
+    const updated = data.product as Product | undefined;
+    if (updated?.id) {
+      setProducts((prev) => {
+        const idx = prev.findIndex((p) => p.id === updated.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...updated };
+          return next;
+        }
+        return prev;
+      });
+    }
     setPendingImages([]);
     await loadProducts();
-    const paths = editingProduct?.slug ? ['/shop', `/shop/${editingProduct.slug}`] : ['/shop'];
+    const pathSlug = updated?.slug ?? editingProduct?.slug;
+    const paths = pathSlug ? ['/shop', `/shop/${pathSlug}`] : ['/shop'];
     await revalidatePaths(paths);
     closeModal();
   };
@@ -252,13 +265,22 @@ export default function AdminShopPage() {
               <AdminCard key={product.id} className="hover:border-white/20 transition-colors overflow-hidden p-0">
                 <div className="aspect-square relative bg-white/5">
                   {mainImage ? (
-                    <Image
-                      src={mainImage}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
+                    <>
+                      <img
+                        src={mainImage}
+                        alt={product.name}
+                        className="w-full h-full object-cover absolute inset-0"
+                        onError={(e) => {
+                          const t = e.target as HTMLImageElement;
+                          t.style.display = 'none';
+                          const fb = t.parentElement?.querySelector('.product-card-fallback');
+                          if (fb) (fb as HTMLElement).classList.remove('hidden');
+                        }}
+                      />
+                      <div className="product-card-fallback absolute inset-0 hidden flex items-center justify-center bg-white/5">
+                        <ShoppingBag className="w-12 h-12 text-white/20" />
+                      </div>
+                    </>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <ShoppingBag className="w-12 h-12 text-white/20" />
@@ -382,8 +404,19 @@ export default function AdminShopPage() {
                   <div className="flex flex-wrap gap-2 mb-2">
                     {pendingImages.map((img, i) => (
                       <div key={i} className="relative group">
-                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5">
-                          <Image src={img.url} alt="" width={80} height={80} className="w-full h-full object-cover" />
+                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5 relative">
+                          <img
+                            src={img.url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const t = e.target as HTMLImageElement;
+                              t.style.display = 'none';
+                              const fallback = t.parentElement?.querySelector('.shop-thumb-fallback');
+                              if (fallback) (fallback as HTMLElement).classList.remove('hidden');
+                            }}
+                          />
+                          <div className="shop-thumb-fallback absolute inset-0 hidden flex items-center justify-center bg-white/5 text-white/40 text-xs">Preview</div>
                         </div>
                         <button
                           type="button"
@@ -400,6 +433,7 @@ export default function AdminShopPage() {
                       multiple
                       acceptedTypes={['image']}
                       onSelected={handleImageSelected}
+                      onUploadingChange={setUploadInProgress}
                       buttonLabel="Upload image"
                     />
                     <button
@@ -427,8 +461,19 @@ export default function AdminShopPage() {
                   <div className="flex flex-wrap gap-2 mb-3">
                     {(editingProduct.product_images || []).map((img) => (
                       <div key={img.id} className="relative group">
-                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5">
-                          <Image src={img.image_url} alt="" width={80} height={80} className="w-full h-full object-cover" />
+                        <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5 relative">
+                          <img
+                            src={img.image_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const t = e.target as HTMLImageElement;
+                              t.style.display = 'none';
+                              const fallback = t.parentElement?.querySelector('.shop-thumb-fallback');
+                              if (fallback) (fallback as HTMLElement).classList.remove('hidden');
+                            }}
+                          />
+                          <div className="shop-thumb-fallback absolute inset-0 hidden flex items-center justify-center bg-white/5 text-white/40 text-xs">Preview</div>
                         </div>
                         <button
                           type="button"
@@ -476,6 +521,7 @@ export default function AdminShopPage() {
                       const f = files[0];
                       if (f && editingProduct) handleAddImageToProduct(editingProduct.id, f.url, editingProduct.slug);
                     }}
+                    onUploadingChange={setUploadInProgress}
                     buttonLabel="Upload image"
                     className="mt-2"
                   />
@@ -506,9 +552,10 @@ export default function AdminShopPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium"
+                  disabled={uploadInProgress}
+                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {editingProduct ? 'Update' : 'Create'}
+                  {uploadInProgress ? 'Uploading…' : editingProduct ? 'Update' : 'Create'}
                 </button>
                 <button type="button" onClick={closeModal} className="px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
                   Cancel

@@ -1,6 +1,8 @@
 # Storage Bucket Setup Instructions
 
-If you're getting RLS (Row Level Security) errors when uploading files, follow these steps:
+**Note:** Admin uploads use **Uploadcare** by default (see [docs/MEDIA_STORAGE.md](docs/MEDIA_STORAGE.md)). The Supabase `media` bucket is optional—use it only if you need server-side or fallback storage.
+
+If you're getting RLS (Row Level Security) errors when uploading files to Supabase Storage, follow these steps:
 
 ## Option 1: Manual Bucket Creation (Recommended)
 
@@ -28,6 +30,16 @@ After creating the bucket, verify the RLS policies are set:
    - "Authenticated users can update media" (UPDATE)
    - "Authenticated users can delete media" (DELETE)
    - "Public can read media" (SELECT)
+
+## CORS (if the app loads files from Supabase Storage URLs)
+
+If your app or Next.js pages load files from Supabase Storage (e.g. `https://<project>.supabase.co/storage/v1/object/public/media/...`), set allowed origins in Supabase Dashboard → Storage → Configuration (or project Settings):
+
+- Production: `https://yourdomain.com`
+- Preview: your Vercel/preview URL
+- Local: `http://localhost:3000`
+
+See [docs/MEDIA_STORAGE.md](docs/MEDIA_STORAGE.md) for full storage and verification guidance.
 
 ## Troubleshooting
 

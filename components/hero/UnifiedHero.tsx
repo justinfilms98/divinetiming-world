@@ -12,7 +12,7 @@ export interface UnifiedHeroProps {
   headline?: string | null;
   subtext?: string | null;
   align?: 'left' | 'center';
-  heightPreset?: 'full' | 'tall' | 'standard';
+  heightPreset?: 'full' | 'tall' | 'standard' | 'compact';
   showScrollCue?: boolean;
   badge?: string | null;
   children?: React.ReactNode;
@@ -22,6 +22,7 @@ const heightClasses = {
   full: 'min-h-screen',
   tall: 'aspect-[16/9] min-h-[320px] w-full',
   standard: 'aspect-[16/9] min-h-[280px] w-full',
+  compact: 'min-h-[160px] aspect-[3/1] w-full max-h-[200px]',
 };
 
 export function UnifiedHero({

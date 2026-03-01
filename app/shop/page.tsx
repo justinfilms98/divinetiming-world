@@ -15,7 +15,7 @@ export default async function ShopPage() {
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Shop';
   const tagline = heroSection?.subtext;
   const mediaType = heroSection?.media_type ?? null;
-  const mediaUrl = heroSection?.media_url ?? null;
+  const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
@@ -26,7 +26,7 @@ export default async function ShopPage() {
         overlayOpacity={Number(overlayOpacity)}
         headline={headline}
         subtext={tagline ?? undefined}
-        heightPreset="tall"
+        heightPreset="compact"
       />
       <SignatureDivider />
       <ShopPageClient products={products} />

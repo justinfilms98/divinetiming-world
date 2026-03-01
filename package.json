@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "audit:admin": "node scripts/admin-audit.mjs"
+    "audit:admin": "node scripts/admin-audit.mjs",
+    "assert:hero-logo": "node scripts/assert-hero-logo-validation.mjs",
+    "assert:bio-sanitize": "node scripts/assert-bio-sanitize.mjs"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
@@ -15,6 +17,11 @@
     "@stripe/stripe-js": "^8.4.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.81.1",
+    "@tiptap/extension-image": "^3.20.0",
+    "@tiptap/extension-link": "^3.20.0",
+    "@tiptap/pm": "^3.20.0",
+    "@tiptap/react": "^3.20.0",
+    "@tiptap/starter-kit": "^3.20.0",
     "@uploadcare/file-uploader": "^1.27.0",
     "@uploadcare/upload-client": "^6.18.4",
     "browser-image-compression": "^2.0.2",
@@ -24,6 +31,7 @@
     "next": "^16.0.7",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "sanitize-html": "^2.17.1",
     "stripe": "^19.3.1"
   },
   "devDependencies": {
@@ -31,6 +39,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.0",
     "eslint": "^9",
     "eslint-config-next": "^16.0.7",
     "tailwindcss": "^4",

@@ -14,7 +14,7 @@ export function CartTrigger() {
   return (
     <button
       onClick={openCart}
-      className="fixed bottom-20 left-6 z-50 w-12 h-12 rounded-full bg-[var(--bg)]/95 backdrop-blur-md border border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.3)] flex items-center justify-center text-white hover:border-[var(--accent)]/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.35)] transition-all duration-250 ease-out md:bottom-6 md:left-6"
+      className="absolute left-[731px] top-[554px] z-50 w-12 h-12 rounded-full bg-[var(--bg)]/95 backdrop-blur-md border border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.3)] flex items-center justify-center text-white hover:border-[var(--accent)]/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.35)] transition-all duration-250 ease-out focus-ring"
       aria-label={`Open cart (${itemCount} items)`}
     >
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
