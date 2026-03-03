@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { validateHeroLogoUrl } from '@/lib/hero-validation';
+import { normalizeHeroSlots } from '@/lib/content/shared';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -44,6 +45,11 @@ export async function POST(request: NextRequest) {
         animation_enabled: (h.animation_enabled as boolean) ?? true,
         updated_at: new Date().toISOString(),
       };
+      if (h.hero_slots !== undefined) {
+        const result = normalizeHeroSlots(h.hero_slots);
+        if (result && 'error' in result) return NextResponse.json({ error: result.error }, { status: 400 });
+        heroData.hero_slots = Array.isArray(result) ? result : (Array.isArray(h.hero_slots) ? h.hero_slots.slice(0, 3) : null);
+      }
     } else {
       const {
         page_slug,
@@ -60,6 +66,7 @@ export async function POST(request: NextRequest) {
         cta_url,
         animation_type,
         animation_enabled,
+        hero_slots: rawSlots,
       } = body;
       const hero_logo_url = validateHeroLogoUrl(rawLogoFlat ?? null);
       if (hero_logo_url === undefined) {
@@ -84,6 +91,11 @@ export async function POST(request: NextRequest) {
         animation_enabled: animation_enabled ?? true,
         updated_at: new Date().toISOString(),
       };
+      if (rawSlots !== undefined) {
+        const result = normalizeHeroSlots(rawSlots);
+        if (result && 'error' in result) return NextResponse.json({ error: result.error }, { status: 400 });
+        heroData.hero_slots = Array.isArray(result) ? result : (Array.isArray(rawSlots) ? rawSlots.slice(0, 3) : null);
+      }
     }
 
     const { data: existing } = await supabase

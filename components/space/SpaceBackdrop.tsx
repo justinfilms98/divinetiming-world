@@ -25,25 +25,24 @@ export function SpaceBackdrop() {
 
   useEffect(() => {
     setMounted(true);
-    
+
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(mediaQuery.matches);
 
     const handleChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mediaQuery.addEventListener('change', handleChange);
 
-    // Generate stars only on client
     if (!mediaQuery.matches) {
-      const generatedStars: Star[] = Array.from({ length: 100 }).map(() => ({
-        size: Math.random() * 2 + 1,
+      const generatedStars: Star[] = Array.from({ length: 60 }).map(() => ({
+        size: Math.random() * 1.5 + 0.5,
         left: Math.random() * 100,
         top: Math.random() * 100,
         delay: Math.random() * 3,
         duration: 2 + Math.random() * 3,
-        opacity: 0.3 + Math.random() * 0.7,
+        opacity: 0.15 + Math.random() * 0.4,
       }));
 
-      const generatedMeteors: Meteor[] = Array.from({ length: 3 }).map(() => ({
+      const generatedMeteors: Meteor[] = Array.from({ length: 2 }).map(() => ({
         left: 10 + Math.random() * 80,
         delay: Math.random() * 20,
         duration: 3 + Math.random() * 2,
@@ -58,21 +57,26 @@ export function SpaceBackdrop() {
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-[#1a0f1f] to-[#0f0c10]" />
+      {/* Earthy luxury base — soft sand with subtle depth */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(180deg, var(--bg) 0%, var(--bg-secondary) 50%, var(--bg) 100%)',
+        }}
+      />
 
-      {/* Stars layer - only render after mount to avoid hydration mismatch */}
       {mounted && !reducedMotion && (
         <div className="absolute inset-0">
           {stars.map((star, i) => (
             <div
               key={i}
-              className="absolute rounded-full bg-white"
+              className="absolute rounded-full"
               style={{
                 left: `${star.left}%`,
                 top: `${star.top}%`,
                 width: `${star.size}px`,
                 height: `${star.size}px`,
+                backgroundColor: 'var(--accent)',
                 opacity: star.opacity,
                 animation: `twinkle ${star.duration}s ease-in-out ${star.delay}s infinite`,
               }}
@@ -81,16 +85,16 @@ export function SpaceBackdrop() {
         </div>
       )}
 
-      {/* Meteors layer - only render after mount */}
       {mounted && !reducedMotion && (
         <div className="absolute inset-0">
           {meteors.map((meteor, i) => (
             <div
               key={i}
-              className="absolute top-0 h-1 w-1 rounded-full bg-white shadow-lg"
+              className="absolute top-0 h-0.5 w-0.5 rounded-full opacity-30"
               style={{
                 left: `${meteor.left}%`,
-                boxShadow: '0 0 10px 2px rgba(255,255,255,0.5)',
+                backgroundColor: 'var(--ocean)',
+                boxShadow: '0 0 8px 1px rgba(47, 93, 98, 0.4)',
                 animation: `meteor ${meteor.duration}s linear ${meteor.delay}s infinite`,
               }}
             />
@@ -98,14 +102,12 @@ export function SpaceBackdrop() {
         </div>
       )}
 
-      {/* Subtle grain overlay */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
       />
-
     </div>
   );
 }

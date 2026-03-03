@@ -3,6 +3,7 @@
  * Server-side only. Use in API routes.
  */
 
+import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase/service';

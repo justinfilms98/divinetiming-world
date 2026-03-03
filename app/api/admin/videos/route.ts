@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
+import { parseYouTubeId } from '@/lib/content/shared';
+
+/** Normalize input to 11-char YouTube ID only. Rejects raw URLs from other domains. */
+function normalizeYouTubeId(input: string | null | undefined): string | null {
+  if (input == null || typeof input !== 'string') return null;
+  return parseYouTubeId(input.trim());
+}
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -9,19 +16,30 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, title, youtube_id, thumbnail_url, is_featured, display_order } = body;
+    const { id, title, youtube_id: rawYoutubeId, youtube_url, thumbnail_url, is_featured, display_order } = body;
+
+    const youtubeIdInput = rawYoutubeId ?? youtube_url;
+    const normalizedId = normalizeYouTubeId(youtubeIdInput);
 
     if (id) {
+      const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (title != null) updates.title = title;
+      if (thumbnail_url != null) updates.thumbnail_url = thumbnail_url;
+      if (is_featured != null) updates.is_featured = is_featured;
+      if (display_order != null) updates.display_order = display_order;
+      if (youtubeIdInput != null) {
+        if (!normalizedId) {
+          return NextResponse.json(
+            { error: 'Invalid YouTube URL or ID. Use youtube.com/watch?v=..., youtu.be/..., or an 11-character video ID.' },
+            { status: 400 }
+          );
+        }
+        updates.youtube_id = normalizedId;
+      }
+
       const { data, error } = await supabase
         .from('videos')
-        .update({
-          title: title ?? undefined,
-          youtube_id: youtube_id ?? undefined,
-          thumbnail_url: thumbnail_url ?? undefined,
-          is_featured: is_featured ?? undefined,
-          display_order: display_order ?? undefined,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -31,6 +49,13 @@ export async function POST(request: NextRequest) {
       }
       revalidatePath('/media');
       return NextResponse.json({ video: data });
+    }
+
+    if (!normalizedId) {
+      return NextResponse.json(
+        { error: 'Invalid YouTube URL or ID. Use youtube.com/watch?v=..., youtu.be/..., or an 11-character video ID.' },
+        { status: 400 }
+      );
     }
 
     const { data: maxOrder } = await supabase
@@ -46,7 +71,7 @@ export async function POST(request: NextRequest) {
       .from('videos')
       .insert({
         title: title ?? '',
-        youtube_id: youtube_id ?? '',
+        youtube_id: normalizedId,
         thumbnail_url: thumbnail_url ?? null,
         is_featured: is_featured ?? false,
         display_order: order,

@@ -7,7 +7,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
-import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X } from 'lucide-react';
+import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X, AlertTriangle } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 
 interface ProductImage {
@@ -45,10 +45,18 @@ export default function AdminShopPage() {
   const [pendingImages, setPendingImages] = useState<{ url: string; id?: string }[]>([]);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
+  const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     loadProducts();
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/admin/shop-config', { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((d) => setStripeConfigured(d.stripeConfigured === true))
+      .catch(() => setStripeConfigured(false));
   }, []);
 
   const loadProducts = async () => {
@@ -237,6 +245,14 @@ export default function AdminShopPage() {
         </button>
       }
     >
+      {stripeConfigured === false && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3 text-sm text-amber-800">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong>Stripe not connected.</strong> Add <code className="bg-amber-100 px-1 rounded">STRIPE_SECRET_KEY</code> and <code className="bg-amber-100 px-1 rounded">STRIPE_WEBHOOK_SECRET</code> to your environment to enable checkout. Products will still appear on the Shop page; checkout will fail until Stripe is configured.
+          </div>
+        </div>
+      )}
       {products.length === 0 ? (
         <AdminCard>
           <EmptyState

@@ -75,10 +75,10 @@ function ProductCard({
   return (
     <motion.article
       variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 24 } }}
-      className="group relative flex flex-col items-center text-center"
+      className="group relative flex flex-col items-center text-center rounded-[12px] border border-[var(--accent)]/20 bg-[var(--bg-secondary)] p-6 shadow-md transition-all duration-300 hover:border-[var(--accent)]/60 hover:shadow-lg"
     >
       <Link href={`/shop/${product.slug}`} className="block w-full" onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}>
-        <div className="relative aspect-square w-full max-w-sm mx-auto mb-6">
+        <div className="relative aspect-square w-full max-w-sm mx-auto mb-6 rounded-[12px] overflow-hidden">
           {showImage ? (
             <Image
               src={mainImage}
@@ -87,18 +87,18 @@ function ProductCard({
               loading="lazy"
               placeholder="blur"
               blurDataURL={BLUR_PLACEHOLDER}
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
-              <span className="text-white/20 text-4xl font-light">—</span>
+            <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center">
+              <span className="text-[var(--text-muted)] text-4xl font-light">—</span>
             </div>
           )}
         </div>
       </Link>
-      <h3 className="text-xl font-medium text-white tracking-tight mb-1">{product.name}</h3>
+      <h3 className="text-xl font-medium text-[var(--text)] tracking-tight mb-1" style={{ fontFamily: 'var(--font-headline)' }}>{product.name}</h3>
       <p className="text-[var(--accent)] font-light text-lg mb-4">{formatPrice(product.price_cents)}</p>
       {(!product.product_variants || product.product_variants.length === 0) ? (
         <button
@@ -106,12 +106,12 @@ function ProductCard({
             track({ event_name: 'add_to_cart', entity_type: 'product', entity_id: product.id });
             onAddToCart({ productId: product.id, productName: product.name, productSlug: product.slug, variantId: null, variantName: null, priceCents: product.price_cents, imageUrl: mainImage ?? null });
           }}
-          className="text-sm uppercase tracking-widest text-white/70 hover:text-[var(--accent)] transition-colors border-b border-transparent hover:border-[var(--accent)] pb-0.5"
+          className="min-h-[48px] px-6 py-3 text-sm uppercase tracking-widest text-[var(--text)] hover:text-[var(--accent)] transition-all duration-200 border-b border-transparent hover:border-[var(--accent)] pb-0.5 -translate-y-0 hover:-translate-y-0.5 active:translate-y-0"
         >
           Add to Cart
         </button>
       ) : (
-        <Link href={`/shop/${product.slug}`} onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })} className="text-sm uppercase tracking-widest text-white/70 hover:text-[var(--accent)] transition-colors border-b border-transparent hover:border-[var(--accent)] pb-0.5">
+        <Link href={`/shop/${product.slug}`} onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })} className="min-h-[48px] inline-flex items-center text-sm uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--accent)] transition-all duration-200 border-b border-transparent hover:border-[var(--accent)] pb-0.5 -translate-y-0 hover:-translate-y-0.5 active:translate-y-0">
           View Options
         </Link>
       )}

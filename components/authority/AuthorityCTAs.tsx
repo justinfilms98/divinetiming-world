@@ -1,26 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { getAuthorityConfig } from '@/lib/authority-config';
+import { getPlatformLinks } from '@/lib/platformLinks';
 import { cn } from '@/lib/ui/cn';
+import type { SiteSettings } from '@/lib/types/content';
 
 interface AuthorityCTAsProps {
   showBook?: boolean;
   showListen?: boolean;
   showEPK?: boolean;
+  siteSettings?: SiteSettings | null;
   className?: string;
 }
 
-/** Listen = direct links to Apple Music + Spotify only (no scroll/embed). */
+/** Listen = direct links from platformLinks (Spotify, Apple Music, etc.). */
 export function AuthorityCTAs({
   showBook = true,
   showListen = true,
   showEPK = true,
+  siteSettings,
   className,
 }: AuthorityCTAsProps) {
-  const { streamingLinks } = getAuthorityConfig(null);
-  const appleMusic = streamingLinks?.apple_music;
-  const spotify = streamingLinks?.spotify;
+  const platformLinks = getPlatformLinks(siteSettings ?? undefined);
+  const listenLinks = platformLinks.filter((l) =>
+    ['spotify', 'appleMusic', 'youtube'].includes(l.id)
+  );
 
   return (
     <div
@@ -32,35 +36,27 @@ export function AuthorityCTAs({
       {showBook && (
         <Link
           href="/booking"
-          className="px-6 py-3 bg-[var(--accent)] text-[var(--bg)] rounded-lg font-semibold hover:bg-[var(--accent2)] transition-colors duration-250 ease-out shadow-[0_0_20px_rgba(209,98,23,0.2)]"
+          className="px-6 py-3 min-h-[44px] rounded-[var(--radius-button)] font-semibold type-button bg-[var(--accent)] text-[var(--text)] hover:bg-[var(--accent-hover)] transition-colors duration-250 ease-out glow focus-ring"
         >
           Book
         </Link>
       )}
-      {showListen && appleMusic && (
-        <a
-          href={appleMusic}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-6 py-3 border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-colors duration-250 ease-out"
-        >
-          Apple Music
-        </a>
-      )}
-      {showListen && spotify && (
-        <a
-          href={spotify}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-6 py-3 border border-white/30 text-white rounded-lg font-medium hover:bg-white/10 transition-colors duration-250 ease-out"
-        >
-          Spotify
-        </a>
-      )}
+      {showListen &&
+        listenLinks.map((link) => (
+          <a
+            key={link.id}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 min-h-[44px] rounded-[var(--radius-button)] border-2 border-white/30 text-white font-medium hover:bg-white/10 transition-colors duration-250 ease-out type-button focus-ring"
+          >
+            {link.label}
+          </a>
+        ))}
       {showEPK && (
         <Link
           href="/epk"
-          className="px-6 py-3 text-white/80 hover:text-white transition-colors duration-250 ease-out text-sm font-medium"
+          className="px-6 py-3 min-h-[44px] text-white/80 hover:text-white transition-colors duration-250 ease-out text-sm font-medium type-button focus-ring"
         >
           View EPK
         </Link>

@@ -67,16 +67,16 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         }),
       });
 
-      const { url } = await response.json();
+      const data = await response.json();
 
-      if (url) {
-        window.location.href = url;
+      if (response.ok && data.url) {
+        window.location.href = data.url;
       } else {
-        alert('Failed to create checkout session');
+        alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('An error occurred. Please try again.');
+      alert('Checkout is temporarily unavailable. Please try again later or contact us.');
     } finally {
       setIsLoading(false);
     }

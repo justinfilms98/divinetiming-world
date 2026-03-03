@@ -48,7 +48,12 @@ async function getOrCreateStripePrice(
   return stripePriceId;
 }
 
+const STRIPE_UNAVAILABLE_MESSAGE = 'Checkout is temporarily unavailable. Please try again later or contact us.';
+
 export async function POST(request: NextRequest) {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
+    return NextResponse.json({ error: STRIPE_UNAVAILABLE_MESSAGE }, { status: 503 });
+  }
   try {
     const body = await request.json();
     const items: CartItem[] = body.items
@@ -103,8 +108,13 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Checkout error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : '';
+    const isStripeError = /stripe|api_key|invalid/i.test(message);
+    return NextResponse.json(
+      { error: isStripeError ? STRIPE_UNAVAILABLE_MESSAGE : (message || STRIPE_UNAVAILABLE_MESSAGE) },
+      { status: 500 }
+    );
   }
 }

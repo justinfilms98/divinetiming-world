@@ -18,8 +18,10 @@ interface RevealProps {
   className?: string;
 }
 
+const scrollRevealTransition = { duration: 0.6, ease: [0.4, 0, 0.2, 1] as const };
+
 const variantMap = {
-  fadeUp: { ...fadeUp, transition: defaultTransition },
+  fadeUp: { ...fadeUp, transition: scrollRevealTransition },
   fade: { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: defaultTransition },
   fadeDown: {
     initial: { opacity: 0, y: -16 },

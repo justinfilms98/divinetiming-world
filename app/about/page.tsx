@@ -7,7 +7,7 @@ import {
   getSiteSettings,
   getHeroSection,
   getPageSettings,
-} from '@/lib/content';
+} from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { AboutContent } from '@/components/about/AboutContent';
 

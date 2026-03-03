@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { OverflowDebug } from '@/components/dev/OverflowDebug';
 import { LogOut, ExternalLink, PanelLeftClose, PanelLeft } from 'lucide-react';
 import '@/app/admin/admin.css';
 
@@ -36,6 +37,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="admin-root min-h-screen w-full overflow-x-hidden">
+      <Suspense fallback={null}>
+        <OverflowDebug />
+      </Suspense>
       <div
         className="grid min-h-screen transition-[grid-template-columns] duration-200 ease-out"
         style={{ gridTemplateColumns: sidebarCollapsed ? '56px 1fr' : `${SIDEBAR_WIDTH}px 1fr` }}

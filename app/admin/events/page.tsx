@@ -13,6 +13,7 @@ import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 
 interface Event {
   id: string;
+  slug?: string | null;
   date: string;
   city: string;
   venue: string;
@@ -107,6 +108,7 @@ export default function AdminEventsPage() {
 
     const thumbnailUrl = (formData.get('thumbnail_url') as string) || null;
     const externalThumbId = (formData.get('external_thumbnail_asset_id') as string) || null;
+    const slugValue = (formData.get('slug') as string)?.trim() || null;
     const payload: Record<string, unknown> = {
       date: formData.get('date') as string,
       city: formData.get('city') as string,
@@ -118,6 +120,7 @@ export default function AdminEventsPage() {
       time: (formData.get('time') as string) || null,
       thumbnail_url: thumbnailUrl || (editingEvent?.thumbnail_url ?? null),
       external_thumbnail_asset_id: externalThumbId || (editingEvent?.external_thumbnail_asset_id ?? null),
+      slug: slugValue ?? (editingEvent?.slug ?? undefined),
     };
     if (editingEvent) {
       payload.id = editingEvent.id;
@@ -372,6 +375,18 @@ export default function AdminEventsPage() {
                   placeholder="Event title (falls back to city)"
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                 />
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">URL slug</label>
+                <input
+                  type="text"
+                  name="slug"
+                  defaultValue={editingEvent?.slug ?? ''}
+                  placeholder={editingEvent ? 'e.g. my-event-2025-01-15' : 'Leave empty to auto-generate from title + date'}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm"
+                />
+                <p className="text-white/50 text-xs mt-1">Lowercase, kebab-case. Used in /events/[slug].</p>
               </div>
 
               <div>

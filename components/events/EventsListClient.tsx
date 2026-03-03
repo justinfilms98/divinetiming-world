@@ -37,7 +37,7 @@ export function EventsListClient({ upcomingEvents, pastEvents }: EventsListClien
           ))}
         </div>
       ) : (
-        <div className="text-center text-white/70 py-16">
+        <div className="text-center text-[var(--text-muted)] py-16">
           <p className="text-lg">
             {active === 'upcoming' ? 'No upcoming events. Check back soon.' : 'No past events.'}
           </p>

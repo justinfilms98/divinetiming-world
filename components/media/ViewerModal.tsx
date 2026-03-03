@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
-import { cn } from '@/lib/ui/cn';
+import { useFocusTrap } from '@/lib/ui/useFocusTrap';
+import { useScrollLock } from '@/lib/ui/useScrollLock';
 
 export interface ViewerItem {
   id: string;
@@ -24,6 +25,16 @@ export function ViewerModal({ items, currentIndex, onClose, onIndexChange }: Vie
   const item = items[currentIndex];
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  const handleClose = useCallback(() => {
+    const prev = previousActiveElement.current;
+    if (prev && typeof prev.focus === 'function') prev.focus();
+    onClose();
+  }, [onClose]);
+
+  const containerRef = useFocusTrap(!!item, handleClose);
+  useScrollLock(!!item);
 
   const goPrev = useCallback(() => {
     if (hasPrev) onIndexChange?.(currentIndex - 1);
@@ -34,29 +45,37 @@ export function ViewerModal({ items, currentIndex, onClose, onIndexChange }: Vie
   }, [currentIndex, hasNext, onIndexChange]);
 
   useEffect(() => {
+    if (item) previousActiveElement.current = document.activeElement as HTMLElement | null;
+  }, [item]);
+
+  useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
       if (e.key === 'ArrowLeft') goPrev();
       if (e.key === 'ArrowRight') goNext();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose, goPrev, goNext]);
+  }, [handleClose, goPrev, goNext]);
 
   if (!item) return null;
 
   return (
     <AnimatePresence>
       <motion.div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Media viewer"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
+        onClick={handleClose}
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white rounded-lg focus-visible:ring-2 focus-visible:ring-white"
           aria-label="Close"
         >

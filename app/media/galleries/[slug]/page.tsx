@@ -1,41 +1,53 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getGalleryBySlug } from '@/lib/content/server';
 import { GalleryDetailClient } from '@/components/media/GalleryDetailClient';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-export default async function GalleryPage({ params }: { params: { slug: string } }) {
-  const supabase = await createClient();
-  const { data: gallery } = await supabase
-    .from('galleries')
-    .select('*, gallery_media(*)')
-    .eq('slug', params.slug)
-    .single();
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const gallery = await getGalleryBySlug(slug);
+  if (!gallery) return { title: 'Gallery' };
+  return {
+    title: gallery.name,
+    description: gallery.description || `Photo gallery: ${gallery.name}`,
+    openGraph: { title: `${gallery.name} | Divine Timing` },
+  };
+}
+
+export default async function GalleryPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const gallery = await getGalleryBySlug(slug);
 
   if (!gallery) {
     notFound();
   }
 
-  const sortedMedia = (gallery.gallery_media || []).sort(
-    (a: { display_order: number }, b: { display_order: number }) => (a.display_order ?? 0) - (b.display_order ?? 0)
-  );
-
-  const gridItems = sortedMedia
-    .filter((m: { url: string | null }) => m.url)
-    .map((m: { id: string; media_type: string; url: string; thumbnail_url?: string | null; caption?: string | null }) => ({
+  const gridItems = gallery.gallery_media
+    .filter((m) => m.resolved_url)
+    .map((m) => ({
       id: m.id,
-      media_type: m.media_type as 'image' | 'video',
-      url: m.url,
-      thumbnail_url: m.thumbnail_url ?? null,
+      media_type: m.media_type,
+      url: m.resolved_url!,
+      thumbnail_url: m.resolved_thumbnail_url ?? null,
       caption: m.caption ?? null,
     }));
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <Header />
-      <main className="flex-1 py-16 px-4">
+      <main className="flex-1 py-16 px-4 min-w-0">
         <div className="max-w-6xl mx-auto">
           <GalleryDetailClient
             galleryName={gallery.name}

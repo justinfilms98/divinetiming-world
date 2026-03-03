@@ -8,10 +8,12 @@ import Link from 'next/link';
 export default async function AdminDashboard() {
   const supabase = await createClient();
 
-  const [eventsCount, productsCount, videosCount] = await Promise.all([
+  const [eventsCount, productsCount, videosCount, galleriesCount, libraryCount] = await Promise.all([
     supabase.from('events').select('id', { count: 'exact', head: true }),
     supabase.from('products').select('id', { count: 'exact', head: true }),
     supabase.from('videos').select('id', { count: 'exact', head: true }),
+    supabase.from('galleries').select('id', { count: 'exact', head: true }),
+    supabase.from('external_media_assets').select('id', { count: 'exact', head: true }),
   ]);
 
   const stats = [
@@ -23,11 +25,25 @@ export default async function AdminDashboard() {
       color: 'text-blue-600',
     },
     {
-      label: 'Media',
-      value: videosCount.count || 0,
+      label: 'Media library',
+      value: libraryCount.count || 0,
       icon: ImageIcon,
       href: '/admin/media',
       color: 'text-purple-600',
+    },
+    {
+      label: 'Collections',
+      value: galleriesCount.count || 0,
+      icon: ImageIcon,
+      href: '/admin/collections',
+      color: 'text-amber-600',
+    },
+    {
+      label: 'Videos',
+      value: videosCount.count || 0,
+      icon: ImageIcon,
+      href: '/admin/videos',
+      color: 'text-rose-600',
     },
     {
       label: 'Products',
@@ -47,7 +63,7 @@ export default async function AdminDashboard() {
       <DashboardHeroEditor />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (

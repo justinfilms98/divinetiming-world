@@ -8,6 +8,7 @@ import { PageTransition } from '@/components/motion/PageTransition';
 import { CartProvider } from '@/components/shop/CartContext';
 import { CartTrigger } from '@/components/shop/CartTrigger';
 import { CartSlideOut } from '@/components/shop/CartSlideOut';
+import { OverflowDebug } from '@/components/dev/OverflowDebug';
 import type { SiteSettings } from '@/lib/types/content';
 
 interface PublicLayoutProps {
@@ -25,10 +26,13 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
 
   return (
     <CartProvider>
+      <OverflowDebug />
       <SpaceBackdrop />
-      <CornerNav />
+      <CornerNav siteSettings={siteSettings} />
       <SocialDock siteSettings={siteSettings} />
-      <PageTransition>{children}</PageTransition>
+      <div className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col">
+        <PageTransition>{children}</PageTransition>
+      </div>
       <CartTrigger />
       <CartSlideOut />
     </CartProvider>

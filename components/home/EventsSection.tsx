@@ -38,6 +38,7 @@ export function EventsSection({ events }: EventsSectionProps) {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-12 text-center"
+          style={{ fontFamily: 'var(--font-headline)' }}
         >
           Upcoming Events
         </motion.h2>
@@ -50,7 +51,7 @@ export function EventsSection({ events }: EventsSectionProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-[var(--bg2)] rounded-lg border border-[var(--accent)]/20 hover:border-[var(--accent)]/40 transition-colors"
+              className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-[var(--bg-secondary)] rounded-xl border border-[var(--accent)]/30 hover:border-[var(--accent)]/50 transition-colors duration-200"
             >
               <div>
                 <div className="text-[var(--accent)] text-sm font-semibold mb-1">
@@ -69,7 +70,7 @@ export function EventsSection({ events }: EventsSectionProps) {
                   href={event.ticket_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 md:mt-0 px-6 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors glow"
+                  className="btn-lift mt-4 md:mt-0 min-h-[48px] inline-flex items-center px-6 py-3 bg-[var(--accent)] text-[var(--text)] rounded-xl hover:bg-[var(--accent-hover)] transition-colors duration-200 glow"
                 >
                   Tickets
                 </a>

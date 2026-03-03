@@ -14,7 +14,7 @@ export function CartTrigger() {
   return (
     <button
       onClick={openCart}
-      className="absolute left-[731px] top-[554px] z-50 w-12 h-12 rounded-full bg-[var(--bg)]/95 backdrop-blur-md border border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.3)] flex items-center justify-center text-white hover:border-[var(--accent)]/40 hover:shadow-[0_4px_16px_rgba(0,0,0,0.35)] transition-all duration-250 ease-out focus-ring"
+      className="fixed bottom-6 right-6 z-50 min-w-[48px] min-h-[48px] w-12 h-12 rounded-full bg-[var(--bg)]/95 backdrop-blur-md border border-[var(--accent)]/30 shadow-md flex items-center justify-center text-[var(--text)] hover:border-[var(--accent)] hover:shadow-lg transition-all duration-200 focus-ring"
       aria-label={`Open cart (${itemCount} items)`}
     >
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,7 +26,7 @@ export function CartTrigger() {
         />
       </svg>
       {itemCount > 0 && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-bold flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[var(--accent)] text-[var(--text)] text-xs font-bold flex items-center justify-center">
           {itemCount > 9 ? '9+' : itemCount}
         </span>
       )}

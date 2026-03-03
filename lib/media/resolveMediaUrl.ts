@@ -1,7 +1,9 @@
 /**
- * Resolve display URL for media - handles both uploaded (direct URL) and external (Drive) assets
+ * Resolve display URL for media - handles both uploaded (direct URL) and external (Drive) assets.
+ * Server-only: uses lib/supabase/server and lib/integrations/googleDrive.
  */
 
+import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { getImageUrl, getThumbnailUrl, getVideoPreviewUrl } from '@/lib/integrations/googleDrive';
 

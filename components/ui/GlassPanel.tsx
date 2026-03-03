@@ -16,10 +16,10 @@ export function GlassPanel({ children, className = '', delay = 0 }: GlassPanelPr
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay }}
       className={`
-        bg-white/5 backdrop-blur-xl
-        border border-white/10
+        bg-[var(--bg)]/80 backdrop-blur-xl
+        border border-[var(--accent)]/20
         rounded-2xl
-        shadow-2xl
+        shadow-lg
         p-8 md:p-12
         max-w-4xl mx-auto
         ${className}

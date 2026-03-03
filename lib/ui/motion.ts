@@ -22,10 +22,17 @@ export const fade = {
 };
 
 export const fadeUp = {
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: 8 },
 };
+
+/** Scroll reveal: 600ms, stagger 80ms (use with staggerContainer) */
+export const scrollRevealTransition = {
+  duration: 0.6,
+  ease: [0.4, 0, 0.2, 1] as const,
+};
+export const scrollRevealStagger = 0.08;
 
 export const fadeDown = {
   initial: { opacity: 0, y: -16 },
@@ -56,7 +63,7 @@ export const viewportDefaults = {
   amount: 0.2,
 } as const;
 
-/** Stagger container: use with variants that have transition.staggerChildren */
+/** Stagger container: 80ms stagger, 600ms duration */
 export const staggerContainer = {
   visible: {
     transition: {
@@ -67,8 +74,8 @@ export const staggerContainer = {
   hidden: {},
 };
 
-/** Stagger child: use with staggerContainer */
+/** Stagger child: use with staggerContainer (30px fade up) */
 export const staggerChild = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0 },
 };

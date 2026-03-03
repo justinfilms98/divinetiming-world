@@ -63,14 +63,14 @@ export function UnifiedHero({
             sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
           />
 
-          {/* Vignette + gradient overlay */}
+          {/* Cinematic vignette + gradient overlay (soft, not heavy) */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70"
+            className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/60"
             style={{ opacity }}
           />
           <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.4)_100%)]"
-            style={{ opacity: opacity * 0.9 }}
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.35)_100%)]"
+            style={{ opacity: opacity * 0.85 }}
           />
         </div>
 

@@ -79,3 +79,89 @@ html.admin-active body {
   border-color: rgb(71 85 105);
   color: rgb(226 232 240);
 }
+
+/* Section spacing: align with Phase 0 / 8px grid */
+.admin-section-gap {
+  gap: 1.5rem; /* 24px */
+}
+
+/* Table: consistent row height and hover */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgb(var(--admin-card-border));
+  vertical-align: middle;
+}
+
+.admin-table th {
+  font-weight: 600;
+  color: rgb(51 65 85);
+  font-size: 0.8125rem;
+}
+
+.admin-table tbody tr:hover {
+  background: rgb(248 250 252);
+}
+
+.dark-admin .admin-table tbody tr:hover {
+  background: rgb(51 65 85 / 0.3);
+}
+
+/* Modal: consistent padding and button spacing */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15 23 42 / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.admin-modal-panel {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 32rem;
+  width: 100%;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+.dark-admin .admin-modal-panel {
+  background: rgb(30 41 59);
+  border: 1px solid rgb(51 65 85);
+}
+
+.admin-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgb(var(--admin-card-border));
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: rgb(15 23 42);
+}
+
+.dark-admin .admin-modal-header {
+  color: rgb(226 232 240);
+}
+
+.admin-modal-body {
+  padding: 1.5rem;
+}
+
+.admin-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgb(var(--admin-card-border));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}

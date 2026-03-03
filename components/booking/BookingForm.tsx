@@ -58,11 +58,10 @@ export function BookingForm() {
   };
 
   return (
-    <section className="py-16 px-4">
-      <div className="max-w-2xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center tracking-tight">
-          Send an Inquiry
-        </h2>
+    <div>
+      <h2 className="type-h2 text-[var(--text)] mb-8" style={{ fontFamily: 'var(--font-display)' }}>
+        Send an Inquiry
+      </h2>
 
         {status === 'success' && (
           <div className="mb-8 p-6 bg-green-500/20 border border-green-500/40 rounded-xl text-green-200 text-center">
@@ -78,7 +77,7 @@ export function BookingForm() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="name" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Name *
             </label>
             <input
@@ -87,13 +86,13 @@ export function BookingForm() {
               required
               value={formData.name}
               onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
               placeholder="Your name"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="email" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Email *
             </label>
             <input
@@ -102,13 +101,13 @@ export function BookingForm() {
               required
               value={formData.email}
               onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
               placeholder="your@email.com"
             />
           </div>
 
           <div>
-            <label htmlFor="organization" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="organization" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Organization
             </label>
             <input
@@ -116,13 +115,13 @@ export function BookingForm() {
               type="text"
               value={formData.organization}
               onChange={(e) => setFormData((p) => ({ ...p, organization: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
               placeholder="Venue, festival, or company"
             />
           </div>
 
           <div>
-            <label htmlFor="eventDate" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="eventDate" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Event Date
             </label>
             <input
@@ -130,13 +129,13 @@ export function BookingForm() {
               type="text"
               value={formData.eventDate}
               onChange={(e) => setFormData((p) => ({ ...p, eventDate: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
               placeholder="e.g. June 15, 2025"
             />
           </div>
 
           <div>
-            <label htmlFor="location" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="location" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Location
             </label>
             <input
@@ -144,20 +143,20 @@ export function BookingForm() {
               type="text"
               value={formData.location}
               onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
               placeholder="City, country"
             />
           </div>
 
           <div>
-            <label htmlFor="budgetRange" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="budgetRange" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Budget Range
             </label>
             <select
               id="budgetRange"
               value={formData.budgetRange}
               onChange={(e) => setFormData((p) => ({ ...p, budgetRange: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             >
               <option value="">Select range</option>
               {BUDGET_OPTIONS.map((opt) => (
@@ -169,7 +168,7 @@ export function BookingForm() {
           </div>
 
           <div>
-            <label htmlFor="message" className="block text-white/80 text-sm font-medium mb-2">
+            <label htmlFor="message" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Message *
             </label>
             <textarea
@@ -178,7 +177,7 @@ export function BookingForm() {
               rows={5}
               value={formData.message}
               onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-[var(--accent)] resize-none"
+              className="w-full min-h-[120px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
               placeholder="Tell us about your event..."
             />
           </div>
@@ -186,12 +185,11 @@ export function BookingForm() {
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full py-4 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-semibold text-lg glow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full min-h-[48px] py-4 hero-cta-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {status === 'loading' ? 'Sending...' : 'Submit Inquiry'}
           </button>
         </form>
-      </div>
-    </section>
+    </div>
   );
 }

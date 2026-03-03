@@ -3,6 +3,28 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
+import type { Metadata } from 'next';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: product } = await supabase
+    .from('products')
+    .select('name, description')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single();
+  if (!product) return { title: 'Product' };
+  return {
+    title: product.name,
+    description: product.description || undefined,
+    openGraph: { title: `${product.name} | Divine Timing` },
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -24,7 +46,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-8">
         <section className="py-20 px-4">
           <div className="max-w-6xl mx-auto">

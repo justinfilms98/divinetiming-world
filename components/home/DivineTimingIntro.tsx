@@ -71,7 +71,8 @@ export function DivineTimingIntro({
       >
         {useAnimation ? (
           <motion.h1
-            className="text-6xl md:text-8xl lg:text-9xl font-bold text-white tracking-tight"
+            className="text-6xl md:text-8xl lg:text-9xl font-bold text-white tracking-tight hero-text-shadow"
+            style={{ fontFamily: 'var(--font-display)' }}
             animate={
               animationType === 'warp'
                 ? { scale: [1, 1.02, 1] }
@@ -95,7 +96,7 @@ export function DivineTimingIntro({
             )}
           </motion.h1>
         ) : (
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold text-white tracking-tight">
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold text-white tracking-tight hero-text-shadow" style={{ fontFamily: 'var(--font-display)' }}>
             {nameParts.length > 1 ? (
               <>
                 <span className="block">{nameParts[0]}</span>

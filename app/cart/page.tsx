@@ -22,22 +22,22 @@ export default function CartPage() {
         }),
       });
       const data = await res.json();
-      if (data?.url) {
+      if (res.ok && data?.url) {
         clearCart();
         closeCart();
         window.location.href = data.url;
       } else {
-        alert(data?.error || 'Checkout failed');
+        alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Checkout failed');
+      alert('Checkout is temporarily unavailable. Please try again later or contact us.');
     } finally {
       setIsCheckingOut(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <UnifiedHero
         headline="Cart"
         subtext={items.length > 0 ? `${items.length} item${items.length === 1 ? '' : 's'}` : undefined}

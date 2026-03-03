@@ -31,20 +31,20 @@ export const radius = {
 } as const;
 
 export const shadows = {
-  sm: '0 1px 2px rgba(0,0,0,0.2)',
-  md: '0 4px 12px rgba(0,0,0,0.25)',
-  lg: '0 8px 24px rgba(0,0,0,0.3)',
-  xl: '0 16px 48px rgba(0,0,0,0.35)',
-  glow: '0 0 20px rgba(209, 98, 23, 0.3)',
-  glowHover: '0 0 30px rgba(209, 98, 23, 0.5)',
-  inner: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+  sm: '0 1px 2px rgba(0,0,0,0.06)',
+  md: '0 4px 12px rgba(0,0,0,0.08)',
+  lg: '0 8px 24px rgba(0,0,0,0.1)',
+  xl: '0 16px 48px rgba(0,0,0,0.12)',
+  glow: '0 0 20px rgba(198, 167, 94, 0.35)',
+  glowHover: '0 0 28px rgba(198, 167, 94, 0.5)',
+  inner: 'inset 0 1px 0 rgba(255,255,255,0.5)',
 } as const;
 
 export const borders = {
-  thin: '1px solid rgba(255,255,255,0.1)',
-  hairline: '1px solid rgba(255,255,255,0.06)',
-  accent: '1px solid rgba(209, 98, 23, 0.4)',
-  accentHover: '1px solid rgba(209, 98, 23, 0.6)',
+  thin: '1px solid rgba(28,28,28,0.08)',
+  hairline: '1px solid rgba(28,28,28,0.05)',
+  accent: '1px solid rgba(198, 167, 94, 0.4)',
+  accentHover: '1px solid rgba(198, 167, 94, 0.7)',
 } as const;
 
 export const blur = {

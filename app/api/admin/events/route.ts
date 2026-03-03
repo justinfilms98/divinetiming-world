@@ -43,10 +43,16 @@ async function requireAdmin() {
   return { supabase };
 }
 
+/** Kebab-case, lowercase slug. Used for URLs. */
 function generateEventSlug(title: string | null, city: string | null, date: string | null): string {
   const base = (title || city || 'event').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'event';
   const datePart = date ? new Date(date).toISOString().slice(0, 10) : 'null';
   return `${base}-${datePart}-${Date.now().toString(36)}`;
+}
+
+function toKebabSlug(s: string | null | undefined): string {
+  if (!s || typeof s !== 'string') return '';
+  return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
 }
 
 /** Create or update an event (service role to avoid RLS issues) */
@@ -70,6 +76,7 @@ export async function POST(request: NextRequest) {
       thumbnail_url,
       external_thumbnail_asset_id,
       display_order,
+      slug: slugInput,
     } = body;
 
     const now = new Date().toISOString();
@@ -88,6 +95,10 @@ export async function POST(request: NextRequest) {
     };
 
     if (id) {
+      const slugNorm = slugInput != null && String(slugInput).trim()
+        ? toKebabSlug(String(slugInput).trim())
+        : undefined;
+      if (slugNorm !== undefined) (eventData as Record<string, unknown>).slug = slugNorm || null;
       const { data, error } = await supabase
         .from('events')
         .update(eventData)
@@ -95,13 +106,19 @@ export async function POST(request: NextRequest) {
         .select()
         .single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      const slug = (data as { slug?: string })?.slug;
       revalidatePath('/events');
-      revalidatePath(`/events/${(data as { slug?: string })?.slug || id}`);
+      revalidatePath(`/events/${slug ?? id}`);
       return NextResponse.json({ event: data });
     }
 
     const order = display_order != null ? display_order : 0;
-    const slug = generateEventSlug(title || null, city || null, date || null);
+    const slug = (slugInput != null && String(slugInput).trim())
+      ? toKebabSlug(String(slugInput).trim())
+      : generateEventSlug(title || null, city || null, date || null);
+    if (!slug) {
+      return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
+    }
     const { data, error } = await supabase
       .from('events')
       .insert({ ...eventData, display_order: order, slug })

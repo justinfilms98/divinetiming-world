@@ -22,17 +22,17 @@ export function CartSlideOut() {
           })),
         }),
       });
-      const { url } = await response.json();
-      if (url) {
+      const data = await response.json();
+      if (response.ok && data.url) {
         clearCart();
         closeCart();
-        window.location.href = url;
+        window.location.href = data.url;
       } else {
-        alert('Failed to create checkout session');
+        alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('An error occurred. Please try again.');
+      alert('Checkout is temporarily unavailable. Please try again later or contact us.');
     }
   };
 

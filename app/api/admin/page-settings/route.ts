@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       booking_about_body,
       booking_about_asset_id,
       booking_about_image_url,
+      booking_sponsors,
     } = body;
 
     const slug = page_slug ?? 'home';
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
       if (booking_about_body !== undefined) psUpdates.booking_about_body = booking_about_body;
       if (booking_about_asset_id !== undefined) psUpdates.booking_about_asset_id = booking_about_asset_id;
       if (booking_about_image_url !== undefined) psUpdates.booking_about_image_url = booking_about_image_url;
+      if (booking_sponsors !== undefined) psUpdates.booking_sponsors = booking_sponsors;
     }
 
     if (Object.keys(psUpdates).length > 1) {
@@ -57,6 +59,7 @@ export async function POST(request: NextRequest) {
       if (hero.media_type != null) heroData.media_type = hero.media_type;
       if (hero.external_media_asset_id != null) heroData.external_media_asset_id = hero.external_media_asset_id;
       if (hero.media_url != null) heroData.media_url = hero.media_url;
+      if (hero.media_storage_path !== undefined) heroData.media_storage_path = hero.media_storage_path;
       if (hero.overlay_opacity != null) heroData.overlay_opacity = hero.overlay_opacity;
       if (hero.headline != null) heroData.headline = hero.headline;
       if (hero.subtext != null) heroData.subtext = hero.subtext;
@@ -64,6 +67,10 @@ export async function POST(request: NextRequest) {
       if (hero.cta_url != null) heroData.cta_url = hero.cta_url;
       if (hero.animation_type != null) heroData.animation_type = hero.animation_type;
       if (hero.animation_enabled != null) heroData.animation_enabled = hero.animation_enabled;
+      if (hero.hero_slots !== undefined) {
+        const raw = Array.isArray(hero.hero_slots) ? hero.hero_slots.slice(0, 3) : null;
+        heroData.hero_slots = raw;
+      }
       const { data: hs } = await supabase
         .from('hero_sections')
         .select('id')

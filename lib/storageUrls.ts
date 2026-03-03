@@ -29,3 +29,18 @@ export function resolveHeroLogoUrl(row: {
   if (row.hero_logo_storage_path) return supabasePublicObjectUrl(row.hero_logo_storage_path);
   return row.hero_logo_url ?? null;
 }
+
+/** Resolve hero slot image URL from storage path (Phase 9/9.1). */
+export function resolveHeroSlotImageUrl(image_storage_path: string | null | undefined): string | null {
+  return supabasePublicObjectUrl(image_storage_path ?? null);
+}
+
+/** Resolve hero slot video URL from storage path (Phase 9.1). */
+export function resolveHeroSlotVideoUrl(video_storage_path: string | null | undefined): string | null {
+  return supabasePublicObjectUrl(video_storage_path ?? null);
+}
+
+/** Resolve hero slot poster URL from storage path (Phase 9.1). */
+export function resolveHeroSlotPosterUrl(poster_storage_path: string | null | undefined): string | null {
+  return supabasePublicObjectUrl(poster_storage_path ?? null);
+}

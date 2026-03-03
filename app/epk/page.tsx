@@ -1,4 +1,4 @@
-import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content';
+import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content/server';
 import { getAuthorityConfig } from '@/lib/authority-config';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
@@ -30,7 +30,7 @@ export default async function EPKPage() {
   const mediaType = heroSection?.media_type ?? undefined;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <UnifiedHero
         mediaUrl={mediaUrl}
         mediaType={mediaType}

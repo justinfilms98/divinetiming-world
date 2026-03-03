@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
-import { Image as ImageIcon, Video, Trash2, Copy, Check } from 'lucide-react';
+import { Image as ImageIcon, Video, Trash2, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
 
 type LibraryFilter = 'all' | 'image' | 'video';
 
@@ -32,6 +32,7 @@ export default function AdminMediaPage() {
   const [assets, setAssets] = useState<LibraryAsset[]>([]);
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [legacyOpen, setLegacyOpen] = useState(false);
   const supabase = createClient();
 
   const loadLibrary = useCallback(async () => {
@@ -187,6 +188,39 @@ export default function AdminMediaPage() {
           })}
         </div>
       )}
+
+      <details
+        className="mt-8 admin-card overflow-hidden"
+        open={legacyOpen}
+        onToggle={(e) => setLegacyOpen((e.target as HTMLDetailsElement).open)}
+      >
+        <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer list-none text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50">
+          {legacyOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          Advanced / Legacy (asset IDs, external references)
+        </summary>
+        <div className="px-4 pb-4 pt-0 border-t border-slate-200 text-sm text-slate-500">
+          <p className="mb-3">External asset IDs are used internally for hero, gallery covers, and product images. For normal workflow, use Upload and the cards above.</p>
+          {filtered.length > 0 && (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Asset ID</th>
+                  <th>Preview URL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.slice(0, 20).map((a) => (
+                  <tr key={a.id}>
+                    <td className="font-mono text-xs truncate max-w-[200px]" title={a.id}>{a.id}</td>
+                    <td className="truncate max-w-[240px] text-slate-500" title={displayUrl(a) || ''}>{displayUrl(a) || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {filtered.length > 20 && <p className="mt-2 text-xs text-slate-400">Showing first 20 of {filtered.length}.</p>}
+        </div>
+      </details>
     </AdminPage>
   );
 }
