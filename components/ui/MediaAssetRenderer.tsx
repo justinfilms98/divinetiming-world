@@ -20,6 +20,8 @@ interface MediaAssetRendererProps {
   fallback?: React.ReactNode;
   /** Fallback when media fails to load (e.g. Drive inaccessible). Defaults to MediaUnavailableFallback */
   errorFallback?: React.ReactNode;
+  /** For video: poster image URL to show before play (improves LCP and perceived load) */
+  poster?: string | null;
 }
 
 /** Default fallback when media fails to load (e.g. Drive inaccessible) */
@@ -55,6 +57,7 @@ export function MediaAssetRenderer({
   controls = false,
   fallback = HeroEclipseFallback,
   errorFallback = MediaUnavailableFallback,
+  poster: posterUrl = null,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
@@ -133,7 +136,8 @@ export function MediaAssetRenderer({
         loop
         muted
         playsInline
-        preload="auto"
+        preload={posterUrl ? 'metadata' : 'auto'}
+        poster={posterUrl ?? undefined}
         className={`w-full h-full ${className}`}
         style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
         onError={handleError}

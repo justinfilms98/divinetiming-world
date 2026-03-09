@@ -55,10 +55,10 @@ export function AuthorityCTAs({
         ))}
       {showEPK && (
         <Link
-          href="/epk"
+          href="/presskit"
           className="px-6 py-3 min-h-[44px] text-white/80 hover:text-white transition-colors duration-250 ease-out text-sm font-medium type-button focus-ring"
         >
-          View EPK
+          Press Kit
         </Link>
       )}
     </div>

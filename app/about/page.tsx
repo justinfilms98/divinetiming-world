@@ -1,4 +1,3 @@
-import { Header } from '@/components/layout/Header';
 import {
   getAboutContent,
   getAboutPhotos,
@@ -9,6 +8,7 @@ import {
 } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { AboutContent } from '@/components/about/AboutContent';
+import { Container } from '@/components/ui/Container';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -50,9 +50,8 @@ export default async function AboutPage() {
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
-      <Header />
-      <main className="flex-1 pt-16">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
+      <main className="flex-1">
         <UnifiedHero
           mediaType={mediaType ?? undefined}
           mediaUrl={mediaUrl ?? undefined}
@@ -62,6 +61,7 @@ export default async function AboutPage() {
           heightPreset="tall"
         />
 
+        <Container>
         <AboutContent
           brandStatement={heroSection?.subtext ?? undefined}
           bioText={bioText}
@@ -71,6 +71,7 @@ export default async function AboutPage() {
           member1Name={siteSettings?.member_1_name || 'Liam Bongo'}
           member2Name={siteSettings?.member_2_name || 'Lex Laurence'}
         />
+        </Container>
       </main>
     </div>
   );

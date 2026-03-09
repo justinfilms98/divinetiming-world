@@ -23,24 +23,24 @@ export function Header() {
               DIVINE:TIMING
             </Link>
 
-            {/* Desktop Nav */}
+            {/* Desktop Nav — consistent hover and underline */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="/events" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/events" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Events
               </Link>
-              <Link href="/shop" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/shop" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Shop
               </Link>
-              <Link href="/media" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/media" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Media
               </Link>
-              <Link href="/about" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/about" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 About
               </Link>
-              <Link href="/booking" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/booking" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Booking
               </Link>
-              <Link href="/presskit" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/presskit" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Press Kit
               </Link>
               <Link

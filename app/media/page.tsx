@@ -9,6 +9,7 @@ import {
   getHeroSection,
   getPageSettings,
 } from '@/lib/content/server';
+import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export default async function MediaPage() {
   ]);
 
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Media';
-  const subtext = heroSection?.subtext;
+  const subtext = stripArtistBylineFromHeroSubtext(heroSection?.subtext);
   const mediaType = heroSection?.media_type ?? null;
   const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
@@ -52,7 +53,7 @@ export default async function MediaPage() {
         overlayOpacity={Number(overlayOpacity)}
         badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
-        subtext={subtext ?? undefined}
+        subtext={subtext}
         heightPreset="compact"
       />
 

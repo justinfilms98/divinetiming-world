@@ -147,10 +147,10 @@ export function AboutContent({
       >
         <p className="text-white/80 type-body mb-6">Press & promoters</p>
         <Link
-          href="/epk"
+          href="/presskit"
           className="inline-flex items-center gap-2 px-6 py-4 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button font-medium"
         >
-          Download EPK
+          Press Kit
         </Link>
       </motion.section>
 

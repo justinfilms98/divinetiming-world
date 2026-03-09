@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: '/tour', destination: '/events', permanent: true },
+      { source: '/epk', destination: '/presskit', permanent: true },
     ];
   },
   // Direct CDN only. No /image proxy. Uploadcare + Drive for legacy; Supabase Storage for hero media.

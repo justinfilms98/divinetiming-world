@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, title, youtube_id: rawYoutubeId, youtube_url, thumbnail_url, is_featured, display_order } = body;
+    const { id, title, youtube_id: rawYoutubeId, youtube_url, thumbnail_url, is_featured, display_order, status: statusInput } = body;
 
     const youtubeIdInput = rawYoutubeId ?? youtube_url;
     const normalizedId = normalizeYouTubeId(youtubeIdInput);
@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
       if (thumbnail_url != null) updates.thumbnail_url = thumbnail_url;
       if (is_featured != null) updates.is_featured = is_featured;
       if (display_order != null) updates.display_order = display_order;
+      const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
+      (updates as Record<string, unknown>).status = status;
       if (youtubeIdInput != null) {
         if (!normalizedId) {
           return NextResponse.json(
@@ -75,6 +77,7 @@ export async function POST(request: NextRequest) {
         thumbnail_url: thumbnail_url ?? null,
         is_featured: is_featured ?? false,
         display_order: order,
+        status: statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published',
       })
       .select()
       .single();

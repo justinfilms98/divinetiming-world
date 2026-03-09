@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { Calendar, Image as ImageIcon, ShoppingBag, Layers } from 'lucide-react';
+import { Calendar, Image as ImageIcon, ShoppingBag, Layers, BookOpen, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function AdminDashboard() {
@@ -57,6 +57,20 @@ export default async function AdminDashboard() {
       icon: ShoppingBag,
       href: '/admin/shop',
       color: 'text-green-600',
+    },
+    {
+      label: 'Booking',
+      value: '—',
+      icon: BookOpen,
+      href: '/admin/booking',
+      color: 'text-slate-600',
+    },
+    {
+      label: 'Press Kit',
+      value: '—',
+      icon: FileText,
+      href: '/admin/presskit',
+      color: 'text-slate-600',
     },
   ];
 

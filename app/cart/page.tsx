@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/components/shop/CartContext';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
+import { Container } from '@/components/ui/Container';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, totalCents, clearCart, closeCart } = useCart();
@@ -43,7 +44,8 @@ export default function CartPage() {
         subtext={items.length > 0 ? `${items.length} item${items.length === 1 ? '' : 's'}` : undefined}
         heightPreset="standard"
       />
-      <main className="flex-1 py-12 px-4">
+      <main className="flex-1 py-12">
+        <Container>
         <div className="max-w-2xl mx-auto">
           {items.length === 0 ? (
             <div className="text-center py-16">
@@ -144,6 +146,7 @@ export default function CartPage() {
             </div>
           )}
         </div>
+        </Container>
       </main>
     </div>
   );

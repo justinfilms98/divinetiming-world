@@ -7,6 +7,8 @@ import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { createClient } from '@/lib/supabase/client';
 import { X, ImageIcon } from 'lucide-react';
 
+type GalleryStatus = 'draft' | 'published' | 'archived';
+
 interface GalleryRow {
   id: string;
   name: string;
@@ -15,6 +17,7 @@ interface GalleryRow {
   cover_image_url: string | null;
   external_cover_asset_id?: string | null;
   display_order: number;
+  status?: GalleryStatus;
   gallery_media?: { id: string }[];
 }
 
@@ -26,6 +29,7 @@ export default function AdminCollectionsPage() {
   const [editingGallery, setEditingGallery] = useState<GalleryRow | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editStatus, setEditStatus] = useState<GalleryStatus>('published');
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [addMediaPickerOpen, setAddMediaPickerOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -35,7 +39,7 @@ export default function AdminCollectionsPage() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('galleries')
-      .select('id, name, slug, description, cover_image_url, external_cover_asset_id, display_order, gallery_media(id)')
+      .select('id, name, slug, description, cover_image_url, external_cover_asset_id, display_order, status, gallery_media(id)')
       .order('display_order', { ascending: true });
     setGalleries((data || []) as GalleryRow[]);
   }, [supabase]);
@@ -85,6 +89,7 @@ export default function AdminCollectionsPage() {
     setEditingGallery(g);
     setEditName(g.name);
     setEditDescription(g.description ?? '');
+    setEditStatus((g.status as GalleryStatus) ?? 'published');
     setCoverPickerOpen(false);
   };
 
@@ -106,6 +111,7 @@ export default function AdminCollectionsPage() {
           id: editingGallery.id,
           name: editName.trim(),
           description: editDescription.trim() || null,
+          status: editStatus,
         }),
       });
       const data = await res.json();
@@ -243,7 +249,14 @@ export default function AdminCollectionsPage() {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-medium text-slate-800 truncate">{g.name}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-slate-800 truncate">{g.name}</p>
+                  {(g.status && g.status !== 'published') && (
+                    <span className={`px-2 py-0.5 text-xs rounded ${g.status === 'draft' ? 'bg-amber-500/20 text-amber-700' : 'bg-slate-500/20 text-slate-600'}`}>
+                      {g.status === 'draft' ? 'Draft' : 'Archived'}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-slate-500">{g.slug}</p>
                 <p className="text-xs text-slate-500">
                   {(g.gallery_media?.length ?? 0)} items
@@ -303,6 +316,19 @@ export default function AdminCollectionsPage() {
                   onChange={(e) => setEditDescription(e.target.value)}
                   className="admin-input w-full px-3 py-2"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Visibility</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as GalleryStatus)}
+                  className="admin-input w-full px-3 py-2"
+                >
+                  <option value="published">Published (visible on Media page)</option>
+                  <option value="draft">Draft (hidden)</option>
+                  <option value="archived">Archived (hidden)</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-1">Only published collections appear on the public Media page.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Cover image</label>

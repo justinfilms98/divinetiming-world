@@ -11,7 +11,6 @@ const FOOTER_LINKS = [
   { label: 'Shop', href: '/shop' },
   { label: 'Booking', href: '/booking' },
   { label: 'Press Kit', href: '/presskit' },
-  { label: 'EPK', href: '/epk' },
 ] as const;
 
 const FOOTER_SOCIAL_IDS: PlatformId[] = ['spotify', 'youtube', 'instagram'];

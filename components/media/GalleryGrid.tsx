@@ -1,6 +1,7 @@
 'use client';
 
 import { Reveal } from '@/components/motion/Reveal';
+import { Grid } from '@/components/ui/Grid';
 import { MediaTile } from '@/components/media/MediaTile';
 import type { ViewerItem } from '@/components/media/ViewerModal';
 
@@ -21,16 +22,9 @@ interface GalleryGridProps {
 export function GalleryGrid({ items, onItemClick, className }: GalleryGridProps) {
   if (!items.length) return null;
 
-  const viewerItems: ViewerItem[] = items.map((i) => ({
-    id: i.id,
-    url: i.url,
-    type: i.media_type,
-    caption: i.caption,
-  }));
-
   return (
     <Reveal className={className}>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+      <Grid cols={4}>
         {items.map((item, index) => (
           <MediaTile
             key={item.id}
@@ -41,7 +35,7 @@ export function GalleryGrid({ items, onItemClick, className }: GalleryGridProps)
             onClick={() => onItemClick(index)}
           />
         ))}
-      </div>
+      </Grid>
     </Reveal>
   );
 }

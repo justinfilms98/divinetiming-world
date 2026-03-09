@@ -1,4 +1,5 @@
 import { getEvents, getHeroSection, getPageSettings } from '@/lib/content/server';
+import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { Reveal } from '@/components/motion/Reveal';
 import { EventsListClient } from '@/components/events/EventsListClient';
@@ -33,7 +34,7 @@ export default async function EventsPage() {
   ]);
 
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Events';
-  const subtext = heroSection?.subtext;
+  const subtext = stripArtistBylineFromHeroSubtext(heroSection?.subtext);
   const mediaType = heroSection?.media_type ?? null;
   const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
@@ -52,7 +53,7 @@ export default async function EventsPage() {
         overlayOpacity={Number(overlayOpacity)}
         badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
-        subtext={subtext ?? undefined}
+        subtext={subtext}
         heightPreset="compact"
         showScrollCue
       />

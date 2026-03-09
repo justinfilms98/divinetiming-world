@@ -5,12 +5,15 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { createClient } from '@/lib/supabase/client';
 
+type VideoStatus = 'draft' | 'published' | 'archived';
+
 interface VideoRow {
   id: string;
   title: string;
   youtube_id: string;
   thumbnail_url: string | null;
   display_order: number;
+  status?: VideoStatus;
 }
 
 const YOUTUBE_ID_REGEX = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)?([a-zA-Z0-9_-]{11})$/;
@@ -32,7 +35,7 @@ export default function AdminVideosPage() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('videos')
-      .select('id, title, youtube_id, thumbnail_url, display_order')
+      .select('id, title, youtube_id, thumbnail_url, display_order, status')
       .order('display_order', { ascending: true });
     setVideos((data || []) as VideoRow[]);
   }, [supabase]);
@@ -82,6 +85,21 @@ export default function AdminVideosPage() {
     await load();
   };
 
+  const handleStatusChange = async (id: string, status: VideoStatus) => {
+    const res = await fetch('/api/admin/videos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id, status }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      alert(d.error || 'Update failed');
+      return;
+    }
+    await load();
+  };
+
   return (
     <AdminPage title="Videos" subtitle="Videos shown on the public Media page (Videos tab). Use unlisted YouTube links.">
       <AdminCard className="mb-6">
@@ -118,7 +136,7 @@ export default function AdminVideosPage() {
 
       <div className="space-y-3">
         {videos.map((v) => (
-          <AdminCard key={v.id} className="flex items-center justify-between gap-4">
+          <AdminCard key={v.id} className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
               <img
                 src={`https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg`}
@@ -126,18 +144,37 @@ export default function AdminVideosPage() {
                 className="w-24 h-14 object-cover rounded-lg flex-shrink-0"
               />
               <div className="min-w-0">
-                <p className="font-medium text-slate-800 truncate">{v.title}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-slate-800 truncate">{v.title}</p>
+                  {(v.status && v.status !== 'published') && (
+                    <span className={`px-2 py-0.5 text-xs rounded ${v.status === 'draft' ? 'bg-amber-500/20 text-amber-700' : 'bg-slate-500/20 text-slate-600'}`}>
+                      {v.status === 'draft' ? 'Draft' : 'Archived'}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-slate-500">ID: {v.youtube_id}</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(v.id)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-              title="Delete"
-            >
-              Delete
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={v.status ?? 'published'}
+                onChange={(e) => handleStatusChange(v.id, e.target.value as VideoStatus)}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm bg-white"
+                title="Visibility"
+              >
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Archived</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => handleDelete(v.id)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                title="Delete"
+              >
+                Delete
+              </button>
+            </div>
           </AdminCard>
         ))}
       </div>

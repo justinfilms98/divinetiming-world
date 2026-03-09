@@ -10,18 +10,23 @@ import {
   Settings,
   Layers,
   FileText,
-  BookOpen,
+  FolderOpen,
+  Mail,
+  UserCircle,
 } from 'lucide-react';
 
+/** Admin nav by content intent (charter: no DB abstractions). */
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'Hero', href: '/admin/hero', icon: Layers },
+  { label: 'Homepage', href: '/admin/hero', icon: Layers },
   { label: 'Events', href: '/admin/events', icon: Calendar },
-  { label: 'Booking', href: '/admin/booking', icon: BookOpen },
-  { label: 'Media', href: '/admin/media', icon: ImageIcon },
+  { label: 'Media Library', href: '/admin/media', icon: ImageIcon },
+  { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
   { label: 'Shop', href: '/admin/shop', icon: ShoppingBag },
-  { label: 'About', href: '/admin/about', icon: FileText },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  { label: 'Booking Inquiries', href: '/admin/booking', icon: Mail },
+  { label: 'Press Kit', href: '/admin/presskit', icon: FileText },
+  { label: 'About', href: '/admin/about', icon: UserCircle },
+  { label: 'Site Settings', href: '/admin/settings', icon: Settings },
 ] as const;
 
 interface AdminNavProps {

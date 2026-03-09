@@ -22,27 +22,34 @@ export async function POST(request: NextRequest) {
       id,
       name,
       slug,
+      subtitle,
       description,
       price_cents,
       price,
       is_active,
       is_featured,
+      badge,
       display_order,
       images,
+      status: statusInput,
     } = body;
 
     const priceCents = price_cents ?? (typeof price === 'number' ? Math.round(price * 100) : null);
     const productSlug = slug || slugify(name || '') || `product-${Date.now()}`;
+    const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
 
-    const productData = {
+    const productData: Record<string, unknown> = {
       name: name ?? undefined,
       slug: productSlug,
+      subtitle: subtitle ?? null,
       description: description ?? null,
       price_cents: priceCents ?? 0,
-      is_active: is_active ?? true,
+      is_active: status === 'published',
       is_featured: is_featured ?? false,
+      badge: badge ?? null,
       display_order: display_order ?? 0,
       updated_at: new Date().toISOString(),
+      status,
     };
 
     if (id) {

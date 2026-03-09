@@ -1,4 +1,3 @@
-import { Header } from '@/components/layout/Header';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -103,7 +102,7 @@ export default async function EventDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}
       />
-      <div className="max-w-5xl mx-auto w-full max-h-[480px] overflow-hidden rounded-b-2xl">
+      <div className="max-w-[1200px] mx-auto w-full max-h-[480px] overflow-hidden rounded-b-2xl px-5 md:px-8">
         <UnifiedHero
           mediaUrl={heroMediaUrl}
           mediaType={heroMediaType}
@@ -114,7 +113,6 @@ export default async function EventDetailPage({
           heightPreset="standard"
         />
       </div>
-      <Header />
       <main className="flex-1 py-16 min-w-0">
         <Container>
           <Link

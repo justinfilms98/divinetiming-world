@@ -93,7 +93,7 @@ export default async function BookingPage() {
         className="scroll-mt-24 md:scroll-mt-28 min-w-0 overflow-x-clip"
         aria-label="Booking form and contact"
       >
-        <Container className="max-w-[1280px] min-w-0">
+        <Container className="min-w-0">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
             {/* Left: form */}
             <div className="lg:col-span-7 min-w-0">

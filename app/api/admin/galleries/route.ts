@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, description, cover_image_url, cover_external_asset_id, cover_url, display_order, clear_cover } = body;
+    const { id, name, description, cover_image_url, cover_external_asset_id, cover_url, display_order, clear_cover, status: statusInput } = body;
 
     if (id) {
       const updates: Record<string, unknown> = {
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
       };
       if (name != null) updates.name = name;
       if (description != null) updates.description = description;
+      const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
+      (updates as Record<string, unknown>).status = status;
       if (clear_cover === true) {
         updates.cover_image_url = null;
         updates.external_cover_asset_id = null;
@@ -63,6 +65,7 @@ export async function POST(request: NextRequest) {
         cover_image_url: cover_url ?? cover_image_url ?? null,
         external_cover_asset_id: cover_external_asset_id ?? null,
         display_order: display_order ?? 0,
+        status: statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published',
       })
       .select()
       .single();

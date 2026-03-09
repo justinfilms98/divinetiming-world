@@ -20,10 +20,12 @@ interface Product {
   id: string;
   name: string;
   slug: string;
+  subtitle?: string | null;
   description: string | null;
   price_cents: number;
   is_featured: boolean;
   is_active: boolean;
+  badge?: string | null;
   display_order: number;
   product_images?: ProductImage[];
 }
@@ -118,10 +120,12 @@ export default function AdminShopPage() {
         id: editingProduct?.id,
         name: formData.get('name'),
         slug,
+        subtitle: (formData.get('subtitle') as string)?.trim() || null,
         description: (formData.get('description') as string) || null,
         price: parseFloat((formData.get('price') as string) || '0'),
         is_featured: formData.get('is_featured') === 'on',
-        is_active: formData.get('is_active') === 'on',
+        badge: (formData.get('badge') as string) || null,
+        status: (formData.get('status') as string) || 'published',
         images,
       }),
     });
@@ -330,13 +334,15 @@ export default function AdminShopPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <span
-                      className={`px-2 py-1 text-xs rounded ${
-                        product.is_active ? 'bg-green-400/20 text-green-400' : 'bg-red-400/20 text-red-400'
-                      }`}
-                    >
-                      {product.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    {((product as { status?: string }).status && (product as { status?: string }).status !== 'published') ? (
+                      <span className={`px-2 py-1 text-xs rounded ${(product as { status?: string }).status === 'draft' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                        {(product as { status?: string }).status === 'draft' ? 'Draft' : 'Archived'}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs rounded bg-green-400/20 text-green-400">
+                        Published
+                      </span>
+                    )}
                     {product.is_featured && (
                       <span className="px-2 py-1 bg-[var(--accent)]/20 text-[var(--accent)] text-xs rounded">
                         Featured
@@ -366,6 +372,20 @@ export default function AdminShopPage() {
 
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
+                <select
+                  name="status"
+                  defaultValue={(editingProduct as { status?: string })?.status ?? (editingProduct?.is_active ? 'published' : 'draft')}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                >
+                  <option value="published">Published (visible on Shop)</option>
+                  <option value="draft">Draft (hidden)</option>
+                  <option value="archived">Archived (hidden)</option>
+                </select>
+                <p className="text-white/50 text-xs mt-1">Only published products appear on the public Shop page.</p>
+              </div>
+
+              <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Name</label>
                 <input
                   type="text"
@@ -386,6 +406,31 @@ export default function AdminShopPage() {
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                   placeholder="url-friendly-name (auto-generated if empty)"
                 />
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Subtitle (optional)</label>
+                <input
+                  type="text"
+                  name="subtitle"
+                  defaultValue={editingProduct?.subtitle ?? ''}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  placeholder="Short line under name, e.g. Limited run"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Badge (optional)</label>
+                <select
+                  name="badge"
+                  defaultValue={editingProduct?.badge ?? ''}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                >
+                  <option value="">None</option>
+                  <option value="Limited">Limited</option>
+                  <option value="New">New</option>
+                </select>
+                <p className="text-white/50 text-xs mt-1">Sold out is shown automatically when out of stock.</p>
               </div>
 
               <div>
@@ -545,15 +590,6 @@ export default function AdminShopPage() {
               )}
 
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="is_active"
-                    defaultChecked={editingProduct?.is_active ?? true}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-white/70 text-sm">Active (visible in shop)</span>
-                </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"

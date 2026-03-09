@@ -55,7 +55,8 @@ body {
   --font-ui: var(--font-body), 'Inter', 'Helvetica Neue', system-ui, sans-serif;
   --font-headline: var(--font-display);
   --font-body: var(--font-ui);
-  /* Typography tokens — Phase 25: coherent scale, readability */
+  /* Typography tokens — Phase 25 + Phase C: Hero / Section / Subheading / Body / Caption */
+  --text-hero-title: clamp(2.5rem, 5vw, 4rem);
   --text-h1: clamp(2.25rem, 3vw, 3rem);
   --text-h2: clamp(1.75rem, 2vw, 2rem);
   --text-h3: clamp(1.25rem, 1.35vw, 1.375rem);
@@ -63,6 +64,7 @@ body {
   --text-body: 1.125rem;
   --text-body-mobile: 1rem;
   --text-small: 0.875rem;
+  --text-caption: 0.8125rem;
   --text-label: 0.875rem;
   --text-button: 0.9375rem;
   --line-height-tight: 1.2;
@@ -382,6 +384,24 @@ body {
   font-weight: 600;
   letter-spacing: var(--letter-spacing-caps);
   text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Phase C: Hero title (full-screen hero headline) */
+.type-hero-title {
+  font-family: var(--font-display);
+  font-size: var(--text-hero-title);
+  font-weight: 600;
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-hero-title);
+}
+
+/* Phase C: Caption — metadata, small supporting text */
+.type-caption {
+  font-family: var(--font-ui);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  letter-spacing: var(--letter-spacing-wide);
   color: var(--text-muted);
 }
 

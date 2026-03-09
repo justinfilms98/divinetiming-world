@@ -126,13 +126,13 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </div>
       </div>
 
-      {/* Add to Cart & Buy Now: brand-consistent CTAs */}
+      {/* Add to Cart (primary) & Buy Now — premium merch CTAs */}
       <div className="flex flex-col sm:flex-row gap-4">
         <button
           type="button"
           onClick={handleAddToCart}
           disabled={(hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity) || (!hasVariants && false)}
-          className="flex-1 min-h-[48px] px-6 py-3 rounded-[var(--radius-button)] type-button border border-[var(--accent)]/20 text-[var(--text)] hover:border-[var(--accent)]/50 hover:bg-[var(--bg)]/50 transition-[color,border-color,background-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 min-h-[52px] px-6 py-3 rounded-[var(--radius-button)] type-button font-semibold bg-[var(--accent)] text-[var(--text)] hover:bg-[var(--accent-hover)] transition-[color,background-color,transform] duration-[var(--motion-standard)] ease-[var(--ease-standard)] shadow-[var(--shadow-button)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed btn-lift"
         >
           {hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity
             ? 'Out of Stock'
@@ -142,7 +142,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           type="button"
           onClick={handleCheckout}
           disabled={isLoading || (hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity)}
-          className="flex-1 min-h-[48px] px-6 py-3 rounded-[var(--radius-button)] type-button bg-[var(--accent)] text-[var(--text)] hover:bg-[var(--accent-hover)] transition-[color,background-color,transform] duration-200 shadow-[var(--shadow-button)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 min-h-[52px] px-6 py-3 rounded-[var(--radius-button)] type-button border border-[var(--accent)]/30 text-[var(--text)] hover:border-[var(--accent)]/50 hover:bg-[var(--bg)]/50 transition-colors duration-[var(--motion-standard)] ease-[var(--ease-standard)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed btn-lift"
         >
           {isLoading ? 'Processing...' : 'Buy Now'}
         </button>

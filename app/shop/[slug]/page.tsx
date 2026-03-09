@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
-import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
+import { ProductImageGallery } from '@/components/shop/ProductImageGallery';
+import { Container } from '@/components/ui/Container';
+import { Section } from '@/components/ui/Section';
 import { absoluteImageUrl } from '@/lib/site';
 import type { Metadata } from 'next';
 
@@ -61,54 +62,61 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!product) {
     notFound();
   }
+  const withStatus = product && 'status' in product && (product as { status?: string }).status != null;
+  if (withStatus && (product as { status: string }).status !== 'published') {
+    notFound();
+  }
 
   const formatPrice = (cents: number) => {
     return `$${(cents / 100).toFixed(2)}`;
   };
 
+  const images = (product.product_images as { image_url: string; display_order?: number }[]) ?? [];
+
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-20 md:pt-24 min-w-0">
-        <section className="py-12 md:py-16 px-4 md:px-8">
-          <div className="max-w-6xl mx-auto">
+        <Section className="px-0">
+          <Container>
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] rounded"
+              className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] rounded nav-link-underline relative"
             >
               ← Back to Shop
             </Link>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-              {/* Images: constrained so no giant hero-like overflow */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 md:gap-14 items-start">
               <div className="w-full max-w-md mx-auto md:mx-0">
-                {product.product_images && product.product_images.length > 0 ? (
-                  <div className="relative aspect-square w-full max-h-[480px] md:max-h-none rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)]">
-                    <Image
-                      src={product.product_images[0].image_url}
-                      alt={product.name}
-                      fill
-                      priority
-                      placeholder="blur"
-                      blurDataURL={BLUR_PLACEHOLDER}
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square w-full max-h-[480px] md:max-h-none rounded-[var(--radius-card)] border border-[var(--accent)]/10 bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-muted)] type-body">
-                    No image
-                  </div>
-                )}
+                <ProductImageGallery images={images} productName={product.name} />
               </div>
 
-              {/* Details */}
               <div className="min-w-0 flex flex-col">
-                <h1 className="type-h1 text-[var(--text)] mb-4" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h1>
-                <div className="text-2xl md:text-3xl text-[var(--accent)] mb-6">{formatPrice(product.price_cents)}</div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(product as { is_featured?: boolean }).is_featured && (
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)]/20 text-[var(--accent)]">Featured</span>
+                  )}
+                  {(product as { badge?: string | null }).badge && (
+                    <span className="px-2 py-0.5 rounded text-xs font-medium border border-[var(--accent)]/40 text-[var(--accent)]">{(product as { badge: string }).badge}</span>
+                  )}
+                  {(() => {
+                    const variants = (product as { product_variants?: { inventory_count?: number }[] }).product_variants ?? [];
+                    const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);
+                    return soldOut ? (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--text-muted)]/20 text-[var(--text-muted)]">Sold out</span>
+                    ) : null;
+                  })()}
+                </div>
+                <h1 className="type-h1 text-[var(--text)] mb-2 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                  {product.name}
+                </h1>
+                {(product as { subtitle?: string | null }).subtitle && (
+                  <p className="type-subtitle text-[var(--text-muted)] mb-3">{(product as { subtitle: string }).subtitle}</p>
+                )}
+                <p className="text-[var(--accent)] type-h3 font-semibold mb-6">{formatPrice(product.price_cents)}</p>
 
                 {product.description && (
-                  <div className="text-[var(--text-muted)] type-body mb-8 flex-1 prose-readability space-y-4">
+                  <div className="text-[var(--text-muted)] type-body mb-8 flex-1 prose-readability space-y-4 leading-relaxed">
                     {product.description.trim().split(/\n\n+/).filter(Boolean).map((para: string, i: number) => (
-                      <p key={i} className="leading-relaxed">{para.replace(/\n/g, ' ').trim()}</p>
+                      <p key={i}>{para.replace(/\n/g, ' ').trim()}</p>
                     ))}
                   </div>
                 )}
@@ -116,8 +124,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <ProductDetailClient product={product} />
               </div>
             </div>
-          </div>
-        </section>
+          </Container>
+        </Section>
       </main>
     </div>
   );

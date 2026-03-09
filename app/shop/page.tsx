@@ -1,4 +1,5 @@
 import { getProducts, getHeroSection, getPageSettings } from '@/lib/content/server';
+import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { ShopPageClient } from '@/components/shop/ShopPageClient';
@@ -32,7 +33,7 @@ export default async function ShopPage() {
   ]);
 
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Shop';
-  const tagline = heroSection?.subtext;
+  const tagline = stripArtistBylineFromHeroSubtext(heroSection?.subtext);
   const mediaType = heroSection?.media_type ?? null;
   const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
@@ -45,7 +46,7 @@ export default async function ShopPage() {
         overlayOpacity={Number(overlayOpacity)}
         badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
-        subtext={tagline ?? undefined}
+        subtext={tagline}
         heightPreset="compact"
       />
       <div className="mt-20" />

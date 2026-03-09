@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       external_thumbnail_asset_id,
       display_order,
       slug: slugInput,
+      status: statusInput,
     } = body;
 
     const now = new Date().toISOString();
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest) {
       external_thumbnail_asset_id: external_thumbnail_asset_id || null,
       updated_at: now,
     };
+    const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
+    (eventData as Record<string, unknown>).status = status;
 
     if (id) {
       const slugNorm = slugInput != null && String(slugInput).trim()
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
     if (collision) return apiError('An event with this slug already exists', 409);
     const { data, error } = await supabase
       .from('events')
-      .insert({ ...eventData, display_order: order, slug })
+      .insert({ ...eventData, display_order: order, slug, status })
       .select()
       .single();
     if (error) return apiError('Operation failed.', 500);

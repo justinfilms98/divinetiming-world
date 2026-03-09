@@ -12,7 +12,6 @@ import {
   resolveGalleryMediaUrl,
   resolveVideoThumbnailUrl,
 } from '@/lib/mediaGallery';
-import { parseYouTubeId } from '@/lib/content/shared';
 import type {
   PageSettings,
   HeroSection,
@@ -138,26 +137,7 @@ export async function getHeroSection(pageSlug: string): Promise<HeroSection | nu
   } as HeroSection;
 }
 
-export async function getHeroCarouselSlides(
-  pageSlug: string,
-  options?: { stripOverlay?: boolean }
-): Promise<HeroCarouselSlide[]> {
-  const hero = await getHeroSection(pageSlug);
-  if (!hero || !hero.mediaFinalUrl) return [];
-  const type = hero.media_type === 'video' ? 'video' : 'image';
-  const youtubeId = parseYouTubeId(hero.mediaFinalUrl);
-  const slides: HeroCarouselSlide[] = [
-    {
-      type,
-      source: type === 'video' && youtubeId ? youtubeId : hero.mediaFinalUrl,
-      headline: options?.stripOverlay ? undefined : (hero.headline ?? undefined),
-      subtext: options?.stripOverlay ? undefined : (hero.subtext ?? undefined),
-      cta: options?.stripOverlay ? undefined : (hero.cta_text && hero.cta_url ? { text: hero.cta_text, url: hero.cta_url } : undefined),
-    },
-  ];
-  return slides.slice(0, 3);
-}
-
+/** Public detail: returns event only if published (when status column exists). */
 export async function getEventBySlug(slugOrId: string): Promise<Event | null> {
   const supabase = await createClient();
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -168,15 +148,14 @@ export async function getEventBySlug(slugOrId: string): Promise<Event | null> {
     .select('*')
     .or(isUuid ? `id.eq.${slugOrId}` : `slug.eq.${slugNorm}`)
     .maybeSingle();
-  if (error) {
-    return null;
-  }
-  if (!data) return null;
-  const event = data as Event;
+  if (error || !data) return null;
+  const event = data as Event & { status?: string };
+  if (event.status != null && event.status !== 'published') return null;
   event.resolved_thumbnail_url = await resolveEventThumbnailUrl(event);
   return event;
 }
 
+/** Public list: only published events (or all if status column not yet present). */
 export async function getEvents(options?: { upcomingOnly?: boolean }): Promise<Event[]> {
   const supabase = await createClient();
   let query = supabase
@@ -185,13 +164,15 @@ export async function getEvents(options?: { upcomingOnly?: boolean }): Promise<E
     .order('display_order', { ascending: true })
     .order('date', { ascending: true });
 
-  if (options?.upcomingOnly) {
-    query = query.gte('date', new Date().toISOString());
-  }
-
   const { data, error } = await query;
   if (error) return [];
-  const events = (data || []) as Event[];
+  let events = (data || []) as Event[];
+  const withStatus = events.some((e) => 'status' in e && e.status != null);
+  if (withStatus) events = events.filter((e) => (e as { status?: string }).status === 'published');
+
+  if (options?.upcomingOnly) {
+    events = events.filter((e) => new Date(e.date) >= new Date());
+  }
   return withResolvedThumbnails(events);
 }
 
@@ -234,12 +215,14 @@ export async function getMediaCarouselSlides(): Promise<
 export async function getGalleriesForHub(): Promise<GalleryForHub[]> {
   const supabase = await createClient();
   const [galleriesRes, mediaRes] = await Promise.all([
-    supabase.from('galleries').select('id, name, slug, description, cover_image_url, external_cover_asset_id, display_order, created_at, updated_at').order('display_order', { ascending: true }),
+    supabase.from('galleries').select('*').order('display_order', { ascending: true }),
     supabase.from('gallery_media').select('gallery_id'),
   ]);
 
   if (galleriesRes.error) return [];
-  const galleries = (galleriesRes.data || []) as Gallery[];
+  let galleries = (galleriesRes.data || []) as Gallery[];
+  const withStatus = galleries.some((g) => 'status' in g && (g as { status?: string }).status != null);
+  if (withStatus) galleries = galleries.filter((g) => (g as { status?: string }).status === 'published');
 
   const countByGalleryId: Record<string, number> = {};
   if (!mediaRes.error && mediaRes.data) {
@@ -305,8 +288,10 @@ export async function getGalleryBySlug(
     .single();
 
   if (error || !data) return null;
+  const gData = data as Gallery & { gallery_media: GalleryMedia[]; status?: string };
+  if (gData.status != null && gData.status !== 'published') return null;
 
-  const g = data as Gallery & { gallery_media: GalleryMedia[] };
+  const g = gData as Gallery & { gallery_media: GalleryMedia[] };
   const gallery_media = (g.gallery_media || []).sort(
     (a: GalleryMedia, b: GalleryMedia) => (a.display_order ?? 0) - (b.display_order ?? 0)
   );
@@ -322,16 +307,20 @@ export async function getGalleryBySlug(
   return { ...g, resolved_cover_url, gallery_media: resolvedMedia };
 }
 
+/** Public list: only published products (or is_active if status column not yet present). */
 export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('products')
     .select('*, product_images(image_url, display_order), product_variants(id, name, price_cents, inventory_count)')
-    .eq('is_active', true)
     .order('display_order', { ascending: true });
-
+  const { data, error } = await query;
   if (error) return [];
-  return (data || []) as Product[];
+  let products = (data || []) as Product[];
+  const withStatus = products.some((p) => 'status' in p && (p as { status?: string }).status != null);
+  if (withStatus) products = products.filter((p) => (p as { status?: string }).status === 'published');
+  else products = products.filter((p) => p.is_active);
+  return products;
 }
 
 export async function getBookingContent(): Promise<BookingContentSection[]> {
@@ -379,16 +368,19 @@ export async function getAboutTimeline(): Promise<AboutTimelineItem[]> {
   return (data || []) as AboutTimelineItem[];
 }
 
+/** Public list: only published videos (or all if status column not yet present). */
 export async function getVideos(): Promise<MediaPageVideo[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('videos')
-    .select('id, title, youtube_id, thumbnail_url')
+    .select('id, title, youtube_id, thumbnail_url, status')
     .order('display_order', { ascending: true });
 
   if (error) return [];
-  const rows = (data || []) as { id: string; title: string; youtube_id: string; thumbnail_url?: string | null }[];
-  return rows.map((v) => ({
+  const rows = (data || []) as { id: string; title: string; youtube_id: string; thumbnail_url?: string | null; status?: string }[];
+  const withStatus = rows.some((r) => r.status != null);
+  const filtered = withStatus ? rows.filter((r) => r.status === 'published') : rows;
+  return filtered.map((v) => ({
     ...v,
     resolved_thumbnail_url: resolveVideoThumbnailUrl(v),
   }));

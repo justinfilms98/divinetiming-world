@@ -10,6 +10,8 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 
+type EventStatus = 'draft' | 'published' | 'archived';
+
 interface Event {
   id: string;
   slug?: string | null;
@@ -24,6 +26,7 @@ interface Event {
   thumbnail_url: string | null;
   external_thumbnail_asset_id?: string | null;
   display_order: number;
+  status?: EventStatus;
   resolved_thumbnail_url?: string | null;
 }
 
@@ -118,6 +121,7 @@ export default function AdminEventsPage() {
       date: formData.get('date') as string,
       city: formData.get('city') as string,
       venue: formData.get('venue') as string,
+      status: (formData.get('status') as EventStatus) || 'published',
       ticket_url: (formData.get('ticket_url') as string) || null,
       is_featured: formData.get('is_featured') === 'on',
       title: (formData.get('title') as string) || null,
@@ -292,6 +296,11 @@ export default function AdminEventsPage() {
                         {formatDate(event.date)}
                         {event.time && ` · ${event.time}`}
                       </span>
+                      {(event.status && event.status !== 'published') && (
+                        <span className={`px-2 py-0.5 text-xs rounded ${event.status === 'draft' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                          {event.status === 'draft' ? 'Draft' : 'Archived'}
+                        </span>
+                      )}
                       {event.is_featured && (
                         <span className="px-2 py-0.5 bg-[var(--accent)]/20 text-[var(--accent)] text-xs rounded">
                           Featured
@@ -374,6 +383,20 @@ export default function AdminEventsPage() {
             <form key={editingEvent?.id ?? 'new'} onSubmit={handleSubmit} className="p-4 space-y-4">
               <input type="hidden" name="thumbnail_url" defaultValue={editingEvent?.thumbnail_url ?? ''} />
               <input type="hidden" name="external_thumbnail_asset_id" defaultValue={editingEvent?.external_thumbnail_asset_id ?? ''} />
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
+                <select
+                  name="status"
+                  defaultValue={editingEvent?.status ?? 'published'}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                >
+                  <option value="published">Published (visible on site)</option>
+                  <option value="draft">Draft (hidden)</option>
+                  <option value="archived">Archived (hidden)</option>
+                </select>
+                <p className="text-white/50 text-xs mt-1">Only published events appear on the public Events page.</p>
+              </div>
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Title</label>

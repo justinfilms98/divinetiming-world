@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useCart } from './CartContext';
 import { track } from '@/lib/analytics/track';
 import { Container } from '@/components/ui/Container';
+import { Grid } from '@/components/ui/Grid';
 import type { Product } from '@/lib/types/content';
 
 interface ShopPageClientProps {
@@ -29,7 +30,6 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
         </p>
         {products.length > 0 ? (
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12"
             initial="hidden"
             animate="visible"
             variants={{
@@ -37,21 +37,23 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
               hidden: {},
             }}
           >
-            {products.map((product) => {
-              const images = product.product_images as { image_url: string; display_order: number }[] | undefined;
-              const sortedImages = images?.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-              const mainImage = sortedImages?.[0]?.image_url;
-              return (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  mainImage={mainImage}
-                  onAddToCart={addItem}
-                  formatPrice={formatPrice}
-                  track={track}
-                />
-              );
-            })}
+            <Grid cols={3} className="gap-8 md:gap-10">
+              {products.map((product) => {
+                const images = product.product_images as { image_url: string; display_order: number }[] | undefined;
+                const sortedImages = images?.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+                const mainImage = sortedImages?.[0]?.image_url;
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    mainImage={mainImage}
+                    onAddToCart={addItem}
+                    formatPrice={formatPrice}
+                    track={track}
+                  />
+                );
+              })}
+            </Grid>
           </motion.div>
         ) : (
           <div className="py-20 text-center">
@@ -81,15 +83,15 @@ function ProductCard({
   return (
     <motion.article
       variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 8 } }}
-      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className="group relative flex flex-col items-center text-center rounded-[var(--radius-card)] border border-[var(--accent)]/20 bg-[var(--bg-secondary)] p-6 shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-200 ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 card-atmosphere"
+      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+      className="group relative flex flex-col items-center text-center rounded-xl border border-[var(--accent)]/20 bg-[var(--bg-secondary)] p-6 shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 card-atmosphere"
     >
       <Link
         href={`/shop/${product.slug}`}
-        className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] rounded-[var(--radius-card)]"
+        className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] rounded-xl"
         onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}
       >
-        <div className="relative aspect-square w-full max-w-sm mx-auto mb-6 rounded-[var(--radius-card)] overflow-hidden">
+        <div className="relative aspect-square w-full max-w-sm mx-auto mb-5 rounded-xl overflow-hidden bg-[var(--bg)]">
           {showImage ? (
             <Image
               src={mainImage}
@@ -98,7 +100,7 @@ function ProductCard({
               loading="lazy"
               placeholder="blur"
               blurDataURL={BLUR_PLACEHOLDER}
-              className="object-cover transition-[filter] duration-200 ease-out group-hover:brightness-[1.03]"
+              className="object-cover transition-[transform,filter] duration-300 ease-out group-hover:scale-[1.02] group-hover:brightness-[1.04]"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               onError={() => setImageError(true)}
             />
@@ -109,28 +111,58 @@ function ProductCard({
           )}
         </div>
       </Link>
+      <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+        {product.is_featured && (
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)]/20 text-[var(--accent)]">Featured</span>
+        )}
+        {product.badge && (
+          <span className="px-2 py-0.5 rounded text-xs font-medium border border-[var(--accent)]/40 text-[var(--accent)]">{product.badge}</span>
+        )}
+        {(() => {
+          const variants = product.product_variants ?? [];
+          const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);
+          return soldOut ? (
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--text-muted)]/20 text-[var(--text-muted)]">Sold out</span>
+          ) : null;
+        })()}
+      </div>
       <h3 className="type-h3 font-medium text-[var(--text)] tracking-tight mb-1" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h3>
-      <p className="text-[var(--accent)] font-light text-lg mb-4">{formatPrice(product.price_cents)}</p>
-      {(!product.product_variants || product.product_variants.length === 0) ? (
-        <button
-          type="button"
-          onClick={() => {
-            track({ event_name: 'add_to_cart', entity_type: 'product', entity_id: product.id });
-            onAddToCart({ productId: product.id, productName: product.name, productSlug: product.slug, variantId: null, variantName: null, priceCents: product.price_cents, imageUrl: mainImage ?? null });
-          }}
-          className="min-h-[48px] px-6 py-3 rounded-[var(--radius-button)] type-button text-[var(--text)] border border-[var(--accent)]/20 hover:border-[var(--accent)]/50 hover:bg-[var(--bg)]/50 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] active:scale-[0.98]"
-        >
-          Add to Cart
-        </button>
-      ) : (
-        <Link
-          href={`/shop/${product.slug}`}
-          onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}
-          className="min-h-[48px] inline-flex items-center justify-center px-6 py-3 rounded-[var(--radius-button)] type-button text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--accent)]/20 hover:border-[var(--accent)]/50 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] active:scale-[0.98]"
-        >
-          View Options
-        </Link>
-      )}
+      {product.subtitle && <p className="type-small text-[var(--text-muted)] mb-2">{product.subtitle}</p>}
+      <p className="text-[var(--accent)] font-semibold type-body mb-5">{formatPrice(product.price_cents)}</p>
+      {(() => {
+        const variants = product.product_variants ?? [];
+        const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);
+        if (soldOut) {
+          return (
+            <span className="min-h-[48px] inline-flex items-center justify-center px-6 py-3 rounded-[var(--radius-button)] type-button text-[var(--text-muted)] border border-[var(--accent)]/10 cursor-not-allowed">
+              Sold out
+            </span>
+          );
+        }
+        if (!variants.length) {
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                track({ event_name: 'add_to_cart', entity_type: 'product', entity_id: product.id });
+                onAddToCart({ productId: product.id, productName: product.name, productSlug: product.slug, variantId: null, variantName: null, priceCents: product.price_cents, imageUrl: mainImage ?? null });
+              }}
+              className="min-h-[48px] px-6 py-3 rounded-[var(--radius-button)] type-button text-[var(--text)] border border-[var(--accent)]/20 hover:border-[var(--accent)]/50 hover:bg-[var(--bg)]/50 transition-colors duration-[var(--motion-standard)] ease-[var(--ease-standard)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] active:scale-[0.98] btn-lift"
+            >
+              Add to Cart
+            </button>
+          );
+        }
+        return (
+          <Link
+            href={`/shop/${product.slug}`}
+            onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}
+            className="min-h-[48px] inline-flex items-center justify-center px-6 py-3 rounded-[var(--radius-button)] type-button text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--accent)]/20 hover:border-[var(--accent)]/50 transition-colors duration-[var(--motion-standard)] ease-[var(--ease-standard)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] active:scale-[0.98] btn-lift"
+          >
+            View Options
+          </Link>
+        );
+      })()}
     </motion.article>
   );
 }

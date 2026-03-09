@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { track } from '@/lib/analytics/track';
 import { MediaEmptyCard } from '@/components/media/MediaEmptyCard';
 import { VideoPlayerModal } from '@/components/media/VideoPlayerModal';
+import { Grid } from '@/components/ui/Grid';
 import type { MediaPageVideo, GalleryForHub } from '@/lib/content/shared';
 
 interface MediaPageClientProps {
@@ -88,7 +89,6 @@ export function MediaPageClient({
           </div>
         ) : activeTab === 'galleries' ? (
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8"
             initial="hidden"
             animate="visible"
             variants={{
@@ -96,6 +96,7 @@ export function MediaPageClient({
               hidden: {},
             }}
           >
+            <Grid cols={4}>
             {galleries.map((gallery) => {
               const coverUrl = gallery.resolved_cover_url ?? null;
               const hasMedia = gallery.media_count > 0;
@@ -104,7 +105,7 @@ export function MediaPageClient({
 
               const cardContent = (
                 <>
-                  <div className="relative aspect-[4/5] rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[200ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere">
+                  <div className="relative aspect-[4/5] rounded-xl overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere">
                     {coverUrl ? (
                       <Image
                         src={coverUrl}
@@ -129,13 +130,13 @@ export function MediaPageClient({
                     )}
                   </div>
                   <div className="mt-3">
-                    <div className="text-[var(--text)] font-semibold type-h3">{gallery.name}</div>
+                    <h3 className="text-[var(--text)] font-semibold type-h3 tracking-tight">{gallery.name}</h3>
                     {gallery.description && (
-                      <div className="text-[var(--text-muted)] text-sm mt-0.5 line-clamp-2">{gallery.description}</div>
+                      <p className="text-[var(--text-muted)] type-small mt-0.5 line-clamp-2">{gallery.description}</p>
                     )}
-                    <div className="text-[var(--text-muted)] text-xs mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
+                    <p className="text-[var(--text-muted)] type-caption mt-1">
                       {gallery.media_count} {gallery.media_count === 1 ? 'item' : 'items'}
-                    </div>
+                    </p>
                   </div>
                 </>
               );
@@ -166,9 +167,10 @@ export function MediaPageClient({
                 </motion.div>
               );
             })}
+            </Grid>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <Grid cols={3}>
             {videos.map((video, index) => {
               const isTall = index % 3 === 1;
               return (
@@ -179,7 +181,7 @@ export function MediaPageClient({
                     track({ event_name: 'video_click', entity_type: 'video', entity_id: video.id });
                     setVideoModal(video);
                   }}
-                  className={`group text-left rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[200ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere aspect-video ${isTall ? 'md:aspect-[9/16]' : ''}`}
+                  className={`group text-left rounded-xl overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere aspect-video ${isTall ? 'md:aspect-[9/16]' : ''}`}
                 >
                   <div className="relative w-full h-full">
                     <Image
@@ -205,7 +207,7 @@ export function MediaPageClient({
                 </button>
               );
             })}
-          </div>
+          </Grid>
         )}
       </GlassPanel>
 

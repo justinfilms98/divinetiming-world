@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 export interface UnifiedHeroProps {
   mediaUrl?: string | null;
   mediaType?: 'image' | 'video' | string | null;
+  /** Poster image URL for video (shows immediately, improves LCP) */
+  posterUrl?: string | null;
   externalAsset?: { provider?: string; preview_url?: string; mime_type?: string | null } | null;
   overlayOpacity?: number;
   headline?: string | null;
@@ -19,7 +21,7 @@ export interface UnifiedHeroProps {
 }
 
 const heightClasses = {
-  full: 'min-h-screen',
+  full: 'min-h-screen min-h-[100dvh]',
   tall: 'aspect-[16/9] min-h-[320px] w-full',
   standard: 'aspect-[16/9] min-h-[280px] w-full',
   compact: 'min-h-[160px] aspect-[3/1] w-full max-h-[200px]',
@@ -28,6 +30,7 @@ const heightClasses = {
 export function UnifiedHero({
   mediaUrl,
   mediaType,
+  posterUrl,
   overlayOpacity = 0.5,
   headline,
   subtext,
@@ -58,19 +61,20 @@ export function UnifiedHero({
           <MediaAssetRenderer
             url={url || null}
             mediaType={type}
+            poster={posterUrl ?? null}
             fallback={HeroEclipseFallback}
             priority={true}
             sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
           />
 
-          {/* Phase 7: subtle readability gradient (top transparent, bottom soft dark) */}
+          {/* Phase D: single balanced overlay — bottom vignette + light center gradient for readability */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/35"
-            style={{ opacity: Math.min(1, opacity * 1.2) }}
+            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50"
+            style={{ opacity: Math.min(1, opacity * 1.1) }}
           />
           <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.25)_100%)]"
-            style={{ opacity: opacity * 0.8 }}
+            className="absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_40%,transparent_40%,rgba(0,0,0,0.2)_100%)]"
+            style={{ opacity: opacity * 0.9 }}
           />
           <div className="hero-grain" aria-hidden="true" />
         </div>
@@ -93,8 +97,7 @@ export function UnifiedHero({
           )}
           {headline && (
             <motion.h1
-              className="text-4xl md:text-6xl font-semibold text-white"
-              style={{ fontFamily: 'var(--font-playfair-display), serif', letterSpacing: 'var(--letter-spacing-hero-title)' }}
+              className="type-hero-title text-white hero-text-shadow"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}

@@ -77,7 +77,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
               borderBottomColor: 'rgba(198, 167, 94, 0.3)',
             }}
           >
-            <nav className="content-width flex items-center justify-between h-16 px-6" style={{ transition: NAV_TRANSITION }}>
+            <nav className="content-width flex items-center justify-between h-16 px-5 md:px-8" style={{ transition: NAV_TRANSITION }}>
               <div className="flex items-center gap-8">
                 {navItems.slice(0, 2).map((item) => {
                   const isActive = pathname === item.href;

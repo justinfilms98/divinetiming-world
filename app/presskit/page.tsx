@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { GlassPanel } from '@/components/ui/GlassPanel';
+import { Container } from '@/components/ui/Container';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -33,8 +34,9 @@ export default async function PressKitPage() {
     .single();
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-20 px-4">
-      <GlassPanel className="max-w-4xl">
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip py-20">
+      <Container>
+      <GlassPanel className="max-w-4xl mx-auto">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-12 text-center tracking-tight">
           {presskit?.title || 'PRESS KIT'}
         </h1>
@@ -144,6 +146,7 @@ export default async function PressKitPage() {
           )}
         </div>
       </GlassPanel>
+      </Container>
     </div>
   );
 }

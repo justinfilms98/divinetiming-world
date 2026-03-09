@@ -44,7 +44,7 @@ export function HeroContent({
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center text-center px-4 mt-5 md:mt-6"
+      className="flex flex-col items-center justify-center text-center px-4 mt-6 md:mt-8"
       initial={{ opacity: 0, y }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration, delay, ease: [0.4, 0, 0.2, 1] }}

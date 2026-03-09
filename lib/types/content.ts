@@ -91,6 +91,9 @@ export interface HeroCarouselSlide {
   cta?: { text: string; url: string } | null;
 }
 
+/** Content state: only 'published' appears on public pages. */
+export type ContentStatus = 'draft' | 'published' | 'archived';
+
 export interface Event {
   id: string;
   slug?: string | null;
@@ -105,6 +108,8 @@ export interface Event {
   thumbnail_url: string | null;
   external_thumbnail_asset_id?: string | null;
   display_order: number;
+  /** draft = hidden; published = on site; archived = hidden, kept for history. */
+  status?: ContentStatus;
   created_at: string;
   updated_at: string;
   /** Set by content layer when resolving thumbnails (storage path / external asset). */
@@ -118,6 +123,7 @@ export interface Gallery {
   cover_image_url: string | null;
   description: string | null;
   display_order: number;
+  status?: ContentStatus;
   created_at: string;
   updated_at: string;
   external_cover_asset_id?: string | null;
@@ -163,10 +169,16 @@ export interface Product {
   id: string;
   name: string;
   slug: string;
+  /** Optional short line under product name (e.g. "Limited run"). */
+  subtitle?: string | null;
   description: string | null;
   price_cents: number;
   is_featured: boolean;
   is_active: boolean;
+  /** Optional badge label: Limited, New, etc. Sold out derived from inventory. */
+  badge?: string | null;
+  /** draft = hidden from shop; published = visible; archived = hidden. */
+  status?: ContentStatus;
   stripe_product_id: string | null;
   display_order: number;
   created_at: string;
