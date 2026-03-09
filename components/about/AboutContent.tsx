@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { Container } from '@/components/ui/Container';
 import type { AboutPhoto, AboutTimelineItem } from '@/lib/types/content';
 
 interface AboutContentProps {
@@ -26,14 +27,14 @@ export function AboutContent({
   const useRichBio = bioHtml != null && bioHtml.trim() !== '';
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-16 md:py-24">
+    <Container className="py-16 md:py-24">
       {/* Bio with alternating layout when photos exist */}
       {useRichBio ? (
         <motion.section
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           className="space-y-8"
         >
           <div
@@ -49,10 +50,10 @@ export function AboutContent({
             bioParagraphs.map((para, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                 className={`flex flex-col gap-8 md:gap-16 ${
                   i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
                 } md:items-center`}
@@ -79,9 +80,10 @@ export function AboutContent({
             ))
           ) : (
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className="space-y-8"
             >
               {bioParagraphs.map((para, i) => (
@@ -106,9 +108,10 @@ export function AboutContent({
             {photos.slice(bioParagraphs.length).map((photo, i) => (
               <motion.div
                 key={photo.id}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                 className="relative aspect-[4/3] rounded-2xl overflow-hidden"
               >
                 <Image
@@ -183,6 +186,6 @@ export function AboutContent({
           </div>
         </section>
       )}
-    </div>
+    </Container>
   );
 }

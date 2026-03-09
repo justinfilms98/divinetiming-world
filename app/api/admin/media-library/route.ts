@@ -15,7 +15,7 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from('external_media_assets').delete().eq('id', id);
     if (error) {
       console.error('Admin media-library DELETE error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/admin/media');
     revalidatePath('/media');
@@ -23,6 +23,6 @@ export async function DELETE(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin media-library DELETE error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

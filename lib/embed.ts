@@ -1,10 +1,14 @@
 /**
  * Embed URL/ID normalization for hero slots (YouTube, Vimeo).
  * Used by admin (validation) and content layer (resolving).
+ * Accepts: YouTube watch, youtu.be, youtube.com/embed/ID, raw 11-char ID.
+ * Accepts: Vimeo vimeo.com/ID, vimeo.com/video/ID, player.vimeo.com/video/ID, raw numeric ID.
  */
 
-const YOUTUBE_ID_REGEX = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)?([a-zA-Z0-9_-]{11})$/;
-const VIMEO_ID_REGEX = /^(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(?:video\/)?(\d+)(?:\/|$)/;
+// YouTube: watch?v=ID | youtu.be/ID | youtube.com/embed/ID | raw 11-char ID
+const YOUTUBE_ID_REGEX = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)?([a-zA-Z0-9_-]{11})$/;
+// Vimeo: vimeo.com/ID | vimeo.com/video/ID | player.vimeo.com/video/ID | raw digits
+const VIMEO_ID_REGEX = /^(?:https?:\/\/)?(?:www\.)?(?:player\.)?vimeo\.com\/(?:video\/)?(\d+)(?:\/|$)/;
 
 export type EmbedProvider = 'youtube' | 'vimeo';
 

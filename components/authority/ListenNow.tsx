@@ -27,7 +27,7 @@ export function ListenNow({ platformOverrides, featuredEmbed, className }: Liste
   return (
     <Reveal className={cn('px-4', className)}>
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-sm uppercase tracking-widest text-white/60 mb-6">Listen now</p>
+        <p className="type-label text-white/60 mb-6">Listen Now</p>
         <div className="flex flex-wrap justify-center gap-4">
           {primary.map((l) => (
             <a
@@ -35,7 +35,7 @@ export function ListenNow({ platformOverrides, featuredEmbed, className }: Liste
               href={l.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 rounded-lg bg-[var(--accent)]/90 text-[var(--text)] hover:bg-[var(--accent)] border border-[var(--accent)] font-medium transition-colors duration-250 ease-out text-sm"
+              className="px-6 py-3 rounded-lg bg-[var(--accent)]/90 text-[var(--text)] hover:bg-[var(--accent)] border border-[var(--accent)] font-medium transition-colors duration-200 text-sm"
             >
               {l.label}
             </a>
@@ -46,7 +46,7 @@ export function ListenNow({ platformOverrides, featuredEmbed, className }: Liste
               href={l.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 rounded-lg border border-white/20 text-white/90 hover:bg-white/10 hover:border-[var(--accent)]/50 transition-colors duration-250 ease-out text-sm font-medium"
+              className="px-6 py-3 rounded-lg border border-white/20 text-white/90 hover:bg-white/10 hover:border-[var(--accent)]/50 transition-colors duration-200 text-sm font-medium"
             >
               {l.label}
             </a>

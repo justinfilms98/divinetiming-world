@@ -40,8 +40,8 @@ html.admin-active body {
 .admin-card {
   background: white;
   border: 1px solid rgb(var(--admin-card-border));
-  box-shadow: var(--admin-card-shadow);
-  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 1rem;
 }
 
 .dark-admin .admin-card {
@@ -53,10 +53,15 @@ html.admin-active body {
 .admin-btn-primary {
   background: rgb(var(--admin-accent));
   color: white;
+  transition: background-color 0.2s ease-out, transform 0.2s ease-out;
 }
 
 .admin-btn-primary:hover {
   background: rgb(var(--admin-accent-hover));
+}
+
+.admin-btn-primary:active {
+  transform: scale(0.98);
 }
 
 .dark-admin .admin-btn-primary {
@@ -78,6 +83,14 @@ html.admin-active body {
   background: rgb(30 41 59);
   border-color: rgb(71 85 105);
   color: rgb(226 232 240);
+}
+
+/* Phase 25: admin page header typography in dark mode */
+.dark-admin .admin-page-title {
+  color: rgb(226 232 240);
+}
+.dark-admin .admin-page-desc {
+  color: rgb(148 163 184);
 }
 
 /* Section spacing: align with Phase 0 / 8px grid */

@@ -78,6 +78,6 @@ VERIFY:
 
 ## Env Required
 
-- `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` – for UniversalUploader
+- Supabase env (e.g. `NEXT_PUBLIC_SUPABASE_URL`) – for UniversalUploader and media storage
 - `SUPABASE_SERVICE_ROLE_KEY` – for admin API routes
 - `ADMIN_EMAILS` (optional) – comma-separated admin emails, or use `admin_users` table

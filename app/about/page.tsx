@@ -1,5 +1,4 @@
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import {
   getAboutContent,
   getAboutPhotos,
@@ -10,8 +9,26 @@ import {
 } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { AboutContent } from '@/components/about/AboutContent';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'The story behind Divine Timing — Liam Bongo & Lex Laurence.',
+  alternates: { canonical: '/about' },
+  openGraph: {
+    title: 'About | Divine Timing',
+    description: 'The story behind Divine Timing — Liam Bongo & Lex Laurence.',
+    url: '/about',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About | Divine Timing',
+    description: 'The story behind Divine Timing — Liam Bongo & Lex Laurence.',
+  },
+};
 
 export default async function AboutPage() {
   const [aboutContent, aboutPhotos, timeline, siteSettings, heroSection, pageSettings] =
@@ -54,7 +71,6 @@ export default async function AboutPage() {
           member2Name={siteSettings?.member_2_name || 'Lex Laurence'}
         />
       </main>
-      <Footer />
     </div>
   );
 }

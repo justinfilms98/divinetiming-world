@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
@@ -25,6 +24,7 @@ interface Event {
   thumbnail_url: string | null;
   external_thumbnail_asset_id?: string | null;
   display_order: number;
+  resolved_thumbnail_url?: string | null;
 }
 
 export default function AdminEventsPage() {
@@ -35,19 +35,24 @@ export default function AdminEventsPage() {
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     loadEvents();
   }, []);
 
   const loadEvents = async () => {
-    const { data } = await supabase
-      .from('events')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('date', { ascending: true });
-    setEvents((data || []) as Event[]);
+    const res = await fetch('/api/admin/events', { credentials: 'same-origin' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setEvents([]);
+      setIsLoading(false);
+      return;
+    }
+    if (body.ok && Array.isArray(body.data)) {
+      setEvents(body.data as Event[]);
+    } else {
+      setEvents([]);
+    }
     setIsLoading(false);
   };
 
@@ -59,7 +64,7 @@ export default function AdminEventsPage() {
 
   const openEdit = (event: Event) => {
     setEditingEvent(event);
-    setPreviewThumbnail(event.thumbnail_url ?? null);
+    setPreviewThumbnail(event.resolved_thumbnail_url ?? event.thumbnail_url ?? null);
     setModalOpen(true);
   };
 
@@ -135,13 +140,17 @@ export default function AdminEventsPage() {
       body: JSON.stringify(payload),
       credentials: 'same-origin',
     });
-    const data = await res.json().catch(() => ({}));
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      alert('Error saving event: ' + (data.error || res.statusText));
+      alert('Error saving event: ' + (body.error ?? res.statusText));
+      return;
+    }
+    if (!body.ok) {
+      alert('Error saving event: ' + (body.error ?? 'Unknown error'));
       return;
     }
 
-    const updated = data.event as Event | undefined;
+    const updated = (body.data as { event?: Event })?.event;
     if (updated?.id) {
       setEvents((prev) => {
         const idx = prev.findIndex((e) => e.id === updated.id);
@@ -150,7 +159,7 @@ export default function AdminEventsPage() {
           next[idx] = { ...next[idx], ...updated };
           return next;
         }
-        return prev;
+        return [...prev, updated];
       });
     }
     await loadEvents();
@@ -164,9 +173,9 @@ export default function AdminEventsPage() {
       method: 'DELETE',
       credentials: 'same-origin',
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      alert('Error deleting event: ' + (data.error || res.statusText));
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) {
+      alert('Error deleting event: ' + (body.error ?? res.statusText));
       return;
     }
     await loadEvents();
@@ -186,9 +195,9 @@ export default function AdminEventsPage() {
       credentials: 'same-origin',
       body: JSON.stringify({ swap: [a, b] }),
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert('Error: ' + (data.error || res.statusText));
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) {
+      alert('Error: ' + (body.error ?? res.statusText));
       return;
     }
     await loadEvents();
@@ -249,12 +258,12 @@ export default function AdminEventsPage() {
           {events.map((event, index) => (
             <AdminCard key={event.id} className="p-0 overflow-hidden">
               <div className="flex flex-col md:flex-row">
-                {/* Thumbnail */}
+                {/* Thumbnail: resolved URL or premium placeholder */}
                 <div className="md:w-40 md:flex-shrink-0">
-                  {event.thumbnail_url ? (
+                  {(event.resolved_thumbnail_url ?? event.thumbnail_url) ? (
                     <div className="relative aspect-video md:aspect-square w-full">
                       <MediaAssetRenderer
-                        url={event.thumbnail_url}
+                        url={event.resolved_thumbnail_url ?? event.thumbnail_url!}
                         mediaType="image"
                         alt={event.title || event.city}
                         fallback={

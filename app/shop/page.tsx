@@ -2,6 +2,7 @@ import { getProducts, getHeroSection, getPageSettings } from '@/lib/content/serv
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { ShopPageClient } from '@/components/shop/ShopPageClient';
+import { Section } from '@/components/ui/Section';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -9,8 +10,18 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Shop',
   description: 'Official Divine Timing merchandise and music.',
-  openGraph: { title: 'Shop | Divine Timing', description: 'Official Divine Timing merchandise and music.' },
-  twitter: { card: 'summary_large_image', title: 'Shop | Divine Timing' },
+  alternates: { canonical: '/shop' },
+  openGraph: {
+    title: 'Shop | Divine Timing',
+    description: 'Official Divine Timing merchandise and music.',
+    url: '/shop',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Shop | Divine Timing',
+    description: 'Official Divine Timing merchandise and music.',
+  },
 };
 
 export default async function ShopPage() {
@@ -32,12 +43,16 @@ export default async function ShopPage() {
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
+        badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
         subtext={tagline ?? undefined}
         heightPreset="compact"
       />
+      <div className="mt-20" />
       <SignatureDivider />
-      <ShopPageClient products={products} />
+      <Section className="section-lift">
+        <ShopPageClient products={products} />
+      </Section>
     </div>
   );
 }

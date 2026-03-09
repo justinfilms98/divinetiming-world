@@ -19,33 +19,33 @@ export function Header() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)]/80 backdrop-blur-sm border-b border-[var(--accent)]/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="text-xl font-bold text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+            <Link href="/" className="text-xl font-bold text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
               DIVINE:TIMING
             </Link>
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="/events" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/events" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Events
               </Link>
-              <Link href="/shop" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/shop" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Shop
               </Link>
-              <Link href="/media" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/media" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Media
               </Link>
-              <Link href="/about" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/about" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 About
               </Link>
-              <Link href="/booking" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/booking" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Booking
               </Link>
-              <Link href="/presskit" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors">
+              <Link href="/presskit" className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
                 Press Kit
               </Link>
               <Link
                 href="/booking"
-                className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors glow"
+                className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors duration-200 glow"
               >
                 Book Now
               </Link>
@@ -76,7 +76,7 @@ export function Header() {
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="fixed inset-0 z-40 md:hidden bg-[var(--bg)]"
           >
             <div className="flex flex-col h-full pt-20 px-6">
@@ -84,49 +84,49 @@ export function Header() {
                 <Link
                   href="/"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   Home
                 </Link>
                 <Link
                   href="/events"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   Events
                 </Link>
                 <Link
                   href="/shop"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   Shop
                 </Link>
                 <Link
                   href="/media"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   Media
                 </Link>
                 <Link
                   href="/about"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   About
                 </Link>
                 <Link
                   href="/booking"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   Booking
                 </Link>
                 <Link
                   href="/presskit"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                  className="text-2xl text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                 >
                   Press Kit
                 </Link>
@@ -137,7 +137,7 @@ export function Header() {
                       href="https://www.instagram.com/divinetiming_ofc"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                      className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                     >
                       Instagram
                     </a>
@@ -145,7 +145,7 @@ export function Header() {
                       href="https://www.youtube.com/@divinetimingworld"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                      className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                     >
                       YouTube
                     </a>
@@ -153,7 +153,7 @@ export function Header() {
                       href="https://open.spotify.com/artist/3oXSupbNxaPpkEnMbuK8IS"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--text)] hover:text-[var(--accent)] transition-colors"
+                      className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200"
                     >
                       Spotify
                     </a>
@@ -161,7 +161,7 @@ export function Header() {
                   <Link
                     href="/booking"
                     onClick={() => setIsMenuOpen(false)}
-                    className="block w-full px-6 py-3 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors glow text-center font-semibold"
+                    className="block w-full px-6 py-3 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors duration-200 glow text-center font-semibold"
                   >
                     Book Now
                   </Link>

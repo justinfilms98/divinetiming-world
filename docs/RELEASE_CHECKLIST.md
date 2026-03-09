@@ -10,9 +10,9 @@ Use this checklist for every preview and production deploy.
 - [ ] `npm run lint` (if configured)
 - [ ] `npm run typecheck` (if configured)
 - [ ] `npm run assert:hero-logo` passes (hero_logo_url validation)
-- [ ] Env vars for preview exist: `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server)
+- [ ] Env vars for preview exist: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server)
 
-**Canary (Vercel):** Confirm `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` exists in Vercel env for both Preview and Production so uploads work after deploy.
+**Canary (Vercel):** Confirm Supabase env (e.g. `NEXT_PUBLIC_SUPABASE_URL`) is set so uploads and media resolution work after deploy.
 
 ## B) Preview deploy (visual + functional)
 
@@ -28,7 +28,7 @@ Use this checklist for every preview and production deploy.
 
 ### Storage (see [docs/MEDIA_STORAGE.md](MEDIA_STORAGE.md))
 
-- [ ] **Uploadcare**: Env `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` set; one admin upload succeeds; asset URL loads in browser (no 404/CORS)
+- [ ] **Media uploads**: One admin upload (Media library) succeeds; asset URL loads in browser (no 404/CORS)
 - [ ] **Supabase** (if used): `media` bucket public, RLS allows public read; CORS allows app origins
 - [ ] **Cart/nav**: Cart button does not overlap nav links on any breakpoint (cart is bottom-right; Booking link inset)
 

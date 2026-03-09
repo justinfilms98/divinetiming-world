@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
     const accessible = await checkFileAccessible(fileId);
     return NextResponse.json({ accessible });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Check failed';
     console.error('Drive health-check error:', err);
-    return NextResponse.json({ accessible: false, error: msg });
+    return NextResponse.json({ accessible: false, error: 'Check failed' });
   }
 }

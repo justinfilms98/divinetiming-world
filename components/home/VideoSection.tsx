@@ -25,7 +25,7 @@ export function VideoSection({ video }: VideoSectionProps) {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-8 text-center"
         >
           Latest Video
@@ -35,7 +35,7 @@ export function VideoSection({ video }: VideoSectionProps) {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.25, delay: 0.08, ease: [0.4, 0, 0.2, 1] }}
           className="relative aspect-video bg-[var(--bg2)] rounded-lg overflow-hidden"
         >
           <iframe
@@ -51,12 +51,12 @@ export function VideoSection({ video }: VideoSectionProps) {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          transition={{ duration: 0.25, delay: 0.12, ease: [0.4, 0, 0.2, 1] }}
           className="text-center mt-6"
         >
           <a
             href="/media"
-            className="text-[var(--accent)] hover:text-[var(--accent2)] transition-colors font-semibold"
+            className="text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 font-semibold"
           >
             View All Videos →
           </a>

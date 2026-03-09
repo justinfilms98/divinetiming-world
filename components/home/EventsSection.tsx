@@ -36,7 +36,7 @@ export function EventsSection({ events }: EventsSectionProps) {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           className="text-3xl md:text-4xl font-bold text-[var(--text)] mb-12 text-center"
           style={{ fontFamily: 'var(--font-headline)' }}
         >
@@ -50,7 +50,7 @@ export function EventsSection({ events }: EventsSectionProps) {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              transition={{ duration: 0.25, delay: index * 0.05, ease: [0.4, 0, 0.2, 1] }}
               className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 bg-[var(--bg-secondary)] rounded-xl border border-[var(--accent)]/30 hover:border-[var(--accent)]/50 transition-colors duration-200"
             >
               <div>

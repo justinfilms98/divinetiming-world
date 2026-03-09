@@ -10,8 +10,8 @@ export function AdminCard({ children, className }: AdminCardProps) {
   return (
     <div
       className={cn(
-        'admin-card p-6',
-        'transition-[border-color,box-shadow] duration-200',
+        'admin-card p-4 md:p-6 rounded-2xl shadow-sm',
+        'transition-[border-color,box-shadow] duration-200 ease-out',
         className
       )}
     >

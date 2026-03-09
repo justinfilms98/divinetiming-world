@@ -4,6 +4,15 @@ import { requireAdmin } from '@/lib/admin/auth';
 import { validateHeroLogoUrl } from '@/lib/hero-validation';
 import { normalizeHeroSlots } from '@/lib/content/shared';
 
+/** If CTA URL is set, CTA label must be set. Returns error message or null. */
+function validateCta(cta_text: string | null | undefined, cta_url: string | null | undefined): string | null {
+  const url = typeof cta_url === 'string' ? cta_url.trim() : '';
+  if (!url) return null;
+  const text = typeof cta_text === 'string' ? cta_text.trim() : '';
+  if (!text) return 'CTA label is required when CTA URL is set.';
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
@@ -29,6 +38,12 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      const cta_text = (h.ctaLabel as string) ?? (h.cta_text as string) ?? null;
+      const cta_url = (h.ctaHref as string) ?? (h.cta_url as string) ?? null;
+      const ctaError = validateCta(cta_text, cta_url);
+      if (ctaError) {
+        return NextResponse.json({ error: ctaError }, { status: 400 });
+      }
       heroData = {
         media_type: (h.type as string) ?? (h.media_type as string) ?? 'default',
         external_media_asset_id: (h.external_media_asset_id as string) ?? null,
@@ -37,10 +52,11 @@ export async function POST(request: NextRequest) {
         hero_logo_url,
         hero_logo_storage_path: (h.hero_logo_storage_path as string) ?? null,
         overlay_opacity: Math.min(1, Math.max(0, num)),
+        label_text: (h.label_text as string) ?? (h.labelText as string) ?? null,
         headline: (h.headline as string) ?? null,
         subtext: (h.subtext as string) ?? null,
-        cta_text: (h.ctaLabel as string) ?? (h.cta_text as string) ?? null,
-        cta_url: (h.ctaHref as string) ?? (h.cta_url as string) ?? null,
+        cta_text,
+        cta_url,
         animation_type: (h.animation_type as string) ?? 'warp',
         animation_enabled: (h.animation_enabled as boolean) ?? true,
         updated_at: new Date().toISOString(),
@@ -60,10 +76,11 @@ export async function POST(request: NextRequest) {
         hero_logo_url: rawLogoFlat,
         hero_logo_storage_path,
         overlay_opacity,
+        label_text: labelTextFlat,
         headline,
         subtext,
-        cta_text,
-        cta_url,
+        cta_text: ctaTextFlat,
+        cta_url: ctaUrlFlat,
         animation_type,
         animation_enabled,
         hero_slots: rawSlots,
@@ -75,6 +92,12 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      const cta_text = ctaTextFlat ?? null;
+      const cta_url = ctaUrlFlat ?? null;
+      const ctaError = validateCta(cta_text, cta_url);
+      if (ctaError) {
+        return NextResponse.json({ error: ctaError }, { status: 400 });
+      }
       heroData = {
         media_type: media_type ?? 'default',
         external_media_asset_id: external_media_asset_id ?? null,
@@ -83,6 +106,7 @@ export async function POST(request: NextRequest) {
         hero_logo_url,
         hero_logo_storage_path: hero_logo_storage_path ?? null,
         overlay_opacity: overlay_opacity ?? 0.4,
+        label_text: labelTextFlat ?? null,
         headline: headline ?? null,
         subtext: subtext ?? null,
         cta_text: cta_text ?? null,
@@ -113,7 +137,7 @@ export async function POST(request: NextRequest) {
         .single();
       if (error) {
         console.error('Admin hero update error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
       revalidatePath(slug === 'home' ? '/' : `/${slug}`);
       return NextResponse.json({ hero: data });
@@ -126,13 +150,13 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin hero insert error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath(slug === 'home' ? '/' : `/${slug}`);
     return NextResponse.json({ hero: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin hero POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

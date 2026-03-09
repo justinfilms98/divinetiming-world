@@ -19,6 +19,7 @@ const navItems = [
 const SCROLL_THRESHOLD = 80;
 const MENU_DURATION = 0.28;
 const MENU_EASE = [0.4, 0, 0.2, 1] as const;
+const NAV_TRANSITION = 'color 200ms ease-out, opacity 200ms ease-out';
 
 export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null }) {
   const pathname = usePathname();
@@ -52,11 +53,11 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
   const platformLinks = getPlatformLinks(siteSettings ?? undefined);
 
   const linkClass = (isActive: boolean) =>
-    `relative text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] transition-colors duration-300 nav-link-underline
+    `relative text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] nav-link-underline
      ${isActive ? 'text-[var(--accent)] text-accent-active' : 'text-[var(--text)]/80 hover:text-[var(--text)]'}`;
 
   const linkClassOverHero = (isActive: boolean) =>
-    `relative text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] transition-colors duration-300 nav-link-underline
+    `relative text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] nav-link-underline
      ${isActive ? 'text-[var(--accent)] text-accent-active' : 'text-white/85 hover:text-white'}`;
 
   return (
@@ -68,7 +69,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className="hidden md:block fixed top-0 left-0 right-0 z-50 border-b pointer-events-auto"
             style={{
               background: 'var(--bg)',
@@ -76,12 +77,12 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
               borderBottomColor: 'rgba(198, 167, 94, 0.3)',
             }}
           >
-            <nav className="content-width flex items-center justify-between h-16 px-6">
+            <nav className="content-width flex items-center justify-between h-16 px-6" style={{ transition: NAV_TRANSITION }}>
               <div className="flex items-center gap-8">
                 {navItems.slice(0, 2).map((item) => {
                   const isActive = pathname === item.href;
                   return (
-                    <Link key={item.href} href={item.href} className={linkClass(isActive)}>
+                    <Link key={item.href} href={item.href} className={linkClass(isActive)} style={{ transition: NAV_TRANSITION }}>
                       {item.label}
                     </Link>
                   );
@@ -89,8 +90,8 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
               </div>
               <Link
                 href="/"
-                className="text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-300"
-                style={{ fontFamily: 'var(--font-display)' }}
+                className="text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)]"
+                style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
               >
                 DIVINE:TIMING
               </Link>
@@ -98,7 +99,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                 {navItems.slice(2).map((item) => {
                   const isActive = pathname === item.href;
                   return (
-                    <Link key={item.href} href={item.href} className={linkClass(isActive)}>
+                    <Link key={item.href} href={item.href} className={linkClass(isActive)} style={{ transition: NAV_TRANSITION }}>
                       {item.label}
                     </Link>
                   );
@@ -114,14 +115,14 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
         {!isHomePage && !scrolled && (
           <motion.div
             className="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-auto"
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: reducedMotion ? 0 : -12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: reducedMotion ? 0.01 : 0.22, delay: reducedMotion ? 0 : 0.2 }}
           >
             <Link
               href="/"
-              className="text-xl tracking-[0.12em] uppercase font-bold text-white/90 hover:text-white transition-colors duration-300"
-              style={{ fontFamily: 'var(--font-display)' }}
+              className="text-xl tracking-[0.12em] uppercase font-bold text-white/90 hover:text-white"
+              style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
             >
               DIVINE:TIMING
             </Link>
@@ -130,23 +131,23 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
 
         {!scrolled && (
           <>
-            <div className="absolute top-6 left-6 pointer-events-auto">
-              <Link href={navItems[0]!.href} className={linkClassOverHero(pathname === navItems[0]!.href)}>
+            <div className="absolute top-6 left-6 pointer-events-auto min-w-0 max-w-[calc(100vw-8rem)]" style={{ paddingLeft: 'env(safe-area-inset-left)' }}>
+              <Link href={navItems[0]!.href} className={linkClassOverHero(pathname === navItems[0]!.href)} style={{ transition: NAV_TRANSITION }}>
                 {navItems[0]!.label}
               </Link>
             </div>
-            <div className="absolute top-6 right-6 pointer-events-auto">
-              <Link href={navItems[1]!.href} className={linkClassOverHero(pathname === navItems[1]!.href)}>
+            <div className="absolute top-6 right-6 pointer-events-auto min-w-0 max-w-[calc(100vw-8rem)]" style={{ paddingRight: 'env(safe-area-inset-right)' }}>
+              <Link href={navItems[1]!.href} className={linkClassOverHero(pathname === navItems[1]!.href)} style={{ transition: NAV_TRANSITION }}>
                 {navItems[1]!.label}
               </Link>
             </div>
-            <div className="absolute bottom-6 left-6 pointer-events-auto">
-              <Link href={navItems[2]!.href} className={linkClassOverHero(pathname === navItems[2]!.href)}>
+            <div className="absolute bottom-6 left-6 pointer-events-auto min-w-0 max-w-[calc(100vw-8rem)]" style={{ paddingLeft: 'env(safe-area-inset-left)' }}>
+              <Link href={navItems[2]!.href} className={linkClassOverHero(pathname === navItems[2]!.href)} style={{ transition: NAV_TRANSITION }}>
                 {navItems[2]!.label}
               </Link>
             </div>
-            <div className="absolute bottom-6 right-20 pointer-events-auto">
-              <Link href={navItems[3]!.href} className={linkClassOverHero(pathname === navItems[3]!.href)}>
+            <div className="absolute bottom-6 right-20 pointer-events-auto min-w-0 max-w-[calc(100vw-8rem)]" style={{ paddingRight: 'env(safe-area-inset-right)' }}>
+              <Link href={navItems[3]!.href} className={linkClassOverHero(pathname === navItems[3]!.href)} style={{ transition: NAV_TRANSITION }}>
                 {navItems[3]!.label}
               </Link>
             </div>
@@ -154,28 +155,29 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
         )}
       </nav>
 
-      {/* Mobile: logo + hamburger */}
-      <div className="md:hidden fixed top-6 left-6 z-50">
+      {/* Mobile: logo + hamburger — safe area padding, no overflow */}
+      <div className="md:hidden fixed top-6 left-6 z-50 min-w-0 max-w-[60vw]" style={{ paddingLeft: 'env(safe-area-inset-left)' }}>
         {!isHomePage && (
           <Link
             href="/"
-            className="text-[var(--text)] font-bold text-lg hover:text-[var(--accent)] transition-colors"
-            style={{ fontFamily: 'var(--font-display)' }}
+            className="text-[var(--text)] font-bold text-base md:text-lg hover:text-[var(--accent)] truncate block"
+            style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
           >
             DIVINE:TIMING
           </Link>
         )}
       </div>
 
-      <div className="md:hidden fixed top-6 right-6 z-50">
+      <div className="md:hidden fixed top-6 right-6 z-50" style={{ paddingRight: 'env(safe-area-inset-right)' }}>
         <button
           ref={hamburgerRef}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-3 -m-3 text-[var(--text)]/80 hover:text-[var(--text)] transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center rounded-lg focus-ring"
+          className="p-3 -m-3 text-[var(--text)]/80 hover:text-[var(--text)] min-w-[48px] min-h-[48px] flex items-center justify-center rounded-lg focus-ring"
+          style={{ transition: NAV_TRANSITION }}
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={isMobileMenuOpen}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMobileMenuOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             ) : (
@@ -275,10 +277,11 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                           href={link.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--bg-secondary)]/50 text-[var(--text)] hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/50 transition-colors duration-200 focus-ring active:scale-[0.98]"
+                          className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--bg-secondary)]/50 text-[var(--text)] hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/50 focus-ring"
+                          style={{ transition: NAV_TRANSITION }}
                           aria-label={`Open ${link.label}`}
                         >
-                          <PlatformIcon id={link.id} className="w-5 h-5" />
+                          <PlatformIcon id={link.id} className="w-5 h-5 shrink-0" />
                         </a>
                       ))}
                     </div>

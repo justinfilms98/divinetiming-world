@@ -30,9 +30,9 @@ export function MediaTile({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative aspect-video w-full rounded-xl overflow-hidden border border-[var(--accent)]/20',
-        'bg-[var(--bg-secondary)] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
-        'transition-all duration-[250ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-lg',
+        'relative aspect-video w-full rounded-xl overflow-hidden border border-[var(--accent)]/20 shadow-[var(--shadow-card)]',
+        'bg-[var(--bg-secondary)] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere',
+        'transition-[border-color,box-shadow,filter,transform] duration-[200ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] hover:-translate-y-0.5',
         className
       )}
     >
@@ -42,12 +42,13 @@ export function MediaTile({
             src={imgUrl}
             alt={alt || caption || 'Image'}
             fill
+            loading="lazy"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-[1.03] transition-transform duration-[250ms] ease-out"
+            className="object-cover transition-[filter] duration-[200ms] ease-out group-hover:brightness-[1.05]"
             placeholder="blur"
             blurDataURL={BLUR_PLACEHOLDER}
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-[250ms]" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-[200ms]" />
         </>
       ) : type === 'video' ? (
         <>
@@ -57,12 +58,13 @@ export function MediaTile({
                 src={imgUrl}
                 alt={alt || caption || 'Video'}
                 fill
+                loading="lazy"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className="object-cover group-hover:scale-[1.03] transition-transform duration-[250ms] ease-out"
+                className="object-cover transition-[filter] duration-[200ms] ease-out group-hover:brightness-[1.05]"
                 placeholder="blur"
                 blurDataURL={BLUR_PLACEHOLDER}
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-[250ms]" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-[200ms]" />
             </>
           ) : (
             <div className="absolute inset-0 bg-black/40" />

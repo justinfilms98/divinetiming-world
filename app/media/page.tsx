@@ -1,6 +1,8 @@
 import { MediaPageClient } from '@/components/media/MediaPageClient';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
+import { Container } from '@/components/ui/Container';
+import { Section } from '@/components/ui/Section';
 import {
   getGalleriesForHub,
   getVideos,
@@ -14,8 +16,18 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Media',
   description: 'Videos, photo galleries, and press from Divine Timing.',
-  openGraph: { title: 'Media | Divine Timing', description: 'Videos, photo galleries, and press from Divine Timing.' },
-  twitter: { card: 'summary_large_image', title: 'Media | Divine Timing' },
+  alternates: { canonical: '/media' },
+  openGraph: {
+    title: 'Media | Divine Timing',
+    description: 'Videos, photo galleries, and press from Divine Timing.',
+    url: '/media',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Media | Divine Timing',
+    description: 'Videos, photo galleries, and press from Divine Timing.',
+  },
 };
 
 export default async function MediaPage() {
@@ -38,21 +50,31 @@ export default async function MediaPage() {
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
+        badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
         subtext={subtext ?? undefined}
         heightPreset="compact"
       />
 
+      <div className="mt-20" />
+
       <SignatureDivider />
 
       {/* Gallery tabs below hero */}
-      <MediaPageClient
-        galleries={galleries}
-        videos={videos}
-        headline={headline}
-        subtext={subtext}
-        showHeadline={false}
-      />
+      <Section className="section-lift">
+        <Container>
+          <p className="text-center text-[var(--text-muted)] type-body mb-10 max-w-[45ch] mx-auto">
+            Browse photo collections and videos.
+          </p>
+          <MediaPageClient
+          galleries={galleries}
+          videos={videos}
+          headline={headline}
+          subtext={subtext}
+          showHeadline={false}
+        />
+        </Container>
+      </Section>
     </div>
   );
 }

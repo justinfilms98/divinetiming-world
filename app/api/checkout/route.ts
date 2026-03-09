@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover',
-});
+import { getStripeSecretKey, ENV_ERROR_MESSAGES } from '@/lib/env';
+import { apiSuccess, apiError } from '@/lib/apiResponses';
 
 type CartItem = { productId: string; variantId: string | null; quantity: number };
 
@@ -48,12 +46,12 @@ async function getOrCreateStripePrice(
   return stripePriceId;
 }
 
-const STRIPE_UNAVAILABLE_MESSAGE = 'Checkout is temporarily unavailable. Please try again later or contact us.';
-
 export async function POST(request: NextRequest) {
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
-    return NextResponse.json({ error: STRIPE_UNAVAILABLE_MESSAGE }, { status: 503 });
+  const stripeKey = getStripeSecretKey();
+  if (!stripeKey) {
+    return apiError(ENV_ERROR_MESSAGES.checkoutUnavailable, 503);
   }
+  const stripe = new Stripe(stripeKey, { apiVersion: '2025-10-29.clover' });
   try {
     const body = await request.json();
     const items: CartItem[] = body.items
@@ -61,7 +59,7 @@ export async function POST(request: NextRequest) {
       : [{ productId: body.productId, variantId: body.variantId || null, quantity: body.quantity || 1 }];
 
     if (items.length === 0) {
-      return NextResponse.json({ error: 'No items' }, { status: 400 });
+      return apiError('No items', 400);
     }
 
     const supabase = await createClient();
@@ -76,7 +74,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (productError || !product) {
-        return NextResponse.json({ error: `Product ${item.productId} not found` }, { status: 404 });
+        return apiError('Product not found', 404);
       }
 
       cancelSlug = product.slug;
@@ -107,14 +105,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ url: session.url });
+    return apiSuccess({ url: session.url });
   } catch (error: unknown) {
-    console.error('Checkout error:', error);
-    const message = error instanceof Error ? error.message : '';
-    const isStripeError = /stripe|api_key|invalid/i.test(message);
-    return NextResponse.json(
-      { error: isStripeError ? STRIPE_UNAVAILABLE_MESSAGE : (message || STRIPE_UNAVAILABLE_MESSAGE) },
-      { status: 500 }
-    );
+    if (process.env.NODE_ENV === 'development') {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('[checkout]', msg);
+    }
+    return apiError(ENV_ERROR_MESSAGES.checkoutUnavailable, 503);
   }
 }

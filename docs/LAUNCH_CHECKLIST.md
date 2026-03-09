@@ -62,6 +62,41 @@ Set these in your hosting provider (Vercel, etc.) and locally for production bui
 
 ---
 
+## Phase 14 — Production readiness smoke (pre-launch)
+
+Run these in addition to the steps above.
+
+1. **Public routes (no auth)**
+   - `/` — Home (hero, no overflow).
+   - `/events` — Events list.
+   - `/events/[slug]` — One event detail (two-column, ticket CTA).
+   - `/media` — Media hub (Collections / Videos).
+   - `/media/galleries/[slug]` — One gallery + lightbox.
+   - `/booking` — Booking (form, story blocks).
+   - `/shop` — Shop grid.
+   - `/epk` — EPK.
+   - `/presskit` — Press kit.
+
+2. **Admin routes (auth required)**
+   - Log out (or use incognito). Open `/admin` → must redirect to `/login` or `/`, not show dashboard.
+   - Log in. Then: `/admin`, `/admin/hero`, `/admin/events`, `/admin/booking`, `/admin/media`, `/admin/shop` — all load; Save/upload works.
+
+3. **Hero**
+   - Rotate through 2 carousel transitions; confirm no overflow (optional: `?debugOverflow=1` on `/`).
+
+4. **Upload**
+   - Hero: image slot upload works; video + poster works.
+   - Purge legacy: run once; idempotent; no errors.
+
+5. **Checkout**
+   - With Stripe **missing**: checkout returns friendly “temporarily unavailable” (503); no stack or raw error.
+   - With Stripe **configured**: create session and redirect to Stripe (test or live).
+
+6. **Mobile**
+   - Key pages: no horizontal scroll (Home, Events, Media, Shop, Booking).
+
+---
+
 ## Post-launch smoke tests
 
 Within 24 hours of launch, verify:
@@ -75,13 +110,22 @@ Within 24 hours of launch, verify:
 
 ---
 
+## Phase 21 — QA verification (pre–Phase 22)
+
+- **Regression suite:** Formal checklist in `docs/PHASE21_QA_REGRESSION_SUITE.md` (public nav, home hero, booking, events, media, shop, admin, metadata, empty states).
+- **Verified:** Public and admin routes audited; empty states and fallbacks in place; admin collections “View on site” only when gallery has slug; no new Uploadcare in UI flows.
+- **Hero stutter (Phase 35):** Any hero transition stutter (e.g. slot 2) is **deferred** to Phase 35. Do not treat as a launch blocker. See `docs/PHASE35_HERO_STUTTER_BACKLOG.md`.
+
+---
+
 ## Known limitations / future enhancements
 
-- **Hero carousel**: 3-slot carousel per page (Phase 9.1/9.2). Each slot: image (upload or library), video (upload + optional poster), or YouTube/Vimeo embed. Upload path: `hero/{page_slug}/slot-{1|2|3}/{timestamp}-{filename}`. Purge legacy clears old Uploadcare/single-hero URL fields.
+- **Hero carousel**: 3-slot carousel per page (Phase 9.1/9.2). Each slot: image (upload or library), video (upload + optional poster), or YouTube/Vimeo embed. Upload path: `hero/{page_slug}/slot-{1|2|3}/{timestamp}-{filename}`. Purge legacy clears old Uploadcare/single-hero URL fields. **Hero transition stutter** (if present) is tracked in Phase 35 backlog; not a launch blocker.
 - **OG image**: Default social image is `/opengraph.png`. For dynamic OG (e.g. per-event image), consider an OG image API route later.
-- **Checkout**: Without Stripe keys, checkout is disabled and users see a friendly message; products and cart still work.
+- **Checkout**: Without Stripe keys, checkout is disabled and users see a friendly message; products and cart still work. Stripe is optional for running the site; shop and cart work without it.
 - **Admin**: One allowlisted email (`divinetiming.world@gmail.com`) plus `admin_users` table; multi-user/roles can be added later.
 - **Analytics**: Optional `api/analytics/track`; integrate with your preferred analytics provider.
+- **Lint**: Some ESLint or TypeScript warnings may remain; build must pass. Fix unrelated lint only when explicitly requested.
 
 ---
 
@@ -103,4 +147,4 @@ Within 24 hours of launch, verify:
 
 ---
 
-*Last updated: Phase 9.2 — Hero carousel stabilization + smoke steps.*
+*Last updated: Phase 21 — QA + Regression Suite; Phase 35 hero stutter deferred.*

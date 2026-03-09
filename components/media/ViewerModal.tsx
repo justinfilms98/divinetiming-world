@@ -70,6 +70,7 @@ export function ViewerModal({ items, currentIndex, onClose, onIndexChange }: Vie
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
         className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
         onClick={handleClose}
       >
@@ -111,10 +112,10 @@ export function ViewerModal({ items, currentIndex, onClose, onIndexChange }: Vie
 
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           className="relative max-w-6xl max-h-[85vh] w-full mx-4 flex flex-col items-center"
           onClick={(e) => e.stopPropagation()}
         >

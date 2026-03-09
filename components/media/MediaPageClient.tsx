@@ -29,16 +29,21 @@ export function MediaPageClient({
   const [activeTab, setActiveTab] = useState<'galleries' | 'videos'>('galleries');
   const [videoModal, setVideoModal] = useState<MediaPageVideo | null>(null);
 
+  const hasGalleries = galleries.length > 0;
+  const hasVideos = videos.length > 0;
+  const showEmptyCollections = activeTab === 'galleries' && !hasGalleries;
+  const showEmptyVideos = activeTab === 'videos' && !hasVideos;
+
   return (
     <div className="flex-1 flex items-center justify-center py-16 px-4 min-w-0">
-      <GlassPanel className="max-w-6xl w-full">
+      <GlassPanel className="w-full">
         {showHeadline && (
           <>
-            <h1 className="text-4xl md:text-5xl font-bold text-[var(--text)] mb-8 text-center tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+            <h1 className="type-h1 text-[var(--text)] mb-8 text-center tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
               {headline}
             </h1>
             {subtext && (
-              <p className="text-[var(--text-muted)] text-center mb-8">{subtext}</p>
+              <p className="type-body text-[var(--text-muted)] text-center mb-8 max-w-[65ch] mx-auto">{subtext}</p>
             )}
           </>
         )}
@@ -69,69 +74,101 @@ export function MediaPageClient({
           </button>
         </div>
 
-        {activeTab === 'galleries' ? (
+        {showEmptyCollections ? (
+          <div className="py-20 text-center">
+            <p className="text-[var(--text-muted)] text-lg tracking-wide" style={{ fontFamily: 'var(--font-ui)' }}>
+              Media collections coming soon.
+            </p>
+          </div>
+        ) : showEmptyVideos ? (
+          <div className="py-20 text-center">
+            <p className="text-[var(--text-muted)] text-lg tracking-wide" style={{ fontFamily: 'var(--font-ui)' }}>
+              Videos coming soon.
+            </p>
+          </div>
+        ) : activeTab === 'galleries' ? (
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8"
             initial="hidden"
             animate="visible"
             variants={{
-              visible: { transition: { staggerChildren: 0.06 } },
+              visible: { transition: { staggerChildren: 0.06, delayChildren: 0 } },
               hidden: {},
             }}
           >
             {galleries.map((gallery) => {
               const coverUrl = gallery.resolved_cover_url ?? null;
               const hasMedia = gallery.media_count > 0;
-              const href = hasMedia ? `/media/galleries/${gallery.slug}` : '#';
+              const hasSlug = Boolean(gallery.slug?.trim());
+              const href = hasSlug ? `/media/galleries/${gallery.slug}` : null;
 
-              return (
-                <motion.div
-                  key={gallery.id}
-                  variants={{
-                    visible: { opacity: 1, y: 0 },
-                    hidden: { opacity: 0, y: 16 },
-                  }}
-                >
-                  <Link
-                    href={href}
-                    className={`block group text-left ${!hasMedia ? 'pointer-events-none cursor-default' : ''}`}
-                    onClick={() => hasMedia && track({ event_name: 'gallery_click', entity_type: 'gallery', entity_id: gallery.id })}
-                  >
-                    <div className="relative aspect-[4/5] rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-all duration-[250ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:scale-[1.02] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                      {coverUrl ? (
-                        <Image
-                          src={coverUrl}
-                          alt={gallery.name}
-                          fill
-                          loading="lazy"
-                          placeholder="blur"
-                          blurDataURL={BLUR_PLACEHOLDER}
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                          className="object-cover transition-transform duration-[250ms] group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <MediaEmptyCard message="No cover" className="absolute inset-0 rounded-[var(--radius-card)]" />
-                      )}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-[250ms]" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[250ms] pointer-events-none">
+              const cardContent = (
+                <>
+                  <div className="relative aspect-[4/5] rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[200ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere">
+                    {coverUrl ? (
+                      <Image
+                        src={coverUrl}
+                        alt={gallery.name}
+                        fill
+                        loading="lazy"
+                        placeholder="blur"
+                        blurDataURL={BLUR_PLACEHOLDER}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                        className="object-cover transition-[filter] duration-[200ms] ease-out group-hover:brightness-[1.05]"
+                      />
+                    ) : (
+                      <MediaEmptyCard message="No cover" className="absolute inset-0 rounded-[var(--radius-card)]" />
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-[200ms] pointer-events-none" aria-hidden />
+                    {hasSlug && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[200ms] pointer-events-none" aria-hidden>
                         <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-[var(--accent)] text-[var(--accent)] bg-black/20" aria-hidden>
                           <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </span>
                       </div>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-[var(--text)] font-semibold type-h3">{gallery.name}</div>
+                    {gallery.description && (
+                      <div className="text-[var(--text-muted)] text-sm mt-0.5 line-clamp-2">{gallery.description}</div>
+                    )}
+                    <div className="text-[var(--text-muted)] text-xs mt-1" style={{ fontFamily: 'var(--font-ui)' }}>
+                      {gallery.media_count} {gallery.media_count === 1 ? 'item' : 'items'}
                     </div>
-                    <div className="mt-3">
-                      <div className="text-[var(--text)] font-semibold type-h3">{gallery.name}</div>
-                      {gallery.description && (
-                        <div className="text-[var(--text-muted)] text-sm mt-0.5 line-clamp-2">{gallery.description}</div>
-                      )}
+                  </div>
+                </>
+              );
+
+              return (
+                <motion.div
+                  key={gallery.id}
+                  className="transition-transform duration-200 hover:-translate-y-0.5"
+                  variants={{
+                    visible: { opacity: 1, y: 0 },
+                    hidden: { opacity: 0, y: 8 },
+                  }}
+                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                >
+                  {href ? (
+                    <Link
+                      href={href}
+                      className={`block group text-left cursor-pointer ${!hasMedia ? 'opacity-90' : ''}`}
+                      onClick={() => track({ event_name: 'gallery_click', entity_type: 'gallery', entity_id: gallery.id })}
+                    >
+                      {cardContent}
+                    </Link>
+                  ) : (
+                    <div className={`block group text-left ${!hasMedia ? 'opacity-90' : ''}`} aria-label={`${gallery.name} (no link)`}>
+                      {cardContent}
                     </div>
-                  </Link>
+                  )}
                 </motion.div>
               );
             })}
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {videos.map((video, index) => {
               const isTall = index % 3 === 1;
               return (
@@ -142,7 +179,7 @@ export function MediaPageClient({
                     track({ event_name: 'video_click', entity_type: 'video', entity_id: video.id });
                     setVideoModal(video);
                   }}
-                  className={`group text-left rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-all duration-300 hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:scale-[1.02] active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] aspect-video ${isTall ? 'md:aspect-[9/16]' : ''}`}
+                  className={`group text-left rounded-[var(--radius-card)] overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[200ms] ease-out hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere aspect-video ${isTall ? 'md:aspect-[9/16]' : ''}`}
                 >
                   <div className="relative w-full h-full">
                     <Image
@@ -150,12 +187,14 @@ export function MediaPageClient({
                       alt={video.title}
                       fill
                       loading="lazy"
+                      placeholder="blur"
+                      blurDataURL={BLUR_PLACEHOLDER}
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-[250ms] group-hover:scale-[1.03]"
+                      className="object-cover transition-[filter] duration-[200ms] ease-out group-hover:brightness-[1.05]"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-[250ms]" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-[200ms]" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-[var(--accent)] text-[var(--accent)] bg-black/20 group-hover:bg-black/30 transition-colors duration-[250ms]" aria-hidden>
+                      <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-[var(--accent)] text-[var(--accent)] bg-black/20 group-hover:bg-black/30 transition-colors duration-[200ms]" aria-hidden>
                         <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                       </span>
                     </div>

@@ -59,19 +59,20 @@ export function UnifiedHero({
             url={url || null}
             mediaType={type}
             fallback={HeroEclipseFallback}
-            priority={heightPreset === 'full'}
+            priority={true}
             sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
           />
 
-          {/* Cinematic vignette + gradient overlay (soft, not heavy) */}
+          {/* Phase 7: subtle readability gradient (top transparent, bottom soft dark) */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/60"
-            style={{ opacity }}
+            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/35"
+            style={{ opacity: Math.min(1, opacity * 1.2) }}
           />
           <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.35)_100%)]"
-            style={{ opacity: opacity * 0.85 }}
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.25)_100%)]"
+            style={{ opacity: opacity * 0.8 }}
           />
+          <div className="hero-grain" aria-hidden="true" />
         </div>
 
         {/* Content */}
@@ -82,7 +83,7 @@ export function UnifiedHero({
         >
           {badge && (
             <motion.span
-              className="text-xs tracking-[0.2em] uppercase text-white/70 mb-3"
+              className="type-hero-label text-white mb-3"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
@@ -92,8 +93,8 @@ export function UnifiedHero({
           )}
           {headline && (
             <motion.h1
-              className="text-4xl md:text-6xl font-bold text-white tracking-tight"
-              style={{ fontFamily: 'var(--font-playfair-display), serif' }}
+              className="text-4xl md:text-6xl font-semibold text-white"
+              style={{ fontFamily: 'var(--font-playfair-display), serif', letterSpacing: 'var(--letter-spacing-hero-title)' }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -103,7 +104,7 @@ export function UnifiedHero({
           )}
           {subtext && (
             <motion.p
-              className={`text-white/85 text-lg mt-2 max-w-2xl ${align === 'center' ? 'mx-auto' : ''}`}
+              className={`text-white/90 text-lg mt-2 max-w-2xl leading-relaxed ${align === 'center' ? 'mx-auto' : ''}`}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}

@@ -52,15 +52,16 @@ export function VideoPlayerModal({ youtubeId, title, open, onClose }: VideoPlaye
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
         onClick={(e) => e.target === e.currentTarget && handleClose()}
       >
         <motion.div
           ref={containerRef as React.RefObject<HTMLDivElement>}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
           className="relative w-full max-w-4xl rounded-xl overflow-hidden bg-black shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >

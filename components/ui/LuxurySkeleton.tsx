@@ -11,7 +11,7 @@ export function LuxurySkeleton({ className }: LuxurySkeletonProps) {
   return (
     <div
       className={cn(
-        'rounded-xl bg-white/10 border border-white/10 animate-pulse',
+        'rounded-xl bg-white/10 border border-white/10 animate-pulse transition-opacity duration-200',
         className
       )}
       aria-hidden

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         .single();
       if (error) {
         console.error('Admin videos update error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
       revalidatePath('/media');
       return NextResponse.json({ video: data });
@@ -80,14 +80,14 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin videos insert error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
     return NextResponse.json({ video: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin videos POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -103,13 +103,13 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from('videos').delete().eq('id', id);
     if (error) {
       console.error('Admin videos DELETE error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin videos DELETE error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

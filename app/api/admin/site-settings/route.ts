@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin site-settings POST error:', error);
-      return NextResponse.json({ error: error.message, hint: error.details ?? undefined }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
 
     if (hero_media_url !== undefined || hero_media_type !== undefined) {
@@ -84,6 +84,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin site-settings POST error:', err);
-    return NextResponse.json({ error: msg, hint: 'Check server logs' }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

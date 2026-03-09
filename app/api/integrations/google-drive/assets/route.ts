@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
 
     return NextResponse.json({ asset });
   } catch (err: any) {
     console.error('Create external asset error:', err);
-    return NextResponse.json({ error: err.message || 'Failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

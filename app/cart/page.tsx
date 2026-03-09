@@ -22,10 +22,10 @@ export default function CartPage() {
         }),
       });
       const data = await res.json();
-      if (res.ok && data?.url) {
+      if (res.ok && data?.ok && data?.data?.url) {
         clearCart();
         closeCart();
-        window.location.href = data.url;
+        window.location.href = data.data.url;
       } else {
         alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
       }

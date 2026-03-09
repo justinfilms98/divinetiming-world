@@ -32,6 +32,8 @@ export interface HeroSection {
   /** Supabase Storage path for hero logo in bucket media; when set, logoFinalUrl is built from this */
   hero_logo_storage_path?: string | null;
   overlay_opacity: number;
+  /** Optional label above headline (e.g. ELECTRONIC DUO). Blank = do not render. */
+  label_text?: string | null;
   headline: string | null;
   subtext: string | null;
   cta_text: string | null;

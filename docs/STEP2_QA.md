@@ -48,7 +48,7 @@ Note the exact base URL tested (e.g. `https://divine-timing.vercel.app` or previ
 
 ## 3. UniversalUploader hardening
 
-- **Missing key**: When `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` is missing, the uploader shows a clear message and does not render the file input (no half-fail).
+- **Upload**: Admin uploads use Supabase Storage; no external upload key required beyond Supabase env.
 - **Validation**: With `acceptOverride`, MIME is validated before upload; oversized files show a friendly max-size error.
 - **Progress**: Per-file progress is shown for multi-upload; `onUploadingChange(true/false)` notifies the parent.
 - **Save during upload**: Hero Editor disables the Save button and shows “Uploading…” while any upload is in progress (`uploadInProgress` state).

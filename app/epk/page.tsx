@@ -9,11 +9,19 @@ import type { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Electronic Press Kit | DIVINE:TIMING',
-  description: 'Bio, highlights, press photos, and booking contact for DIVINE:TIMING.',
+  title: 'Electronic Press Kit',
+  description: 'Bio, highlights, press photos, and booking contact for Divine Timing.',
+  alternates: { canonical: '/epk' },
   openGraph: {
-    title: 'Electronic Press Kit | DIVINE:TIMING',
-    description: 'Bio, highlights, press photos, and booking contact for DIVINE:TIMING.',
+    title: 'Electronic Press Kit | Divine Timing',
+    description: 'Bio, highlights, press photos, and booking contact for Divine Timing.',
+    url: '/epk',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Electronic Press Kit | Divine Timing',
+    description: 'Bio, highlights, press photos, and booking contact for Divine Timing.',
   },
 };
 
@@ -39,7 +47,7 @@ export default async function EPKPage() {
         subtext={headline}
         heightPreset="standard"
       />
-      <section className="py-16 px-4">
+      <section className="mt-20 py-16 px-4">
         <div className="max-w-2xl mx-auto">
           <Reveal>
             {epk.bio && (

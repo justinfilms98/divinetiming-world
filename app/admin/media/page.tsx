@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { MediaThumb } from '@/components/admin/MediaThumb';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
-import { Image as ImageIcon, Video, Trash2, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Image as ImageIcon, Trash2, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
 
 type LibraryFilter = 'all' | 'image' | 'video';
+type SortOrder = 'newest' | 'oldest' | 'name';
 
 interface LibraryAsset {
   id: string;
+  provider?: string | null;
   preview_url: string;
   thumbnail_url: string | null;
   mime_type: string | null;
@@ -31,14 +34,17 @@ function formatDate(iso: string | undefined): string {
 export default function AdminMediaPage() {
   const [assets, setAssets] = useState<LibraryAsset[]>([]);
   const [filter, setFilter] = useState<LibraryFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [legacyOpen, setLegacyOpen] = useState(false);
+  const [showLegacy, setShowLegacy] = useState(false);
+  const [legacyDetailsOpen, setLegacyDetailsOpen] = useState(false);
   const supabase = createClient();
 
   const loadLibrary = useCallback(async () => {
     const { data } = await supabase
       .from('external_media_assets')
-      .select('id, preview_url, thumbnail_url, mime_type, name, size_bytes, created_at')
+      .select('id, provider, preview_url, thumbnail_url, mime_type, name, size_bytes, created_at')
       .order('created_at', { ascending: false });
     setAssets((data || []) as LibraryAsset[]);
   }, [supabase]);
@@ -55,11 +61,41 @@ export default function AdminMediaPage() {
     await loadLibrary();
   };
 
-  const filtered = assets.filter((a) => {
+  const isLegacy = (a: LibraryAsset) => (a.provider || '').toLowerCase() === 'uploadcare';
+  const currentAssets = assets.filter((a) => !isLegacy(a));
+  const legacyAssets = assets.filter(isLegacy);
+
+  const byType = (a: LibraryAsset) => {
     if (filter === 'image' && !(a.mime_type || '').startsWith('image/')) return false;
     if (filter === 'video' && !(a.mime_type || '').startsWith('video/')) return false;
     return true;
-  });
+  };
+  const bySearch = (a: LibraryAsset) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    const name = (a.name || '').toLowerCase();
+    return name.includes(q);
+  };
+  const sortAssets = (list: LibraryAsset[]) => {
+    const sorted = [...list];
+    if (sortOrder === 'newest') {
+      sorted.sort((a, b) => (new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
+    } else if (sortOrder === 'oldest') {
+      sorted.sort((a, b) => (new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()));
+    } else {
+      sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    }
+    return sorted;
+  };
+
+  const filteredCurrent = useMemo(
+    () => sortAssets(currentAssets.filter(byType).filter(bySearch)),
+    [currentAssets, filter, searchQuery, sortOrder]
+  );
+  const filteredLegacy = useMemo(
+    () => sortAssets(legacyAssets.filter(byType).filter(bySearch)),
+    [legacyAssets, filter, searchQuery, sortOrder]
+  );
 
   const handleCopyUrl = async (url: string, id: string) => {
     await navigator.clipboard.writeText(url);
@@ -101,7 +137,7 @@ export default function AdminMediaPage() {
             key={f}
             type="button"
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
               filter === f
                 ? 'bg-slate-700 text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -110,9 +146,27 @@ export default function AdminMediaPage() {
             {f === 'all' ? 'All' : f === 'image' ? 'Images' : 'Videos'}
           </button>
         ))}
+        <input
+          type="search"
+          placeholder="Search media…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="ml-auto min-w-[180px] px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+          aria-label="Search media by name"
+        />
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+          className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+          aria-label="Sort order"
+        >
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="name">Name (A–Z)</option>
+        </select>
       </div>
 
-      {filtered.length === 0 ? (
+      {assets.length === 0 ? (
         <AdminCard>
           <div className="text-center py-12 text-slate-500">
             <ImageIcon className="w-12 h-12 mx-auto mb-3 text-slate-300" />
@@ -121,42 +175,25 @@ export default function AdminMediaPage() {
           </div>
         </AdminCard>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filtered.map((asset) => {
+        <>
+        {filteredCurrent.length === 0 && !showLegacy ? (
+          <AdminCard className="mb-6">
+            <p className="text-slate-600 text-sm">No current media. Enable &quot;Show legacy items&quot; below to see older uploads.</p>
+          </AdminCard>
+        ) : null}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8">
+          {filteredCurrent.map((asset) => {
             const isImage = (asset.mime_type || '').startsWith('image/');
             const thumb = asset.thumbnail_url || asset.preview_url || displayUrl(asset);
             return (
               <AdminCard key={asset.id} className="p-0 overflow-hidden">
-                <div className="aspect-square relative bg-slate-100">
-                  {thumb ? (
-                    isImage ? (
-                      <>
-                        <img
-                          src={thumb}
-                          alt={asset.name || ''}
-                          className="w-full h-full object-cover absolute inset-0"
-                          onError={(e) => {
-                            const t = e.target as HTMLImageElement;
-                            t.style.display = 'none';
-                            const fb = t.parentElement?.querySelector('.media-card-fallback');
-                            if (fb) (fb as HTMLElement).classList.remove('hidden');
-                          }}
-                        />
-                        <div className="media-card-fallback absolute inset-0 hidden flex items-center justify-center bg-slate-100">
-                          <ImageIcon className="w-10 h-10 text-slate-400" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Video className="w-10 h-10 text-slate-400" />
-                      </div>
-                    )
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <ImageIcon className="w-10 h-10 text-slate-300" />
-                    </div>
-                  )}
-                </div>
+                <MediaThumb
+                  src={thumb || null}
+                  isImage={isImage}
+                  alt={asset.name || ''}
+                  posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
+                  className="rounded-none"
+                />
                 <div className="p-3 space-y-1">
                   <p className="text-sm font-medium text-slate-800 truncate" title={asset.name || ''}>
                     {asset.name || 'Untitled'}
@@ -187,40 +224,104 @@ export default function AdminMediaPage() {
             );
           })}
         </div>
-      )}
 
-      <details
-        className="mt-8 admin-card overflow-hidden"
-        open={legacyOpen}
-        onToggle={(e) => setLegacyOpen((e.target as HTMLDetailsElement).open)}
-      >
-        <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer list-none text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50">
-          {legacyOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          Advanced / Legacy (asset IDs, external references)
-        </summary>
-        <div className="px-4 pb-4 pt-0 border-t border-slate-200 text-sm text-slate-500">
-          <p className="mb-3">External asset IDs are used internally for hero, gallery covers, and product images. For normal workflow, use Upload and the cards above.</p>
-          {filtered.length > 0 && (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Asset ID</th>
-                  <th>Preview URL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.slice(0, 20).map((a) => (
-                  <tr key={a.id}>
-                    <td className="font-mono text-xs truncate max-w-[200px]" title={a.id}>{a.id}</td>
-                    <td className="truncate max-w-[240px] text-slate-500" title={displayUrl(a) || ''}>{displayUrl(a) || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {showLegacy && filteredLegacy.length > 0 && (
+          <div className="mt-10">
+            <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Legacy</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8">
+              {filteredLegacy.map((asset) => {
+                const isImage = (asset.mime_type || '').startsWith('image/');
+                const thumb = asset.thumbnail_url || asset.preview_url || displayUrl(asset);
+                return (
+                  <AdminCard key={asset.id} className="p-0 overflow-hidden">
+                    <MediaThumb
+                      src={thumb || null}
+                      isImage={isImage}
+                      alt={asset.name || ''}
+                      posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
+                      className="rounded-none"
+                    />
+                    <div className="p-3 space-y-1">
+                      <p className="text-sm font-medium text-slate-800 truncate" title={asset.name || ''}>
+                        {asset.name || 'Untitled'}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {isImage ? 'Image' : 'Video'} · {formatDate(asset.created_at)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 p-3 border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyUrl(displayUrl(asset) || asset.preview_url, asset.id)}
+                        className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-medium"
+                      >
+                        {copiedId === asset.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copiedId === asset.id ? 'Copied' : 'Copy URL'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(asset.id)}
+                        className="p-1.5 rounded text-red-600 hover:bg-red-50"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </AdminCard>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowLegacy((v) => !v)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium"
+          >
+            {showLegacy ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            Show legacy items
+          </button>
+          {legacyAssets.length > 0 && (
+            <span className="text-xs text-slate-400">{legacyAssets.length} legacy</span>
           )}
-          {filtered.length > 20 && <p className="mt-2 text-xs text-slate-400">Showing first 20 of {filtered.length}.</p>}
         </div>
-      </details>
+
+        <details
+          className="mt-6 admin-card overflow-hidden"
+          open={legacyDetailsOpen}
+          onToggle={(e) => setLegacyDetailsOpen((e.target as HTMLDetailsElement).open)}
+        >
+          <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer list-none text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50">
+            {legacyDetailsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            Advanced (asset IDs)
+          </summary>
+          <div className="px-4 pb-4 pt-0 border-t border-slate-200 text-sm text-slate-500">
+            <p className="mb-3">Asset IDs are used for hero, gallery covers, events, and product images.</p>
+            {assets.length > 0 && (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Asset ID</th>
+                    <th>Preview URL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assets.slice(0, 20).map((a) => (
+                    <tr key={a.id}>
+                      <td className="font-mono text-xs truncate max-w-[200px]" title={a.id}>{a.id}</td>
+                      <td className="truncate max-w-[240px] text-slate-500" title={displayUrl(a) || ''}>{displayUrl(a) || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {assets.length > 20 && <p className="mt-2 text-xs text-slate-400">Showing first 20 of {assets.length}.</p>}
+          </div>
+        </details>
+        </>
+      )}
     </AdminPage>
   );
 }

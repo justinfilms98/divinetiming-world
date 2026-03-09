@@ -154,6 +154,8 @@ export function MediaAssetRenderer({
         className={`w-full h-full ${objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${className}`}
         style={fill ? { position: 'absolute', inset: 0 } : undefined}
         loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        fetchPriority={priority ? 'high' : undefined}
         onError={handleError}
       />
     );

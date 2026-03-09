@@ -41,14 +41,14 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin gallery-media POST error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
     return NextResponse.json({ media: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin gallery-media POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin gallery-media PATCH error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -90,13 +90,13 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from('gallery_media').delete().eq('id', id);
     if (error) {
       console.error('Admin gallery-media DELETE error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin gallery-media DELETE error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

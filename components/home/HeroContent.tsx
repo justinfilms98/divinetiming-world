@@ -51,7 +51,7 @@ export function HeroContent({
     >
       <div className="max-w-2xl w-full">
         {eyebrow && (
-          <p className="type-label text-white/60 mb-2 tracking-[var(--letter-spacing-caps)]">
+          <p className="type-hero-label text-white mb-2">
             {eyebrow}
           </p>
         )}

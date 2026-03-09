@@ -1,10 +1,12 @@
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getEventBySlug, getHeroSection } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
+import { EventDetailCard } from '@/components/events/EventDetailCard';
+import { Container } from '@/components/ui/Container';
+import { absoluteImageUrl, BASE_URL } from '@/lib/site';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -19,20 +21,32 @@ export async function generateMetadata({
   if (!event) return { title: 'Event' };
   const title = event.title ?? event.city ?? 'Event';
   const location = [event.venue, event.city].filter(Boolean).join(', ');
+  const description = location ? `${title} — ${location}` : undefined;
+  const slugOrId = event.slug || event.id;
+  const path = `/events/${slugOrId}`;
+  const ogImage = event.resolved_thumbnail_url ?? event.thumbnail_url ?? null;
+  const ogImageUrl = absoluteImageUrl(ogImage);
+
   return {
     title,
-    description: location ? `${title} — ${location}` : undefined,
-    openGraph: { title: `${title} | Divine Timing`, description: location || undefined },
+    description: description ?? undefined,
+    alternates: { canonical: path },
+    openGraph: {
+      title: `${title} | Divine Timing`,
+      description: description ?? undefined,
+      url: path,
+      type: 'website',
+      ...(ogImageUrl && {
+        images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
+      }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | Divine Timing`,
+      description: description ?? undefined,
+      ...(ogImageUrl && { images: [ogImageUrl] }),
+    },
   };
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 export default async function EventDetailPage({
@@ -60,19 +74,49 @@ export default async function EventDetailPage({
   const heroMediaUrl = imageUrl ?? eventsHero?.mediaFinalUrl ?? undefined;
   const heroMediaType = imageUrl ? 'image' : (eventsHero?.media_type ?? undefined);
 
+  const sharePath = `/events/${event.slug || event.id}`;
+
+  const descriptionParagraphs = event.description
+    ? event.description.split(/\n\n+/).filter(Boolean)
+    : [];
+
+  const eventStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: title,
+    startDate: event.date,
+    ...(event.description && { description: event.description }),
+    ...(imageUrl && { image: absoluteImageUrl(imageUrl) }),
+    ...((event.venue || event.city) && {
+      location: {
+        '@type': 'Place',
+        name: event.venue || event.city || undefined,
+        address: event.city ? { '@type': 'PostalAddress', addressLocality: event.city } : undefined,
+      },
+    }),
+    url: `${BASE_URL}${sharePath}`,
+  };
+
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
-      <UnifiedHero
-        mediaUrl={heroMediaUrl}
-        mediaType={heroMediaType}
-        overlayOpacity={Number(eventsHero?.overlay_opacity ?? 0.5)}
-        headline={title}
-        subtext={location}
-        heightPreset="standard"
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}
       />
+      <div className="max-w-5xl mx-auto w-full max-h-[480px] overflow-hidden rounded-b-2xl">
+        <UnifiedHero
+          mediaUrl={heroMediaUrl}
+          mediaType={heroMediaType}
+          overlayOpacity={Number(eventsHero?.overlay_opacity ?? 0.5)}
+          badge={eventsHero?.label_text?.trim() || undefined}
+          headline={title}
+          subtext={location}
+          heightPreset="standard"
+        />
+      </div>
       <Header />
-      <main className="flex-1 py-16 px-4">
-        <div className="max-w-4xl mx-auto">
+      <main className="flex-1 py-16 min-w-0">
+        <Container>
           <Link
             href="/events"
             className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors mb-8"
@@ -80,50 +124,51 @@ export default async function EventDetailPage({
             ← Back to Events
           </Link>
 
-          <article className="flex flex-col md:flex-row gap-8 min-w-0">
-            {imageUrl && (
-              <div className="md:w-80 flex-shrink-0 min-w-0">
-                <div className="relative aspect-video md:aspect-square rounded-xl overflow-hidden bg-white/5">
-                  <Image
-                    src={imageUrl}
-                    alt={title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 320px"
-                  />
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
+            {/* Left column: story */}
+            <article className="min-w-0 space-y-6">
+              <div className="max-w-[65ch]">
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-[var(--bg)] border border-[var(--accent)]/10 shadow-[var(--shadow-card)]">
+                  {imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 100vw, 65ch"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center border border-[var(--accent)]/10" aria-hidden>
+                      <span className="text-[var(--text-muted)]/40 text-3xl font-light tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+                        {new Date(event.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            <div className="flex-1">
-              <div className="type-label text-[var(--accent)]">
-                {formatDate(event.date)}
-                {event.time && ` · ${event.time}`}
-              </div>
-              <h1 className="type-h1 text-white mt-2" style={{ fontFamily: 'var(--font-display)' }}>{title}</h1>
-              {location && (
-                <p className="text-white/80 text-lg mt-2">{location}</p>
-              )}
               {event.description && (
-                <div className="mt-6 text-white/70 leading-relaxed whitespace-pre-line">
-                  {event.description}
+                <div className="max-w-[65ch] leading-relaxed space-y-6 text-[var(--text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                  {descriptionParagraphs.length > 0 ? (
+                    descriptionParagraphs.map((para, i) => (
+                      <p key={i} className="whitespace-pre-line">
+                        {para}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="whitespace-pre-line">{event.description}</p>
+                  )}
                 </div>
               )}
-              {event.ticket_url && (
-                <a
-                  href={event.ticket_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center min-h-[48px] mt-8 px-8 py-4 rounded-[var(--radius-button)] bg-[var(--accent)] text-[var(--text)] font-semibold type-button hover:bg-[var(--accent-hover)] transition-colors glow focus-ring"
-                >
-                  Get Tickets
-                </a>
-              )}
+            </article>
+
+            {/* Right column: event card (ticket panel) */}
+            <div className="lg:min-w-0">
+              <EventDetailCard event={event} sharePath={sharePath} />
             </div>
-          </article>
-        </div>
+          </div>
+        </Container>
       </main>
-      <Footer />
     </div>
   );
 }

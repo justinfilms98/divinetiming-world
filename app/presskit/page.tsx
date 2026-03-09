@@ -1,5 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 import { GlassPanel } from '@/components/ui/GlassPanel';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Press Kit',
+  description: 'Press kit and media resources for Divine Timing.',
+  alternates: { canonical: '/presskit' },
+  openGraph: {
+    title: 'Press Kit | Divine Timing',
+    description: 'Press kit and media resources for Divine Timing.',
+    url: '/presskit',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Press Kit | Divine Timing',
+    description: 'Press kit and media resources for Divine Timing.',
+  },
+};
 
 export default async function PressKitPage() {
   const supabase = await createClient();

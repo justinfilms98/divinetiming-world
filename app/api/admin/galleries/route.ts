@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, description, cover_image_url, cover_external_asset_id, cover_url, display_order } = body;
+    const { id, name, description, cover_image_url, cover_external_asset_id, cover_url, display_order, clear_cover } = body;
 
     if (id) {
       const updates: Record<string, unknown> = {
@@ -26,9 +26,14 @@ export async function POST(request: NextRequest) {
       };
       if (name != null) updates.name = name;
       if (description != null) updates.description = description;
-      if (cover_image_url != null) updates.cover_image_url = cover_image_url;
-      if (cover_external_asset_id != null) updates.external_cover_asset_id = cover_external_asset_id;
-      if (cover_url != null) updates.cover_image_url = cover_url;
+      if (clear_cover === true) {
+        updates.cover_image_url = null;
+        updates.external_cover_asset_id = null;
+      } else {
+        if (cover_image_url != null) updates.cover_image_url = cover_image_url;
+        if (cover_external_asset_id != null) updates.external_cover_asset_id = cover_external_asset_id;
+        if (cover_url != null) updates.cover_image_url = cover_url;
+      }
       if (display_order != null) updates.display_order = display_order;
 
       const { data, error } = await supabase
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
         .single();
       if (error) {
         console.error('Admin galleries update error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
       revalidatePath('/media');
       return NextResponse.json({ gallery: data });
@@ -63,14 +68,14 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin galleries insert error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
     return NextResponse.json({ gallery: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin galleries POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -93,7 +98,7 @@ export async function PATCH(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin galleries PATCH error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -109,13 +114,13 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from('galleries').delete().eq('id', id);
     if (error) {
       console.error('Admin galleries DELETE error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin galleries DELETE error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

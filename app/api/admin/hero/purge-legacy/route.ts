@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
+import { apiError, apiSuccess } from '@/lib/apiResponses';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -10,11 +11,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const page_slug = body?.page_slug;
     if (!page_slug || typeof page_slug !== 'string') {
-      return NextResponse.json({ error: 'Missing or invalid page_slug' }, { status: 400 });
+      return apiError('Missing or invalid page_slug', 400);
     }
 
     const slug = page_slug.trim().toLowerCase();
-    if (!slug) return NextResponse.json({ error: 'Invalid page_slug' }, { status: 400 });
+    if (!slug) return apiError('Invalid page_slug', 400);
 
     const { data: existing } = await supabase
       .from('hero_sections')
@@ -23,10 +24,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!existing) {
-      return NextResponse.json({ error: 'Hero section not found for this page' }, { status: 404 });
+      return apiError('Hero section not found for this page', 404);
     }
 
-    // Null legacy hero URL fields only (columns must exist: 009, 021, 023, 013/014). Idempotent.
+    // Null legacy hero URL fields only. Idempotent.
     const { error } = await supabase
       .from('hero_sections')
       .update({
@@ -40,14 +41,13 @@ export async function POST(request: NextRequest) {
       .eq('id', existing.id);
 
     if (error) {
-      console.error('Hero purge-legacy error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      if (process.env.NODE_ENV === 'development') console.error('[hero/purge-legacy]', error.message);
+      return apiError('Purge failed', 500);
     }
 
-    return NextResponse.json({ ok: true });
+    return apiSuccess(undefined);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Purge failed';
-    console.error('Hero purge-legacy error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    if (process.env.NODE_ENV === 'development') console.error('[hero/purge-legacy]', err);
+    return apiError('Purge failed', 500);
   }
 }

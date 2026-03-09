@@ -12,6 +12,9 @@ import { BookingStoryScroll } from '@/components/booking/BookingStoryScroll';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { BookingAboutCard } from '@/components/booking/BookingAboutCard';
 import { BookingBioSection } from '@/components/booking/BookingBioSection';
+import { Container } from '@/components/ui/Container';
+import { Section } from '@/components/ui/Section';
+import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -20,8 +23,18 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Booking',
   description: 'Book Divine Timing for your event. Get in touch for festivals, club nights, and collaborations.',
-  openGraph: { title: 'Booking | Divine Timing', description: 'Book Divine Timing for your event.' },
-  twitter: { card: 'summary_large_image', title: 'Booking | Divine Timing' },
+  alternates: { canonical: '/booking' },
+  openGraph: {
+    title: 'Booking | Divine Timing',
+    description: 'Book Divine Timing for your event. Get in touch for festivals, club nights, and collaborations.',
+    url: '/booking',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Booking | Divine Timing',
+    description: 'Book Divine Timing for your event. Get in touch for festivals, club nights, and collaborations.',
+  },
 };
 
 export default async function BookingPage() {
@@ -48,24 +61,29 @@ export default async function BookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+      <div className="pt-28 md:pt-32">
       <UnifiedHero
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
+        badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
         subtext={subtext}
         heightPreset="compact"
       >
         <HeroContent ctaText={ctaText} ctaUrl={ctaUrl} />
-        <div className="flex flex-wrap justify-center gap-6 mt-4 text-sm">
-          <Link href="/epk" className="text-white/70 hover:text-white transition-colors underline underline-offset-2">
+        <div className="flex flex-wrap justify-center gap-6 mt-4 type-small">
+          <Link href="/epk" className="text-white/70 hover:text-white transition-colors duration-200 underline underline-offset-2">
             View EPK
           </Link>
-          <Link href="/media" className="text-white/70 hover:text-white transition-colors underline underline-offset-2">
+          <Link href="/media" className="text-white/70 hover:text-white transition-colors duration-200 underline underline-offset-2">
             Press Photos
           </Link>
         </div>
       </UnifiedHero>
+      </div>
+
+      <div className="mt-20" aria-hidden />
 
       <SignatureDivider />
 
@@ -73,20 +91,22 @@ export default async function BookingPage() {
 
       <SignatureDivider />
 
-      <section
+      <Section
         id="booking-form"
-        className="scroll-mt-32 py-16 md:py-20 px-4 min-w-0"
+        title="Get in touch"
+        subtitle="Send us your details and we'll get back to you."
+        className="scroll-mt-[5.5rem] md:scroll-mt-32 min-w-0 overflow-x-clip section-lift"
         aria-label="Booking form and contact"
       >
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-12">
-          <div className="lg:col-span-3">
-            <div className="p-6 md:p-8 rounded-[var(--radius-card)] border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)]">
+        <Container className="grid grid-cols-1 lg:grid-cols-5 gap-12 min-w-0">
+          <div className="lg:col-span-3 min-w-0">
+            <Card className="p-6 md:p-8">
               <BookingForm />
-            </div>
+            </Card>
           </div>
-          <div className="lg:col-span-2 space-y-8">
-            <div className="rounded-[var(--radius-card)] border border-[var(--accent)]/10 bg-[var(--bg-secondary)] p-6">
-              <h3 className="type-h3 text-[var(--text)] mb-4" style={{ fontFamily: 'var(--font-display)' }}>
+          <aside className="lg:col-span-2 space-y-6 min-w-0" aria-label="Contact and resources">
+            <Card className="p-6">
+              <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
                 Contact
               </h3>
               <div className="space-y-2 type-body text-[var(--text-muted)]">
@@ -105,7 +125,7 @@ export default async function BookingPage() {
                   </p>
                 )}
               </div>
-            </div>
+            </Card>
             <BookingAboutCard
               title={pageSettings?.booking_about_title}
               body={pageSettings?.booking_about_body}
@@ -117,28 +137,30 @@ export default async function BookingPage() {
               title="About"
             />
             {sponsors.length > 0 && (
-              <div className="rounded-[var(--radius-card)] border border-[var(--accent)]/10 bg-[var(--bg-secondary)] p-6">
-                <h3 className="type-small text-[var(--text-muted)] uppercase tracking-wider mb-3">Partners & affiliations</h3>
-                <p className="type-body text-[var(--text-muted)] whitespace-pre-line">{sponsors.join('\n')}</p>
-              </div>
+              <Card className="p-6">
+                <h3 className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
+                  Partners & affiliations
+                </h3>
+                <p className="type-body text-[var(--text-muted)] whitespace-pre-line leading-relaxed">{sponsors.join('\n')}</p>
+              </Card>
             )}
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/epk"
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]/30 hover:bg-[var(--accent)]/30 transition-colors type-button"
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button"
               >
                 View EPK
               </Link>
               <Link
                 href="/media"
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] border border-[var(--accent)]/20 text-[var(--text-muted)] hover:bg-white/5 transition-colors type-button"
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] border border-[var(--accent)]/15 text-[var(--text-muted)] hover:bg-white/5 transition-colors duration-200 type-button"
               >
                 Press Photos
               </Link>
             </div>
-          </div>
-        </div>
-      </section>
+          </aside>
+        </Container>
+      </Section>
     </div>
   );
 }

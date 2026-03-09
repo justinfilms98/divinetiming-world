@@ -18,14 +18,14 @@ export function BookingStoryScroll({ sections }: BookingStoryScrollProps) {
   if (!sections.length) return null;
 
   return (
-    <section className="relative py-20 md:py-28 px-4 overflow-x-clip overflow-y-visible" aria-label="Our story">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none text-[var(--accent)]" aria-hidden="true">
+    <section className="relative py-12 md:py-16 px-4 overflow-x-clip overflow-y-visible min-w-0" aria-label="Our story">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none text-[var(--accent)]/70" aria-hidden="true">
         <StarsMotif />
         <ClockMotif />
         <SunsetMotif />
       </div>
 
-      <div className="relative max-w-4xl mx-auto space-y-24 md:space-y-32 min-w-0">
+      <div className="relative max-w-4xl mx-auto space-y-16 md:space-y-20 min-w-0">
         {sections.map((section, index) => {
           const align = getAlign(index, section.align_preference);
           const heading = section.title || '';
@@ -42,9 +42,9 @@ export function BookingStoryScroll({ sections }: BookingStoryScrollProps) {
             >
               <article className="w-full max-w-2xl min-w-0">
                 {heading && (
-                  <div className="max-w-[40ch]">
+                  <div className="max-w-[65ch]">
                     <h2
-                      className="type-h2 text-[var(--text)] mb-4 leading-tight"
+                      className="type-h2 text-[var(--text)] mb-3 leading-tight"
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
                       {heading}
@@ -52,13 +52,19 @@ export function BookingStoryScroll({ sections }: BookingStoryScrollProps) {
                   </div>
                 )}
                 {body && (
-                  <div className="max-w-[60ch]">
-                    <p
-                      className="type-body text-[var(--text-muted)] leading-relaxed whitespace-pre-line"
-                      style={{ fontFamily: 'var(--font-ui)' }}
-                    >
-                      {body}
-                    </p>
+                  <div className="max-w-[65ch] space-y-4">
+                    {(body.trim().split(/\n\n+/).filter(Boolean).length
+                      ? body.trim().split(/\n\n+/).filter(Boolean)
+                      : [body]
+                    ).map((para, i) => (
+                      <p
+                        key={i}
+                        className="type-body text-[var(--text-muted)] leading-relaxed"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        {para.replace(/\n/g, ' ').trim()}
+                      </p>
+                    ))}
                   </div>
                 )}
               </article>

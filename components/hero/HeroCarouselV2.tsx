@@ -7,9 +7,10 @@ import { FilmFlare } from '@/components/hero/FilmFlare';
 import { HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
 import type { HeroSlotResolved } from '@/lib/types/content';
 
-const INTERVAL_MS = 7000;
+/** Phase 8: cinematic timing — 8s per slot, ~1s cross-dissolve */
+const INTERVAL_MS = 8000;
+const CROSSFADE_DURATION_S = 1;
 const FLARE_MS = 900;
-const SWAP_AT_MS = 350;
 
 const YOUTUBE_EMBED_PARAMS = 'controls=0&showinfo=0&rel=0&modestbranding=1&autoplay=1&mute=1&loop=1';
 
@@ -39,7 +40,7 @@ export interface HeroCarouselV2Props {
 }
 
 const heightClasses = {
-  full: 'min-h-[100vh] md:min-h-[80vh]',
+  full: 'min-h-[100vh] w-full',
   tall: 'aspect-[16/9] min-h-[320px] w-full',
   standard: 'aspect-[16/9] min-h-[280px] w-full',
   compact: 'min-h-[160px] aspect-[3/1] w-full max-h-[200px]',
@@ -55,7 +56,10 @@ export function HeroCarouselV2({
   const [activeIndex, setActiveIndex] = useState(0);
   const [phase, setPhase] = useState<'idle' | 'flare'>('idle');
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const total = slots.length;
   const isSingle = total <= 1;
@@ -72,8 +76,17 @@ export function HeroCarouselV2({
     };
   }, []);
 
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mq.matches);
+    const h = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
+
   const goNext = useCallback(() => {
     if (total <= 1) return;
+    setActiveIndex((i) => (i + 1) % total);
     setPhase('flare');
   }, [total]);
 
@@ -83,37 +96,57 @@ export function HeroCarouselV2({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [phase, activeIndex, total, reducedMotion, goNext]);
+  }, [phase, total, reducedMotion, goNext]);
 
   useEffect(() => {
     if (phase !== 'flare') return;
-    const t1 = setTimeout(() => setActiveIndex((i) => (i + 1) % total), SWAP_AT_MS);
-    const t2 = setTimeout(() => setPhase('idle'), FLARE_MS);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+    const t = setTimeout(() => setPhase('idle'), FLARE_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (reducedMotion || isMobile) return;
+    const onScroll = () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => setScrollY(window.scrollY));
     };
-  }, [phase, total]);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [reducedMotion, isMobile]);
 
   if (!total || !currentSlot) return null;
 
-  const opacity = Math.max(0, Math.min(1, currentSlot.overlay_opacity ?? overlayOpacity));
+  const baseOpacity = Math.max(0, Math.min(1, currentSlot.overlay_opacity ?? overlayOpacity));
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const scrollProgress = Math.min(1, scrollY / vh);
+  const overlayDeepen = reducedMotion ? 0 : scrollProgress * 0.1;
+  const opacity = Math.min(1, baseOpacity * 1.2 + overlayDeepen);
+  const parallaxY = !reducedMotion && !isMobile ? 40 * Math.min(scrollY / vh, 1) : 0;
   const showFlare = phase === 'flare';
 
   return (
     <section
-      className={`relative w-full overflow-hidden rounded-b-2xl ${heightPreset === 'full' ? 'rounded-b-none' : ''}`}
+      className={`relative w-full overflow-hidden rounded-b-2xl bg-black ${heightPreset === 'full' ? 'rounded-b-none min-h-[100vh]' : ''}`}
     >
-      <div className={`relative ${heightClasses[heightPreset]}`}>
-        <div className="absolute inset-0">
-          <AnimatePresence initial={false} mode="wait">
-            <motion.div
-              key={activeIndex}
-              className="absolute inset-0"
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            >
+      <div className={`relative w-full ${heightClasses[heightPreset]}`}>
+        <div className="absolute inset-0 w-full h-full">
+          <div
+            className="absolute inset-0 w-full h-full"
+            style={{ transform: parallaxY ? `translateY(${parallaxY}px)` : undefined }}
+          >
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={activeIndex}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: CROSSFADE_DURATION_S, ease: [0.4, 0, 0.2, 1] }}
+              >
               {currentSlot.media_type === 'embed' && currentSlot.resolved_embed_url ? (
                 <EmbedIframe embedUrl={currentSlot.resolved_embed_url} active={true} />
               ) : currentSlot.media_type === 'video' && currentSlot.resolved_video_url ? (
@@ -124,6 +157,7 @@ export function HeroCarouselV2({
                   muted
                   loop
                   playsInline
+                  preload="metadata"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : currentSlot.media_type === 'image' && currentSlot.resolved_image_url ? (
@@ -139,17 +173,19 @@ export function HeroCarouselV2({
               ) : (
                 <>{HeroEclipseFallback}</>
               )}
-            </motion.div>
-          </AnimatePresence>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           <div
-            className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/60"
-            style={{ opacity }}
+            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/35"
+            style={{ opacity: Math.min(1, opacity) }}
           />
           <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.35)_100%)]"
-            style={{ opacity: opacity * 0.85 }}
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.25)_100%)]"
+            style={{ opacity: (baseOpacity + overlayDeepen) * 0.8 }}
           />
+          <div className="hero-grain" aria-hidden="true" />
         </div>
 
         <FilmFlare active={showFlare && !isSingle} rounded={heightPreset !== 'full'} />

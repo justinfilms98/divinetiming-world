@@ -35,13 +35,24 @@ import type { MediaPageVideo, GalleryForHub } from '@/lib/content/shared';
 export type { PageSettings, HeroSection, HeroCarouselSlide, Event, Gallery, GalleryMedia, Product, MediaPageVideo, GalleryForHub };
 
 const HERO_SELECT =
-  'page_slug, media_type, media_url, media_storage_path, hero_logo_url, hero_logo_storage_path, overlay_opacity, headline, subtext, cta_text, cta_url, animation_type, animation_enabled, id, created_at, updated_at, external_media_asset_id, hero_slots';
+  'page_slug, media_type, media_url, media_storage_path, hero_logo_url, hero_logo_storage_path, overlay_opacity, label_text, headline, subtext, cta_text, cta_url, animation_type, animation_enabled, id, created_at, updated_at, external_media_asset_id, hero_slots';
 
 /** Normalize and resolve hero_slots (max 3). Supports Phase 9.1 shape and legacy type/youtube_id shape. */
 function resolveHeroSlots(raw: unknown): HeroSlotResolved[] | null {
-  if (raw == null || !Array.isArray(raw)) return null;
+  if (raw == null) return null;
+  let arr: (HeroSlot & { type?: string; youtube_id?: string | null; video_url?: string | null })[];
+  if (Array.isArray(raw)) {
+    arr = raw.slice(0, 3) as (HeroSlot & { type?: string; youtube_id?: string | null; video_url?: string | null })[];
+  } else if (typeof raw === 'object' && raw !== null) {
+    arr = [];
+    for (let i = 0; i < 3; i++) {
+      const slot = (raw as Record<string, unknown>)[i] ?? (raw as Record<string, unknown>)[`slot_${i + 1}`];
+      if (slot != null && typeof slot === 'object') arr.push(slot as (HeroSlot & { video_url?: string | null }));
+    }
+  } else {
+    return null;
+  }
   const resolved: HeroSlotResolved[] = [];
-  const arr = raw.slice(0, 3) as (HeroSlot & { type?: string; youtube_id?: string | null })[];
   for (let i = 0; i < arr.length; i++) {
     const s = arr[i];
     if (!s || typeof s !== 'object') continue;
@@ -61,7 +72,9 @@ function resolveHeroSlots(raw: unknown): HeroSlotResolved[] | null {
         });
       }
     } else if (s.media_type === 'video') {
-      const resolved_video_url = resolveHeroSlotVideoUrl(s.video_storage_path) ?? null;
+      const fromPath = resolveHeroSlotVideoUrl(s.video_storage_path);
+      const directUrl = (s as { video_url?: string | null }).video_url;
+      const resolved_video_url = fromPath ?? (typeof directUrl === 'string' && directUrl.trim() ? directUrl.trim() : null) ?? null;
       const resolved_poster_url = resolveHeroSlotPosterUrl(s.poster_storage_path) ?? null;
       if (enabled && resolved_video_url) {
         resolved.push({
@@ -156,7 +169,6 @@ export async function getEventBySlug(slugOrId: string): Promise<Event | null> {
     .or(isUuid ? `id.eq.${slugOrId}` : `slug.eq.${slugNorm}`)
     .maybeSingle();
   if (error) {
-    if (process.env.NODE_ENV === 'development') console.warn('[getEventBySlug]', error.message, { slugOrId: slugNorm });
     return null;
   }
   if (!data) return null;

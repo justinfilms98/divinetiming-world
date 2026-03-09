@@ -17,7 +17,7 @@ export function assertEnv(): void {
   if (!isDevOrPreview()) return;
 
   const vars: { key: string; serverOnly?: boolean }[] = [
-    { key: 'NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY' },
+    { key: 'NEXT_PUBLIC_SUPABASE_URL' },
     { key: 'SUPABASE_SERVICE_ROLE_KEY', serverOnly: true },
   ];
 

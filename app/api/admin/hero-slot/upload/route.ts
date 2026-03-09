@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error('Hero slot storage upload error:', uploadError);
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+      return NextResponse.json({ error: 'Upload failed.' }, { status: 500 });
     }
 
     const public_url = supabasePublicObjectUrl(storagePath) ?? '';
@@ -85,6 +85,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Upload failed';
     console.error('Hero slot upload error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Upload failed.' }, { status: 500 });
   }
 }

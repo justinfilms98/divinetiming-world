@@ -3,16 +3,19 @@
  * Use with reducedMotion helper for safe fallbacks.
  */
 
+/** Phase 24: small 150–200ms, medium 200–250ms, page ≈250ms; avoid >300ms. */
 export const durations = {
   fast: 0.15,
-  med: 0.3,
-  slow: 0.5,
+  standard: 0.2,
+  med: 0.25,
+  slow: 0.3,
 } as const;
 
+/** Single easing for consistency: cubic-bezier(0.4, 0, 0.2, 1). */
 export const easings = {
-  standard: [0.33, 1, 0.68, 1] as const,
-  emphasize: [0.34, 1.56, 0.64, 1] as const,
+  standard: [0.4, 0, 0.2, 1] as const,
   smooth: [0.4, 0, 0.2, 1] as const,
+  emphasize: [0.34, 1.56, 0.64, 1] as const,
 };
 
 export const fade = {
@@ -21,23 +24,32 @@ export const fade = {
   exit: { opacity: 0 },
 };
 
-export const fadeUp = {
-  initial: { opacity: 0, y: 30 },
+/** Subtle fade + 8px up (200–300ms). Use for page/section entrance when reduced motion is off. */
+export const fadeUpSubtle = {
+  initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 8 },
+  exit: { opacity: 0, y: 4 },
 };
 
-/** Scroll reveal: 600ms, stagger 80ms (use with staggerContainer) */
+/** Phase 24: 8px motion scale (use fadeUpSubtle for page/section). */
+export const fadeUp = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: 4 },
+};
+
+/** Scroll reveal: ≤250ms, stagger minimal. Phase 30 motion restraint. */
 export const scrollRevealTransition = {
-  duration: 0.6,
+  duration: 0.25,
   ease: [0.4, 0, 0.2, 1] as const,
 };
-export const scrollRevealStagger = 0.08;
+export const scrollRevealStagger = 0.06;
 
+/** Phase 24: 8px motion scale. */
 export const fadeDown = {
-  initial: { opacity: 0, y: -16 },
+  initial: { opacity: 0, y: -8 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  exit: { opacity: 0, y: -4 },
 };
 
 export const scaleIn = {
@@ -54,7 +66,7 @@ export const blurIn = {
 };
 
 export const defaultTransition = {
-  duration: durations.med,
+  duration: durations.standard,
   ease: easings.standard,
 };
 
@@ -74,8 +86,8 @@ export const staggerContainer = {
   hidden: {},
 };
 
-/** Stagger child: use with staggerContainer (30px fade up) */
+/** Stagger child: use with staggerContainer (8px fade up, Phase 24). */
 export const staggerChild = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 8 },
   visible: { opacity: 1, y: 0 },
 };

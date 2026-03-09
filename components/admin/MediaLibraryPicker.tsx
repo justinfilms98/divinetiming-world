@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { X } from 'lucide-react';
+import Link from 'next/link';
+import { X, Upload, Check } from 'lucide-react';
+import { MediaThumb } from '@/components/admin/MediaThumb';
+
+const LEGACY_STORAGE_KEY = 'dt_admin_media_include_legacy';
 
 export interface LibraryAsset {
   id: string;
+  provider?: string | null;
   preview_url: string;
   thumbnail_url: string | null;
   mime_type: string | null;
@@ -19,6 +24,8 @@ interface MediaLibraryPickerProps {
   /** 'image' | 'video' | 'all' */
   filter?: 'image' | 'video' | 'all';
   title?: string;
+  /** When true, show checkbox to include legacy (uploadcare) items. Default false = only non-legacy. */
+  showLegacyToggle?: boolean;
 }
 
 export function MediaLibraryPicker({
@@ -27,20 +34,34 @@ export function MediaLibraryPicker({
   onSelect,
   filter = 'image',
   title = 'Choose from library',
+  showLegacyToggle = false,
 }: MediaLibraryPickerProps) {
   const [assets, setAssets] = useState<LibraryAsset[]>([]);
   const [loading, setLoading] = useState(false);
+  const [includeLegacy, setIncludeLegacy] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<LibraryAsset | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem(LEGACY_STORAGE_KEY);
+      setIncludeLegacy(stored === 'true');
+    } catch {
+      setIncludeLegacy(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
+    setSelectedAsset(null);
     let cancelled = false;
     setLoading(true);
     (async () => {
       try {
         const { data } = await supabase
           .from('external_media_assets')
-          .select('id, preview_url, thumbnail_url, mime_type, name')
+          .select('id, provider, preview_url, thumbnail_url, mime_type, name')
           .order('created_at', { ascending: false });
         if (!cancelled) setAssets((data || []) as LibraryAsset[]);
       } finally {
@@ -50,14 +71,31 @@ export function MediaLibraryPicker({
     return () => { cancelled = true; };
   }, [open, supabase]);
 
-  const filtered =
+  const handleIncludeLegacyChange = (value: boolean) => {
+    setIncludeLegacy(value);
+    try {
+      localStorage.setItem(LEGACY_STORAGE_KEY, value ? 'true' : 'false');
+    } catch {
+      // ignore
+    }
+  };
+
+  const isLegacy = (a: LibraryAsset) => (a.provider || '').toLowerCase() === 'uploadcare';
+  const byFilter = (a: LibraryAsset) =>
     filter === 'all'
-      ? assets
-      : assets.filter((a) =>
-          filter === 'image'
-            ? (a.mime_type || '').startsWith('image/')
-            : (a.mime_type || '').startsWith('video/')
-        );
+      ? true
+      : filter === 'image'
+        ? (a.mime_type || '').startsWith('image/')
+        : (a.mime_type || '').startsWith('video/');
+  const pool = showLegacyToggle && includeLegacy ? assets : assets.filter((a) => !isLegacy(a));
+  const filtered = pool.filter(byFilter);
+
+  const confirmSelection = () => {
+    if (selectedAsset) {
+      onSelect(selectedAsset);
+      onClose();
+    }
+  };
 
   if (!open) return null;
 
@@ -77,48 +115,88 @@ export function MediaLibraryPicker({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
+          {showLegacyToggle && (
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id="picker-include-legacy"
+                checked={includeLegacy}
+                onChange={(e) => handleIncludeLegacyChange(e.target.checked)}
+                className="rounded border-slate-300"
+              />
+              <label htmlFor="picker-include-legacy" className="text-sm text-slate-600">Include legacy items</label>
+            </div>
+          )}
+          {selectedAsset && (
+            <div className="mb-4 p-3 rounded-lg border-2 border-slate-300 bg-slate-50 flex items-center gap-3">
+              <div className="w-14 h-14 flex-shrink-0 overflow-hidden rounded-lg">
+                <MediaThumb
+                  src={selectedAsset.thumbnail_url || selectedAsset.preview_url || null}
+                  isImage={(selectedAsset.mime_type || '').startsWith('image/')}
+                  alt={selectedAsset.name || ''}
+                  posterUrl={(selectedAsset.mime_type || '').startsWith('video/') ? (selectedAsset.thumbnail_url || selectedAsset.preview_url) : null}
+                  className="!aspect-square w-full h-full"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-800 truncate">{selectedAsset.name || 'Untitled'}</p>
+                <p className="text-xs text-slate-500">Selected — confirm below</p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAsset(null)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors duration-200"
+                >
+                  Choose another
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmSelection}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors duration-200"
+                >
+                  <Check className="w-4 h-4" />
+                  Use this
+                </button>
+              </div>
+            </div>
+          )}
           {loading ? (
             <p className="text-slate-500 text-sm">Loading…</p>
           ) : filtered.length === 0 ? (
-            <p className="text-slate-500 text-sm">No media in library. Upload from Media page first.</p>
+            <div className="text-center py-6">
+              <p className="text-slate-500 text-sm mb-3">No media in library.</p>
+              <Link
+                href="/admin/media"
+                onClick={() => onClose()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors duration-200"
+              >
+                <Upload className="w-4 h-4" />
+                Upload media
+              </Link>
+            </div>
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
               {filtered.map((asset) => {
                 const thumb = asset.thumbnail_url || asset.preview_url;
                 const isImage = (asset.mime_type || '').startsWith('image/');
+                const isSelected = selectedAsset?.id === asset.id;
                 return (
                   <button
                     key={asset.id}
                     type="button"
-                    onClick={() => {
-                      onSelect(asset);
-                      onClose();
-                    }}
-                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-slate-400 focus:border-slate-500 focus:outline-none"
+                    onClick={() => setSelectedAsset(asset)}
+                    className={`relative rounded-lg overflow-hidden border-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
+                      isSelected ? 'border-slate-700 ring-2 ring-slate-400' : 'border-slate-200 hover:border-slate-400'
+                    }`}
                   >
-                    {thumb && isImage ? (
-                      <img
-                        src={thumb}
-                        alt={asset.name || ''}
-                        className="w-full h-full object-cover absolute inset-0"
-                        onError={(e) => {
-                          const t = e.target as HTMLImageElement;
-                          t.style.display = 'none';
-                          const fb = t.parentElement?.querySelector('.lib-picker-fallback');
-                          if (fb) (fb as HTMLElement).classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    {isImage && thumb && (
-                      <div className="lib-picker-fallback absolute inset-0 hidden flex items-center justify-center bg-slate-100 text-slate-400">
-                        ?
-                      </div>
-                    )}
-                    {(!thumb || !isImage) && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-slate-400">
-                        {isImage ? '?' : '▶'}
-                      </div>
-                    )}
+                    <MediaThumb
+                      src={thumb || null}
+                      isImage={isImage}
+                      alt={asset.name || ''}
+                      posterUrl={!isImage ? thumb : null}
+                      className="!rounded-none w-full"
+                    />
                   </button>
                 );
               })}

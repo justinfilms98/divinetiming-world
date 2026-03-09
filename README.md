@@ -21,16 +21,15 @@ Create a `.env.local` file:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY=your_uploadcare_public_key
 # Optional: comma-separated admin emails (or use admin_users table)
 # ADMIN_EMAILS=admin@example.com,other@example.com
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 ```
 
-**Required for admin media uploads (Uploadcare):**
-- `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` – client-side; used by admin Uploader (Uploadcare upload-client)
-- `SUPABASE_SERVICE_ROLE_KEY` – server-side; used by `/api/assets/external` and `/api/admin/events` (bypasses RLS)
+**Required for admin media uploads:**
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` – used by admin Uploader (Supabase Storage)
+- `SUPABASE_SERVICE_ROLE_KEY` – server-side; used by admin APIs (bypasses RLS)
 
 **Optional:** `ADMIN_EMAILS` – comma-separated list of emails that can access admin and save assets/events (alternative to `admin_users` table)
 

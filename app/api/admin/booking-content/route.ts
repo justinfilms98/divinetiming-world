@@ -10,7 +10,7 @@ export async function GET() {
     .from('booking_content')
     .select('*')
     .order('display_order', { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   return NextResponse.json({ sections: data ?? [] });
 }
 
@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
 
     if (reset === true) {
       const { error: delErr } = await supabase.from('booking_content').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+      if (delErr) return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       const { data: inserted, error: insErr } = await supabase
         .from('booking_content')
         .insert(DEFAULT_SECTIONS)
         .select();
-      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+      if (insErr) return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       revalidatePath('/booking');
       return NextResponse.json({ sections: inserted ?? [] });
     }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         .eq('id', id)
         .select()
         .single();
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       revalidatePath('/booking');
       return NextResponse.json({ section: data });
     }
@@ -76,11 +76,10 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     revalidatePath('/booking');
     return NextResponse.json({ section: data });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Failed';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

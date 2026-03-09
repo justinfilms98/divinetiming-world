@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useReducedMotion, reducedMotionVariants } from '@/lib/ui/reducedMotion';
-import { fadeUp, viewportDefaults, defaultTransition } from '@/lib/ui/motion';
+import { fadeUpSubtle, viewportDefaults, defaultTransition } from '@/lib/ui/motion';
 import { cn } from '@/lib/ui/cn';
 
 type Variant = 'fadeUp' | 'fade' | 'fadeDown';
+
+/** Phase 24: section reveal — 250ms, single easing, 8px Y. */
+const sectionRevealTransition = { duration: 0.25, ease: [0.4, 0, 0.2, 1] as const };
 
 interface RevealProps {
   children: React.ReactNode;
@@ -18,15 +21,13 @@ interface RevealProps {
   className?: string;
 }
 
-const scrollRevealTransition = { duration: 0.6, ease: [0.4, 0, 0.2, 1] as const };
-
 const variantMap = {
-  fadeUp: { ...fadeUp, transition: scrollRevealTransition },
+  fadeUp: { ...fadeUpSubtle, transition: sectionRevealTransition },
   fade: { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: defaultTransition },
   fadeDown: {
-    initial: { opacity: 0, y: -16 },
+    initial: { opacity: 0, y: -8 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -8 },
+    exit: { opacity: 0, y: -4 },
     transition: defaultTransition,
   },
 };
@@ -62,7 +63,7 @@ export function Reveal({
       whileInView="animate"
       viewport={{ once, amount }}
       variants={variants}
-      transition={{ ...defaultTransition, delay }}
+      transition={{ ...sectionRevealTransition, delay }}
       className={cn(className)}
     >
       {children}

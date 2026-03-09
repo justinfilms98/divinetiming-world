@@ -39,7 +39,7 @@ export function BookingHero({
           className="text-4xl md:text-6xl font-bold text-white tracking-tight"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
         >
           {headline.toUpperCase()}
         </motion.h1>
@@ -48,7 +48,7 @@ export function BookingHero({
             className="text-white/85 text-lg md:text-xl mt-4 max-w-2xl font-light"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+            transition={{ duration: 0.25, delay: 0.08, ease: [0.4, 0, 0.2, 1] }}
           >
             {pitch}
           </motion.p>

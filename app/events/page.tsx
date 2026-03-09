@@ -1,8 +1,9 @@
 import { getEvents, getHeroSection, getPageSettings } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
-import { EventCard } from '@/components/events/EventCard';
 import { Reveal } from '@/components/motion/Reveal';
 import { EventsListClient } from '@/components/events/EventsListClient';
+import { Container } from '@/components/ui/Container';
+import { Section } from '@/components/ui/Section';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -10,8 +11,18 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Events',
   description: 'Upcoming and past Divine Timing events, tour dates, and shows.',
-  openGraph: { title: 'Events | Divine Timing', description: 'Upcoming and past Divine Timing events, tour dates, and shows.' },
-  twitter: { card: 'summary_large_image', title: 'Events | Divine Timing' },
+  alternates: { canonical: '/events' },
+  openGraph: {
+    title: 'Events | Divine Timing',
+    description: 'Upcoming and past Divine Timing events, tour dates, and shows.',
+    url: '/events',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Events | Divine Timing',
+    description: 'Upcoming and past Divine Timing events, tour dates, and shows.',
+  },
 };
 
 export default async function EventsPage() {
@@ -39,25 +50,26 @@ export default async function EventsPage() {
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
+        badge={heroSection?.label_text?.trim() || undefined}
         headline={headline}
         subtext={subtext ?? undefined}
         heightPreset="compact"
         showScrollCue
       />
 
-      <section className="flex-1 section-padding overflow-x-clip">
-        <div className="content-width px-6 min-w-0">
+      <Section className="flex-1 mt-20 overflow-x-clip section-lift">
+        <Container className="min-w-0">
           <Reveal>
-            <p className="section-label text-center mb-10">
-              DIVINE:TIMING / EVENTS
+            <p className="text-center text-[var(--text-muted)] type-body mb-10 max-w-[45ch] mx-auto">
+              Upcoming and past shows.
             </p>
             <EventsListClient
               upcomingEvents={upcomingEvents}
               pastEvents={pastEvents}
             />
           </Reveal>
-        </div>
-      </section>
+        </Container>
+      </Section>
     </div>
   );
 }

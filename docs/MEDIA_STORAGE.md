@@ -1,37 +1,28 @@
 # Media Storage – Stability & Verification
 
-This doc ensures the storage layer is reliable before adding logo upload, WYSIWYG, and other features. **Primary storage for admin uploads is Uploadcare.** Supabase Storage is optional (e.g. legacy or future use); if used, it must be configured correctly.
+This doc ensures the storage layer is reliable. **Primary storage for admin uploads is Supabase Storage** (bucket `media`). Legacy rows may reference Uploadcare CDN URLs; those are resolved for display but no new uploads use Uploadcare.
 
 ---
 
-## 1. Uploadcare (primary)
+## 1. Supabase Storage (primary for new uploads)
 
-Admin uploads (hero, media library, galleries, shop, events) go through **Uploadcare** via `UniversalUploader` and are stored as CDN URLs in `external_media_assets`.
+Admin uploads (media library, hero slot uploads, etc.) use **Supabase Storage**. `UniversalUploader` uploads to the `media` bucket via `lib/supabaseStorage.ts` and registers assets with `POST /api/admin/media/register` (provider `supabase`).
 
 ### Required
 
-- **Env:** `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` in `.env.local` (and in production). Without it, the uploader shows a message and uploads are disabled.
-- **CDN domains:** The app expects URLs from `ucarecdn.com` or `ucarecdn.net`. Next.js `images.remotePatterns` in `next.config.ts` already allows these for `<Image>`.
-- **Optional:** `NEXT_PUBLIC_UPLOAD_MAX_BYTES` (bytes) to cap file size; default 100MB. Match your Uploadcare plan limits.
-
-### Quotas & subscription
-
-- In [Uploadcare Dashboard](https://app.uploadcare.com/) → check **Usage / Plan** so you don’t hit quota (storage and traffic).
-- If files disappear or uploads fail, verify subscription and that files exist in the Uploadcare project.
-
-### CORS
-
-- **Not required for the app.** Uploads go from the browser to Uploadcare’s API; the site only stores and displays CDN URLs. No CORS configuration needed in this repo for Uploadcare.
+- **Env:** `NEXT_PUBLIC_SUPABASE_URL` and Supabase anon (or service) key so the client can upload to the `media` bucket.
+- **Bucket:** `media` must exist and be **public** for read; RLS/policies must allow authenticated uploads.
+- **Optional:** `NEXT_PUBLIC_UPLOAD_MAX_BYTES` (bytes) to cap file size; default 100MB.
 
 ### Verification
 
-1. **Upload:** Admin → Settings (or Media/Shop/Events) → use the file picker → choose an image → confirm it uploads and a CDN URL appears.
-2. **Display:** Open the CDN URL in a new tab; image should load (no 404, no CORS error).
-3. **Console:** No CORS or 404 errors when loading hero/media/shop images on the public site.
+1. **Upload:** Admin → Media → upload an image; confirm it appears in the library and row has `provider: 'supabase'`.
+2. **Display:** Asset preview/URL loads (Supabase public URL).
+3. **Console:** No CORS or 404 errors when loading media on the public site.
 
 ---
 
-## 2. Supabase Storage (optional)
+## 2. Supabase Storage (bucket setup)
 
 If you use the **Supabase `media` bucket** (e.g. server-side uploads or a future feature), ensure it is usable and not broken.
 
@@ -62,7 +53,7 @@ If the front end or Next.js loads files from Supabase Storage (e.g. `https://<pr
    - Local: `http://localhost:3000`
 3. Typical CORS headers to allow: `Origin`, `Content-Type`, `Authorization`; methods: `GET`, `HEAD` (and `PUT`/`POST` if uploading from browser).
 
-If you **only** use Uploadcare and don’t reference Supabase Storage URLs in the app, you can skip CORS for now.
+If you don’t load Supabase Storage URLs from the app, you can skip CORS for now.
 
 ### Verification (when using Supabase Storage)
 
@@ -78,22 +69,21 @@ If you **only** use Uploadcare and don’t reference Supabase Storage URLs in th
 - **Hero background images/videos:** Compress before upload; prefer WebP for images; keep videos under plan limits.
 - **Gallery/product images:** PNG, JPG, WebP; recommend max 2000–3000px long side, &lt; 10MB per file for fast loading.
 - **Videos:** MP4 and other supported formats; keep under 2GB or your Uploadcare plan limit.
-- **General:** Stay within `NEXT_PUBLIC_UPLOAD_MAX_BYTES` and Uploadcare plan limits. If the uploader shows “Upload failed — try again”, check env and network; see docs for `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY`.
+- **General:** Stay within `NEXT_PUBLIC_UPLOAD_MAX_BYTES`. If the uploader shows “Upload failed — try again”, check Supabase env and bucket permissions.
 
 ---
 
 ## 4. Quick checklist before new upload features
 
-- [ ] `NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY` set in env (dev and prod).
-- [ ] Test upload in Admin (Settings hero or Media library); no console errors.
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` (and keys) set in env (dev and prod).
+- [ ] Test upload in Admin (Media library or hero slot); no console errors.
 - [ ] One hero or media asset loads on the site (no 404/CORS).
-- [ ] Uploadcare dashboard: subscription and quotas OK.
-- [ ] If using Supabase `media` bucket: bucket is public, RLS allows public read and authenticated write; CORS allows your app origins.
+- [ ] Supabase `media` bucket is public; RLS allows public read and authenticated write; CORS allows your app origins.
 
 ---
 
 ## 5. Hero logo upload (Step 2)
 
-- **Storage:** `hero_sections.hero_logo_url` (TEXT) stores the Uploadcare CDN URL. When set for the home hero, the front end shows the logo image instead of the text headline.
+- **Storage:** `hero_sections.hero_logo_url` (TEXT) or storage path stores the logo URL. When set for the home hero, the front end shows the logo image instead of the text headline.
 - **Admin:** Admin → Dashboard → Hero Editor → select “Home” → “Logo (PNG)” section: upload (PNG/SVG, max 2MB), preview, replace, or remove. Save to persist.
-- **Shared upload helper:** All admin uploads use `lib/uploadcare.ts` (`uploadOne`, `getUploadcarePublicKey`) so behavior is consistent; the UI uses `UniversalUploader` with progress and optional `acceptOverride` / `maxSizeBytes`.
+- **Uploads:** Media and hero uploads use Supabase Storage and `UniversalUploader` with progress and optional `acceptOverride` / `maxSizeBytes`.

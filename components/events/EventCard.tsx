@@ -47,10 +47,10 @@ export function EventCard({ event }: EventCardProps) {
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="group flex flex-col md:flex-row gap-6 p-0 rounded-2xl border border-[var(--accent)]/25 overflow-hidden transition-all duration-300 bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] active:scale-[0.995] luxury-card"
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      className="group flex flex-col md:flex-row gap-6 p-0 rounded-2xl border border-[var(--accent)]/25 overflow-hidden transition-all duration-200 bg-[var(--bg-secondary)] hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.995] luxury-card card-atmosphere"
     >
       <Link href={href} className="md:w-56 md:flex-shrink-0 block focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none overflow-hidden" onClick={handleClick}>
         <div className="relative aspect-[16/9] md:aspect-[4/3] w-full overflow-hidden bg-[var(--bg)]">
@@ -71,11 +71,11 @@ export function EventCard({ event }: EventCardProps) {
 
       <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 min-w-0">
         <Link href={href} className="flex-1 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 rounded-lg -m-1 p-1" onClick={handleClick}>
-          <div className="type-label text-[var(--accent)] group-hover:text-[var(--accent-hover)] transition-colors duration-300">
+          <div className="type-label text-[var(--accent)] group-hover:text-[var(--accent-hover)] transition-colors duration-200">
             {formatDate(event.date)}
             {event.time && ` · ${event.time}`}
           </div>
-          <h3 className="type-h3 text-[var(--text)] group-hover:text-[var(--accent)] mt-1.5 transition-colors duration-300" style={{ fontFamily: 'var(--font-display)' }}>
+          <h3 className="type-h3 text-[var(--text)] group-hover:text-[var(--accent)] mt-1.5 transition-colors duration-200" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
           </h3>
           <p className="type-small mt-1 text-[var(--text-muted)]">{location}</p>
@@ -89,7 +89,7 @@ export function EventCard({ event }: EventCardProps) {
             href={event.ticket_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="self-start md:self-center min-h-[48px] px-6 py-3 inline-flex items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[var(--text)] font-medium type-button hover:bg-[var(--accent-hover)] transition-all duration-300 glow focus-ring"
+            className="self-start md:self-center min-h-[48px] px-6 py-3 inline-flex items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[var(--text)] font-medium type-button hover:bg-[var(--accent-hover)] transition-all duration-200 glow focus-ring"
           >
             Tickets
           </a>

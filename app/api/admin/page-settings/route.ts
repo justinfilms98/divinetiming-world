@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
           .eq('id', ps.id);
         if (error) {
           console.error('Admin page-settings update error:', error);
-          return NextResponse.json({ error: error.message }, { status: 500 });
+          return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
         }
       }
     }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           .eq('id', hs.id);
         if (error) {
           console.error('Admin hero (page-settings) update error:', error);
-          return NextResponse.json({ error: error.message }, { status: 500 });
+          return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
         }
       }
     }
@@ -94,6 +94,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin page-settings POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

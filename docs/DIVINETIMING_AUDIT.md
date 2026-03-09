@@ -69,7 +69,7 @@ This document summarises the completed deep audit and provides a developer promp
 | Admin: collapsible sidebar | Done |
 | Admin nav: Settings, Events, Media, Shop, Heroes, About | Done |
 | **1. Stabilize media storage** | Done – [docs/MEDIA_STORAGE.md](MEDIA_STORAGE.md), CORS/quota/verification |
-| **2. Logo upload + media uploads** | **Done (Prod verified)** – hero_logo_url, Admin logo UI (PNG/SVG 2MB), shared `lib/uploadcare.ts`, progress/error UX. QA: API validation, HeroLogo fallback, Save disabled while uploading, beforeunload on upload, Events/Shop submit disabled when uploading, shop product image onError fallback, `validateHeroLogoUrl` test, canary in checklist. See [docs/STEP2_QA.md](STEP2_QA.md). |
+| **2. Logo upload + media uploads** | **Done (Prod verified)** – hero_logo_url, Admin logo UI (PNG/SVG 2MB), Supabase storage + UniversalUploader, progress/error UX. QA: API validation, HeroLogo fallback, Save disabled while uploading, beforeunload on upload, Events/Shop submit disabled when uploading, shop product image onError fallback, `validateHeroLogoUrl` test, canary in checklist. See [docs/STEP2_QA.md](STEP2_QA.md). |
 | **3. WYSIWYG/CMS** for About and content | Pending – architecture proposal only: [docs/STEP3_PROPOSAL.md](STEP3_PROPOSAL.md). Do not implement until approved. |
 | **4. Notifications** (slide-in) | Pending |
 | **5. Role-based access and audit logs** | Pending |

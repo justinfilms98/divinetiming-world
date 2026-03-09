@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin product-images POST error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/shop');
     if (slug) revalidatePath(`/shop/${slug}`);
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin product-images POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -62,7 +62,7 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from('product_images').delete().eq('id', id);
     if (error) {
       console.error('Admin product-images DELETE error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/shop');
     if (slug) revalidatePath(`/shop/${slug}`);
@@ -70,6 +70,6 @@ export async function DELETE(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin product-images DELETE error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

@@ -41,9 +41,9 @@ export const LuxuryButton = forwardRef<HTMLButtonElement, LuxuryButtonProps>(
         type="button"
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-all duration-200 ease-out type-button',
+          'inline-flex items-center justify-center font-medium transition-[color,background-color,border-color,box-shadow,transform,filter] duration-[200ms] ease-out type-button active:scale-[0.98]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]',
-          'active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100',
+          'disabled:opacity-50 disabled:pointer-events-none',
           'select-none',
           variantClasses[variant],
           sizeClasses[size],

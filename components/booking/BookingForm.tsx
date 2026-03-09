@@ -58,24 +58,20 @@ export function BookingForm() {
   };
 
   return (
-    <div>
-      <h2 className="type-h2 text-[var(--text)] mb-8" style={{ fontFamily: 'var(--font-display)' }}>
-        Send an Inquiry
-      </h2>
+    <div className="min-w-0">
+      {status === 'success' && (
+        <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--text)] text-center type-body">
+          Thank you. Your inquiry has been sent and we&apos;ll get back to you soon.
+        </div>
+      )}
 
-        {status === 'success' && (
-          <div className="mb-8 p-6 bg-green-500/20 border border-green-500/40 rounded-xl text-green-200 text-center">
-            Thank you! Your inquiry has been sent. We&apos;ll get back to you soon.
-          </div>
-        )}
+      {status === 'error' && (
+        <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--text-muted)]/30 bg-white/5 text-[var(--text-muted)] text-center type-body">
+          Something went wrong. Please try again or contact us directly.
+        </div>
+      )}
 
-        {status === 'error' && (
-          <div className="mb-8 p-6 bg-red-500/20 border border-red-500/40 rounded-xl text-red-200 text-center">
-            Something went wrong. Please try again or contact us directly.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="name" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Name *
@@ -86,7 +82,7 @@ export function BookingForm() {
               required
               value={formData.name}
               onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
               placeholder="Your name"
             />
           </div>
@@ -101,7 +97,7 @@ export function BookingForm() {
               required
               value={formData.email}
               onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
               placeholder="your@email.com"
             />
           </div>
@@ -115,7 +111,7 @@ export function BookingForm() {
               type="text"
               value={formData.organization}
               onChange={(e) => setFormData((p) => ({ ...p, organization: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
               placeholder="Venue, festival, or company"
             />
           </div>
@@ -129,7 +125,7 @@ export function BookingForm() {
               type="text"
               value={formData.eventDate}
               onChange={(e) => setFormData((p) => ({ ...p, eventDate: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
               placeholder="e.g. June 15, 2025"
             />
           </div>
@@ -143,7 +139,7 @@ export function BookingForm() {
               type="text"
               value={formData.location}
               onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
               placeholder="City, country"
             />
           </div>
@@ -156,7 +152,7 @@ export function BookingForm() {
               id="budgetRange"
               value={formData.budgetRange}
               onChange={(e) => setFormData((p) => ({ ...p, budgetRange: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
             >
               <option value="">Select range</option>
               {BUDGET_OPTIONS.map((opt) => (
@@ -177,7 +173,7 @@ export function BookingForm() {
               rows={5}
               value={formData.message}
               onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-              className="w-full min-h-[120px] px-4 py-3 bg-white/5 border border-white/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] resize-none"
+              className="w-full min-h-[120px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 resize-none transition-colors duration-200"
               placeholder="Tell us about your event..."
             />
           </div>
@@ -185,7 +181,7 @@ export function BookingForm() {
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full min-h-[48px] py-4 hero-cta-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full min-h-[48px] py-4 hero-cta-primary disabled:opacity-50 disabled:cursor-not-allowed transition-[opacity,transform] duration-200 active:scale-[0.98]"
           >
             {status === 'loading' ? 'Sending...' : 'Submit Inquiry'}
           </button>

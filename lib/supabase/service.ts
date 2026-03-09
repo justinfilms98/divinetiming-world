@@ -1,19 +1,19 @@
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseServiceRoleKey, ENV_ERROR_MESSAGES } from '@/lib/env';
 
 /**
  * Server-only Supabase client with SERVICE ROLE key.
  * Bypasses RLS — use only in trusted server routes after auth checks.
  * Import only in server code (e.g. route handlers).
+ * Throws with a safe message (no key leak) when env is missing.
  */
 export function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabaseServiceRoleKey();
 
   if (!url || !key) {
-    throw new Error(
-      'NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set for server-side operations'
-    );
+    throw new Error(ENV_ERROR_MESSAGES.supabaseUnavailable);
   }
 
   return createClient(url, key, {

@@ -10,8 +10,9 @@ import {
 import { revalidatePaths } from '@/lib/revalidate';
 import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
 import { updateHeroMedia, validateHeroFile } from '@/lib/storageUpload';
-import { Save, Check, Copy, ImageIcon, Video, Upload, ChevronUp, ChevronDown } from 'lucide-react';
+import { Save, Check, Copy, ImageIcon, Video, Upload, ChevronUp, ChevronDown, HelpCircle, ChevronRight } from 'lucide-react';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
+import { cn } from '@/lib/ui/cn';
 import { normalizeHeroEmbed } from '@/lib/embed';
 import { normalizeHeroSlots } from '@/lib/content/shared';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
@@ -35,6 +36,7 @@ interface HeroSection {
   hero_logo_url: string | null;
   hero_logo_storage_path?: string | null;
   overlay_opacity: number;
+  label_text?: string | null;
   headline: string | null;
   subtext: string | null;
   cta_text: string | null;
@@ -198,6 +200,28 @@ function HeroCarouselSlotsEditor({
                 <button type="button" onClick={() => moveSlot(index, 'up')} disabled={index === 0} className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40" aria-label="Move up"><ChevronUp className="w-4 h-4" /></button>
                 <button type="button" onClick={() => moveSlot(index, 'down')} disabled={index === 2} className="p-1.5 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40" aria-label="Move down"><ChevronDown className="w-4 h-4" /></button>
               </div>
+            </div>
+            {/* Slot preview: image / video (playable) / embed (normalized URL) */}
+            <div className="rounded-lg border border-slate-200 bg-slate-100/80 overflow-hidden aspect-video max-h-40 w-full">
+              {s.media_type === 'image' && imgUrl ? (
+                <img src={imgUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              ) : s.media_type === 'video' && videoUrl ? (
+                <video
+                  src={videoUrl}
+                  poster={posterUrl ?? undefined}
+                  controls
+                  playsInline
+                  className="w-full h-full object-cover"
+                  preload="metadata"
+                />
+              ) : s.media_type === 'embed' && (s.embed_url || (s.embed_provider && s.embed_id)) ? (
+                <div className="p-3 h-full flex flex-col justify-center text-left">
+                  <p className="text-xs font-medium text-slate-600 mb-1">Embed</p>
+                  <p className="text-xs text-slate-500 break-all">{resolveSlotEmbedDisplay(s) ?? '—'}</p>
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">No media</div>
+              )}
             </div>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2">
@@ -450,6 +474,8 @@ export function DashboardHeroEditor() {
   const [purgeModalOpen, setPurgeModalOpen] = useState(false);
   const [purgeAnyway, setPurgeAnyway] = useState(false);
   const [purging, setPurging] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [ctaError, setCtaError] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -582,6 +608,13 @@ export function DashboardHeroEditor() {
   const handleSave = async () => {
     const current = selectedPage ? heroSections[selectedPage] : null;
     if (!current) return;
+    setCtaError(null);
+    const ctaUrlTrim = (current.cta_url ?? '').trim();
+    const ctaTextTrim = (current.cta_text ?? '').trim();
+    if (ctaUrlTrim && !ctaTextTrim) {
+      setCtaError('CTA label is required when CTA URL is set.');
+      return;
+    }
     const slotsResult = normalizeHeroSlots(current.hero_slots ?? []);
     if (slotsResult && 'error' in slotsResult) {
       alert(slotsResult.error);
@@ -604,6 +637,7 @@ export function DashboardHeroEditor() {
           hero_logo_url: current.hero_logo_url ?? null,
           hero_logo_storage_path: current.hero_logo_storage_path ?? null,
           overlay_opacity: current.overlay_opacity ?? 0.4,
+          label_text: (current.label_text ?? '').trim() || null,
           headline: current.headline ?? null,
           subtext: current.subtext ?? null,
           cta_text: current.cta_text ?? null,
@@ -615,7 +649,12 @@ export function DashboardHeroEditor() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert('Error saving: ' + (data.error || res.statusText));
+        const msg = data.error || res.statusText;
+        if (res.status === 400 && typeof msg === 'string' && msg.includes('CTA')) {
+          setCtaError(msg);
+          return;
+        }
+        alert('Error saving: ' + msg);
         return;
       }
       if (data.hero) {
@@ -639,10 +678,30 @@ export function DashboardHeroEditor() {
 
   return (
     <AdminCard className="mb-8">
-      <h2 className="text-lg font-semibold text-slate-800 mb-1">Hero Editor</h2>
-      <p className="text-slate-600 text-sm mb-4">
-        Set hero image or video, overlay, and copy for each public page.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 tracking-tight mb-1">Hero Editor</h2>
+          <p className="text-slate-600 text-sm">
+            Set hero image or video, overlay, and copy for each public page.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setHelpOpen((o) => !o)}
+          className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 hover:text-slate-700"
+          aria-expanded={helpOpen}
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+          {helpOpen ? 'Hide help' : 'Where do uploads go?'}
+          <ChevronRight className={cn('w-3.5 h-3.5 transition-transform', helpOpen && 'rotate-90')} />
+        </button>
+      </div>
+      {helpOpen && (
+        <div className="mb-6 p-4 rounded-xl border border-slate-200 bg-slate-50/80 text-sm text-slate-600 space-y-2">
+          <p><strong>Upload</strong> stores files in site storage (Supabase). Image max 10MB; logo max 2MB.</p>
+          <p><strong>Replace</strong> / &quot;Choose from library&quot; use the media library; you can also pick from cloud drives (e.g. Google Drive) if your file picker supports it.</p>
+        </div>
+      )}
 
       {/* Page selector — segmented control */}
       <div className="mb-6">
@@ -675,19 +734,19 @@ export function DashboardHeroEditor() {
         onSlotsChange={(slots) => updateHero({ hero_slots: slots })}
       />
 
-      {/* Purge legacy Uploadcare hero URLs */}
+      {/* Danger zone: Purge legacy hero URLs */}
       {hero && (
-        <div className="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50/50">
-          <h3 className="text-sm font-medium text-slate-800 mb-1">Legacy cleanup</h3>
-          <p className="text-xs text-slate-600 mb-3">
-            Remove old Uploadcare/single-hero URLs so only the 3-slot carousel is used for this page.
+        <div className="mb-6 p-4 rounded-xl border border-red-200/80 bg-red-50/30">
+          <h3 className="text-xs uppercase tracking-wider text-red-800/90 font-medium mb-1">Danger zone</h3>
+          <p className="text-xs text-slate-600 mb-2">
+            Remove old single-hero URLs so only the 3-slot carousel is used. Existing slot uploads are not affected.
           </p>
           <button
             type="button"
             onClick={() => { setPurgeModalOpen(true); setPurgeAnyway(false); }}
-            className="px-4 py-2 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-50"
+            className="px-3 py-1.5 rounded-lg border border-red-300 bg-white text-red-700 text-xs font-medium hover:bg-red-50"
           >
-            Purge legacy Uploadcare hero URLs
+            Purge legacy hero URLs
           </button>
         </div>
       )}
@@ -799,14 +858,15 @@ export function DashboardHeroEditor() {
                 disabled={!!supabaseUploading}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
               >
-                <Upload className="w-4 h-4" /> Upload to Supabase (image, max 10MB)
+                <Upload className="w-4 h-4" /> Upload
               </button>
               <UniversalUploader
                 acceptedTypes={['image', 'video']}
                 multiple={false}
                 onSelected={handleReplaceMedia}
                 onUploadingChange={setUploadInProgress}
-                buttonLabel="Replace hero media (Uploadcare)"
+                buttonLabel="Replace"
+hideStorageTip
               />
               {(heroMediaDisplayUrl || hero.media_url) && hero.media_type !== 'default' && (
                 <button
@@ -850,7 +910,7 @@ export function DashboardHeroEditor() {
                       disabled={!!supabaseUploading}
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 w-fit"
                     >
-                      <Upload className="w-3 h-3" /> Supabase (max 10MB)
+                      <Upload className="w-3 h-3" /> Upload
                     </button>
                     <UniversalUploader
                       acceptedTypes={['image']}
@@ -862,7 +922,8 @@ export function DashboardHeroEditor() {
                         if (url) updateHero({ hero_logo_url: url });
                       }}
                       onUploadingChange={setUploadInProgress}
-                      buttonLabel="Replace logo (Uploadcare)"
+                      buttonLabel="Replace"
+hideStorageTip
                     />
                     <button
                       type="button"
@@ -888,7 +949,7 @@ export function DashboardHeroEditor() {
                     disabled={!!supabaseUploading}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
                   >
-                    <Upload className="w-4 h-4" /> Upload logo to Supabase (max 10MB)
+                    <Upload className="w-4 h-4" /> Upload logo
                   </button>
                   <UniversalUploader
                     acceptedTypes={['image']}
@@ -900,7 +961,8 @@ export function DashboardHeroEditor() {
                       if (url) updateHero({ hero_logo_url: url });
                     }}
                     onUploadingChange={setUploadInProgress}
-                    buttonLabel="Upload logo (Uploadcare, PNG/SVG, max 2MB)"
+                    buttonLabel="Upload logo"
+hideStorageTip
                   />
                 </>
               )}
@@ -928,6 +990,19 @@ export function DashboardHeroEditor() {
 
           {/* Copy */}
           <div className="grid gap-4 sm:grid-cols-1">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Label text (optional)
+              </label>
+              <input
+                type="text"
+                value={hero.label_text ?? ''}
+                onChange={(e) => updateHero({ label_text: e.target.value })}
+                className="admin-input w-full px-3 py-2 text-slate-800"
+                placeholder="e.g. ELECTRONIC DUO — small-caps above headline; leave blank to hide"
+              />
+              <p className="text-xs text-slate-500 mt-1">Shown above the headline on the public hero. If blank, the label is not shown.</p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Headline
@@ -959,10 +1034,18 @@ export function DashboardHeroEditor() {
               <input
                 type="text"
                 value={hero.cta_text ?? ''}
-                onChange={(e) => updateHero({ cta_text: e.target.value })}
-                className="admin-input w-full px-3 py-2 text-slate-800"
+                onChange={(e) => { setCtaError(null); updateHero({ cta_text: e.target.value }); }}
+                className={cn('admin-input w-full px-3 py-2 text-slate-800', ctaError && 'border-red-400')}
                 placeholder="e.g. Book now"
+                aria-invalid={!!ctaError}
+                aria-describedby={ctaError ? 'cta-error' : undefined}
               />
+              {ctaError && (
+                <p id="cta-error" className="text-xs text-red-600 mt-1" role="alert">
+                  {ctaError}
+                </p>
+              )}
+              <p className="text-xs text-slate-500 mt-1">Required when CTA URL is set. CTA button is only shown when both label and URL are set.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -971,9 +1054,9 @@ export function DashboardHeroEditor() {
               <input
                 type="url"
                 value={hero.cta_url ?? ''}
-                onChange={(e) => updateHero({ cta_url: e.target.value })}
+                onChange={(e) => { setCtaError(null); updateHero({ cta_url: e.target.value }); }}
                 className="admin-input w-full px-3 py-2 text-slate-800"
-                placeholder="https://..."
+                placeholder="https://... or #booking-form"
               />
             </div>
           </div>

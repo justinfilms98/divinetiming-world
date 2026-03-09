@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { DashboardHeroEditor } from '@/components/admin/DashboardHeroEditor';
-import { Calendar, Image as ImageIcon, ShoppingBag } from 'lucide-react';
+import { Calendar, Image as ImageIcon, ShoppingBag, Layers } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function AdminDashboard() {
@@ -17,6 +16,13 @@ export default async function AdminDashboard() {
   ]);
 
   const stats = [
+    {
+      label: 'Hero',
+      value: '—',
+      icon: Layers,
+      href: '/admin/hero',
+      color: 'text-slate-600',
+    },
     {
       label: 'Events',
       value: eventsCount.count || 0,
@@ -57,13 +63,9 @@ export default async function AdminDashboard() {
   return (
     <AdminPage
       title="Dashboard"
-      subtitle="Overview and hero editor for public pages"
+      subtitle="Overview and quick links"
     >
-      {/* Hero Editor — top of dashboard */}
-      <DashboardHeroEditor />
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -73,7 +75,7 @@ export default async function AdminDashboard() {
                   <div>
                     <p className="text-slate-500 text-sm mb-1">{stat.label}</p>
                     <p className="text-2xl font-bold text-slate-800">
-                      {stat.value}
+                      {typeof stat.value === 'number' ? stat.value : stat.value}
                     </p>
                   </div>
                   <Icon className={`w-8 h-8 ${stat.color}`} />

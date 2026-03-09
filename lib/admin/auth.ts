@@ -30,7 +30,7 @@ export async function requireAdmin(): Promise<RequireAdminResult> {
     data: { user },
   } = await authClient.auth.getUser();
   if (!user?.email) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    return { error: NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 }) };
   }
   const email = user.email.toLowerCase();
   let allowed = isAdmin(email);
@@ -43,14 +43,13 @@ export async function requireAdmin(): Promise<RequireAdminResult> {
     allowed = !!data;
   }
   if (!allowed) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+    return { error: NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 }) };
   }
   let supabase;
   try {
     supabase = getServiceClient();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'SUPABASE_SERVICE_ROLE_KEY not configured';
-    return { error: NextResponse.json({ error: msg }, { status: 500 }) };
+  } catch {
+    return { error: NextResponse.json({ ok: false, error: 'Service temporarily unavailable.' }, { status: 503 }) };
   }
   return { supabase, user: { email } };
 }

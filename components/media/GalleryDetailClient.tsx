@@ -49,11 +49,21 @@ export function GalleryDetailClient({
       >
         ← Back to Media
       </Link>
-      <h1 className="text-4xl font-bold text-white mb-4">{galleryName}</h1>
-      {galleryDescription && (
-        <p className="text-white/70 mb-12">{galleryDescription}</p>
+      <h1 className="type-h1 text-white mb-4" style={{ fontFamily: 'var(--font-display)' }}>{galleryName}</h1>
+      {galleryDescription ? (
+        <p className="type-body text-white/70 mb-12 prose-readability">{galleryDescription}</p>
+      ) : (
+        <p className="type-body text-white/60 mb-10 max-w-[45ch]">Photos and media from this collection.</p>
       )}
-      <GalleryGrid items={media} onItemClick={handleItemClick} />
+      {media.length === 0 ? (
+        <div className="py-20 text-center">
+          <p className="text-white/60 text-lg tracking-wide" style={{ fontFamily: 'var(--font-ui)' }}>
+            No media in this collection yet.
+          </p>
+        </div>
+      ) : (
+        <GalleryGrid items={media} onItemClick={handleItemClick} />
+      )}
 
       {viewerIndex !== null && (
         <Suspense

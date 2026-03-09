@@ -140,6 +140,24 @@ export default function AdminCollectionsPage() {
     setCoverPickerOpen(false);
   };
 
+  const handleClearCover = () => {
+    if (!editingGallery) return;
+    fetch('/api/admin/galleries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id: editingGallery.id, clear_cover: true }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) {
+          setEditingGallery((prev) => prev ? { ...prev, cover_image_url: null, external_cover_asset_id: null } : null);
+          load();
+        } else alert(data.error);
+      })
+      .catch(() => alert('Failed to clear cover'));
+  };
+
   return (
     <AdminPage title="Collections" subtitle="Galleries shown on the public Media page (Collections tab)">
       <AdminCard className="mb-6">
@@ -197,7 +215,12 @@ export default function AdminCollectionsPage() {
                 <p className="font-medium text-slate-800 truncate">{g.name}</p>
                 <p className="text-sm text-slate-500">{g.slug}</p>
                 <p className="text-xs text-slate-500">
-                  {(g.gallery_media?.length ?? 0)} items · <a href={`/media/galleries/${g.slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View on site</a>
+                  {(g.gallery_media?.length ?? 0)} items
+                  {g.slug ? (
+                    <> · <a href={`/media/galleries/${g.slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View on site</a></>
+                  ) : (
+                    <> · <span className="text-slate-400">No slug</span></>
+                  )}
                 </p>
               </div>
             </div>
@@ -252,7 +275,7 @@ export default function AdminCollectionsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Cover image</label>
-                <p className="text-xs text-slate-500 mb-2">Shown on the public Media page. Use &quot;Set as cover&quot; to pick from the media library.</p>
+                <p className="text-xs text-slate-500 mb-2">Shown on the public Media page. Choose from library or clear.</p>
                 <div className="flex items-center gap-3 flex-wrap">
                   {editingGallery.cover_image_url ? (
                     <img src={editingGallery.cover_image_url} alt="" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
@@ -266,16 +289,28 @@ export default function AdminCollectionsPage() {
                       open={true}
                       onClose={() => setCoverPickerOpen(false)}
                       onSelect={handleSetCover}
+                      filter="image"
                       title="Choose cover image"
                     />
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setCoverPickerOpen(true)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
-                    >
-                      Set as cover
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setCoverPickerOpen(true)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
+                      >
+                        Choose from library
+                      </button>
+                      {editingGallery.cover_image_url && (
+                        <button
+                          type="button"
+                          onClick={handleClearCover}
+                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 text-sm font-medium"
+                        >
+                          Clear cover
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

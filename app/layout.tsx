@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Playfair_Display, Inter } from 'next/font/google';
 import { getSiteSettings } from '@/lib/content/server';
+import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from '@/lib/site';
 
 const playfairDisplay = Playfair_Display({
   weight: ['400', '600', '700'],
@@ -18,14 +19,7 @@ const inter = Inter({
   variable: '--font-body',
 });
 
-const SITE_NAME = 'Divine Timing';
 const DEFAULT_DESCRIPTION = 'Live, evolving, in motion.';
-const BASE_URL =
-  typeof process.env.NEXT_PUBLIC_SITE_URL === 'string' && process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')
-    ? process.env.NEXT_PUBLIC_SITE_URL
-    : typeof process.env.VERCEL_URL === 'string' && process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'https://divinetiming.world';
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -41,14 +35,16 @@ export const metadata: Metadata = {
     title: 'DIVINE:TIMING',
     description: DEFAULT_DESCRIPTION,
     url: BASE_URL,
-    images: [{ url: '/opengraph.png', width: 1200, height: 630, alt: 'Divine Timing' }],
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Divine Timing' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'DIVINE:TIMING',
     description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
   },
   robots: { index: true, follow: true },
+  icons: { icon: '/favicon.ico' },
 };
 
 export default async function RootLayout({

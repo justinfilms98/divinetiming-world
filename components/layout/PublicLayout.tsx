@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { SpaceBackdrop } from '@/components/space/SpaceBackdrop';
 import { CornerNav } from '@/components/layout/CornerNav';
 import { SocialDock } from '@/components/layout/SocialDock';
+import { Footer } from '@/components/layout/Footer';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { CartProvider } from '@/components/shop/CartContext';
 import { CartTrigger } from '@/components/shop/CartTrigger';
@@ -30,8 +31,9 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
       <SpaceBackdrop />
       <CornerNav siteSettings={siteSettings} />
       <SocialDock siteSettings={siteSettings} />
-      <div className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col">
-        <PageTransition>{children}</PageTransition>
+      <div className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col min-h-screen">
+        <PageTransition className="flex-1 flex flex-col min-h-0">{children}</PageTransition>
+        <Footer siteSettings={siteSettings} />
       </div>
       <CartTrigger />
       <CartSlideOut />

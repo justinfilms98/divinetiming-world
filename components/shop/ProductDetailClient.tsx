@@ -69,13 +69,12 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
 
       const data = await response.json();
 
-      if (response.ok && data.url) {
-        window.location.href = data.url;
+      if (response.ok && data.ok && data.data?.url) {
+        window.location.href = data.data.url;
       } else {
         alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
       }
-    } catch (error) {
-      console.error('Checkout error:', error);
+    } catch {
       alert('Checkout is temporarily unavailable. Please try again later or contact us.');
     } finally {
       setIsLoading(false);
@@ -87,11 +86,11 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
       {/* Variant Selection */}
       {product.product_variants && product.product_variants.length > 0 && (
         <div className="mb-6">
-          <label className="block text-[var(--text)] font-semibold mb-2">Select Option</label>
+          <label className="block text-[var(--text)] font-semibold mb-2 type-label">Select Option</label>
           <select
             value={selectedVariant || ''}
             onChange={(e) => setSelectedVariant(e.target.value)}
-            className="w-full px-4 py-2 bg-[var(--bg2)] border border-[var(--accent)]/20 rounded-md text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
+            className="w-full min-h-[48px] px-4 py-2 bg-[var(--bg)] border border-[var(--accent)]/20 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
           >
             {product.product_variants.map((variant) => (
               <option key={variant.id} value={variant.id}>
@@ -107,39 +106,43 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
 
       {/* Quantity */}
       <div className="mb-6">
-        <label className="block text-[var(--text)] font-semibold mb-2">Quantity</label>
+        <label className="block text-[var(--text)] font-semibold mb-2 type-label">Quantity</label>
         <div className="flex items-center gap-4">
           <button
+            type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="px-4 py-2 bg-[var(--bg2)] border border-[var(--accent)]/20 rounded-md text-[var(--text)] hover:border-[var(--accent)] transition-colors"
+            className="min-h-[48px] px-4 py-2 rounded-[var(--radius-button)] bg-[var(--bg)] border border-[var(--accent)]/20 text-[var(--text)] hover:border-[var(--accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
           >
             −
           </button>
-          <span className="text-[var(--text)] font-semibold w-12 text-center">{quantity}</span>
+          <span className="text-[var(--text)] font-semibold w-12 text-center type-body">{quantity}</span>
           <button
+            type="button"
             onClick={() => setQuantity(quantity + 1)}
-            className="px-4 py-2 bg-[var(--bg2)] border border-[var(--accent)]/20 rounded-md text-[var(--text)] hover:border-[var(--accent)] transition-colors"
+            className="min-h-[48px] px-4 py-2 rounded-[var(--radius-button)] bg-[var(--bg)] border border-[var(--accent)]/20 text-[var(--text)] hover:border-[var(--accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
           >
             +
           </button>
         </div>
       </div>
 
-      {/* Add to Cart & Buy Buttons */}
-      <div className="flex gap-4">
+      {/* Add to Cart & Buy Now: brand-consistent CTAs */}
+      <div className="flex flex-col sm:flex-row gap-4">
         <button
+          type="button"
           onClick={handleAddToCart}
           disabled={(hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity) || (!hasVariants && false)}
-          className="flex-1 px-6 py-4 bg-white/10 text-white border border-white/20 rounded-md hover:bg-white/20 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 min-h-[48px] px-6 py-3 rounded-[var(--radius-button)] type-button border border-[var(--accent)]/20 text-[var(--text)] hover:border-[var(--accent)]/50 hover:bg-[var(--bg)]/50 transition-[color,border-color,background-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity
             ? 'Out of Stock'
             : 'Add to Cart'}
         </button>
         <button
+          type="button"
           onClick={handleCheckout}
           disabled={isLoading || (hasVariants && selectedVariantData && selectedVariantData.inventory_count < quantity)}
-          className="flex-1 px-6 py-4 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors glow font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 min-h-[48px] px-6 py-3 rounded-[var(--radius-button)] type-button bg-[var(--accent)] text-[var(--text)] hover:bg-[var(--accent-hover)] transition-[color,background-color,transform] duration-200 shadow-[var(--shadow-button)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Processing...' : 'Buy Now'}
         </button>

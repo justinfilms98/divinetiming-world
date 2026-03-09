@@ -20,7 +20,7 @@ export function BookingPresentationSections({ sections }: BookingPresentationSec
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className={`flex flex-col gap-8 md:gap-12 ${
               index % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
             } md:items-center`}

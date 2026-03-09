@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         .single();
       if (error) {
         console.error('Admin products update error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
       if (Array.isArray(images) && images.length > 0) {
         const existing = await supabase
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) {
       console.error('Admin products insert error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
 
     if (Array.isArray(images) && images.length > 0) {
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin products POST error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }
 
@@ -131,13 +131,13 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) {
       console.error('Admin products DELETE error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/shop');
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin products DELETE error:', err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

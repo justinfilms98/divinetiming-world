@@ -4,9 +4,12 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useCart } from './CartContext';
+import { useReducedMotion } from '@/lib/ui/reducedMotion';
 
 export function CartSlideOut() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalCents, clearCart } = useCart();
+  const reduce = useReducedMotion();
+  const slideTransition = reduce ? { duration: 0.01 } : { duration: 0.2, ease: [0.4, 0, 0.2, 1] as const };
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
@@ -23,15 +26,14 @@ export function CartSlideOut() {
         }),
       });
       const data = await response.json();
-      if (response.ok && data.url) {
+      if (response.ok && data.ok && data.data?.url) {
         clearCart();
         closeCart();
-        window.location.href = data.url;
+        window.location.href = data.data.url;
       } else {
         alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
       }
-    } catch (error) {
-      console.error('Checkout error:', error);
+    } catch {
       alert('Checkout is temporarily unavailable. Please try again later or contact us.');
     }
   };
@@ -44,6 +46,7 @@ export function CartSlideOut() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.2 }}
             onClick={closeCart}
             className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
           />
@@ -51,7 +54,7 @@ export function CartSlideOut() {
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            transition={slideTransition}
             className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--bg)] border-l border-white/10 z-50 flex flex-col shadow-[0_-4px_24px_rgba(0,0,0,0.35)]"
           >
             <div className="p-6 border-b border-white/10 flex items-center justify-between">

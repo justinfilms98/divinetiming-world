@@ -15,10 +15,9 @@ export async function GET() {
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
-      { error: error?.message ?? 'about_content not found' },
-      { status: error?.code === 'PGRST116' ? 404 : 500 }
-    );
+    const status = error?.code === 'PGRST116' ? 404 : 500;
+    const message = status === 404 ? 'about_content not found' : 'Operation failed.';
+    return NextResponse.json({ error: message }, { status });
   }
   return NextResponse.json(data);
 }
@@ -57,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Admin about-content POST error:', error);
       return NextResponse.json(
-        { error: error.message, hint: error.details ?? undefined },
+        { error: 'Operation failed.' },
         { status: 500 }
       );
     }
@@ -67,6 +66,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin about-content POST error:', err);
-    return NextResponse.json({ error: msg, hint: 'Check server logs' }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
   }
 }

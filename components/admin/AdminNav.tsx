@@ -15,13 +15,13 @@ import {
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  { label: 'Hero', href: '/admin/hero', icon: Layers },
   { label: 'Events', href: '/admin/events', icon: Calendar },
   { label: 'Booking', href: '/admin/booking', icon: BookOpen },
   { label: 'Media', href: '/admin/media', icon: ImageIcon },
   { label: 'Shop', href: '/admin/shop', icon: ShoppingBag },
-  { label: 'Heroes', href: '/admin#heroes', icon: Layers },
   { label: 'About', href: '/admin/about', icon: FileText },
+  { label: 'Settings', href: '/admin/settings', icon: Settings },
 ] as const;
 
 interface AdminNavProps {
@@ -37,8 +37,7 @@ export function AdminNav({ collapsed }: AdminNavProps) {
         const Icon = item.icon;
         const isActive =
           pathname === item.href ||
-          (item.href.startsWith('/admin#') && pathname === '/admin') ||
-          (item.href !== '/admin' && !item.href.startsWith('/admin#') && pathname?.startsWith(item.href));
+          (item.href !== '/admin' && pathname?.startsWith(item.href));
         return (
           <Link
             key={`${item.href}-${item.label}`}

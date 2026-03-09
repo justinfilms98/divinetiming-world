@@ -1,8 +1,9 @@
 import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { notFound } from 'next/navigation';
 import { getGalleryBySlug } from '@/lib/content/server';
 import { GalleryDetailClient } from '@/components/media/GalleryDetailClient';
+import { Container } from '@/components/ui/Container';
+import { absoluteImageUrl } from '@/lib/site';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -15,10 +16,28 @@ export async function generateMetadata({
   const { slug } = await params;
   const gallery = await getGalleryBySlug(slug);
   if (!gallery) return { title: 'Gallery' };
+  const path = `/media/galleries/${slug}`;
+  const description = gallery.description || `Photo gallery: ${gallery.name}`;
+  const ogImageUrl = absoluteImageUrl(gallery.resolved_cover_url ?? null);
   return {
-    title: gallery.name,
-    description: gallery.description || `Photo gallery: ${gallery.name}`,
-    openGraph: { title: `${gallery.name} | Divine Timing` },
+    title: `${gallery.name} | Divine Timing Media`,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: `${gallery.name} | Divine Timing Media`,
+      description,
+      url: path,
+      type: 'website',
+      ...(ogImageUrl && {
+        images: [{ url: ogImageUrl, width: 1200, height: 630, alt: gallery.name }],
+      }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${gallery.name} | Divine Timing Media`,
+      description,
+      ...(ogImageUrl && { images: [ogImageUrl] }),
+    },
   };
 }
 
@@ -47,16 +66,15 @@ export default async function GalleryPage({
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <Header />
-      <main className="flex-1 py-16 px-4 min-w-0">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 py-16 min-w-0">
+        <Container>
           <GalleryDetailClient
             galleryName={gallery.name}
             galleryDescription={gallery.description}
             media={gridItems}
           />
-        </div>
+        </Container>
       </main>
-      <Footer />
     </div>
   );
 }

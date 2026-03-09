@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
-import { uploadOne, getUploadcarePublicKey } from '@/lib/uploadcare';
+import { uploadToSupabase } from '@/lib/supabaseStorage';
 
 export type UploadedFile = {
   url: string;
@@ -16,7 +16,7 @@ export type UploadedFile = {
   duration?: number;
 };
 
-/** Default max file size (100MB). Match Uploadcare plan; override via env NEXT_PUBLIC_UPLOAD_MAX_BYTES. */
+/** Default max file size (100MB). Override via env NEXT_PUBLIC_UPLOAD_MAX_BYTES. */
 const DEFAULT_MAX_BYTES = 100 * 1024 * 1024;
 
 interface UniversalUploaderProps {
@@ -32,6 +32,8 @@ interface UniversalUploaderProps {
   acceptOverride?: string;
   /** Notify parent when upload starts/ends so Save can be disabled during upload. */
   onUploadingChange?: (uploading: boolean) => void;
+  /** Hide the cloud-drive tip; use when help is in a separate collapsible. */
+  hideStorageTip?: boolean;
 }
 
 
@@ -64,6 +66,7 @@ export function UniversalUploader({
   maxSizeBytes,
   acceptOverride,
   onUploadingChange,
+  hideStorageTip = false,
 }: UniversalUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -72,8 +75,6 @@ export function UniversalUploader({
   const [success, setSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const key = getUploadcarePublicKey();
-  const hasKey = !!key;
   const maxBytes = getMaxBytes(maxSizeBytes);
   const accept = acceptOverride ?? acceptAttribute(acceptedTypes);
 
@@ -90,10 +91,6 @@ export function UniversalUploader({
     async (files: FileList | File[]) => {
       const list = Array.isArray(files) ? files : Array.from(files);
       if (!list.length) return;
-      if (!key) {
-        setError('Uploads disabled: add NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY to .env.local. See docs/MEDIA_STORAGE.md');
-        return;
-      }
       if (acceptOverride) {
         const allowed = acceptOverride.split(',').map((s) => s.trim().toLowerCase());
         const invalid = list.find((f) => {
@@ -116,42 +113,28 @@ export function UniversalUploader({
       setUploading(true);
       onUploadingChange?.(true);
       const total = list.length;
-      const results: Array<{
-        uuid: string;
-        cdnUrl: string;
-        mimeType: string;
-        size: number;
-        name: string;
-      }> = [];
+      const results: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       try {
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
           setProgress((i / total) * 100);
-          const result = await uploadOne(file, {
-            publicKey: key,
+          const result = await uploadToSupabase(file, {
             onProgress: (value) => setProgress(((i + value) / total) * 100),
           });
           results.push({
-            uuid: result.uuid,
-            cdnUrl: result.url,
+            storage_path: result.storage_path,
+            public_url: result.public_url,
+            name: result.name,
             mimeType: result.mimeType,
             size: result.size,
-            name: result.filename,
           });
         }
         setProgress(100);
-        const payload = results.map((r) => ({
-          uuid: r.uuid,
-          cdnUrl: r.cdnUrl,
-          originalFilename: r.name || undefined,
-          mimeType: r.mimeType,
-          size: r.size,
-        }));
         const res = await fetch('/api/admin/media/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ provider: 'supabase', files: results }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -169,7 +152,7 @@ export function UniversalUploader({
         }) => ({
           url: a.preview_url,
           id: a.id,
-          provider: a.provider || 'uploadcare',
+          provider: a.provider || 'supabase',
           name: a.name ?? undefined,
           size: a.size_bytes ?? undefined,
           mimeType: a.mime_type ?? undefined,
@@ -193,7 +176,7 @@ export function UniversalUploader({
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [key, multiple, onSelected, maxBytes, acceptOverride, onUploadingChange]
+    [multiple, onSelected, maxBytes, acceptOverride, onUploadingChange]
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,24 +209,6 @@ export function UniversalUploader({
     e.stopPropagation();
     setIsDragging(false);
   };
-
-  if (!hasKey) {
-    return (
-      <div
-        className={`flex flex-col gap-2 px-4 py-3 border-2 border-dashed border-amber-500/40 rounded-lg text-amber-700 bg-amber-500/10 ${className}`}
-        role="alert"
-      >
-        <div className="flex items-center gap-2">
-          <Upload className="w-4 h-4 shrink-0" />
-          <span className="text-sm font-medium">Uploads disabled</span>
-        </div>
-        <p className="text-sm">
-          Add <code className="bg-amber-500/20 px-1 rounded">NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY</code> to{' '}
-          <code className="bg-amber-500/20 px-1 rounded">.env.local</code>. See docs/MEDIA_STORAGE.md.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className={`inline-flex flex-col gap-3 ${className}`}>
@@ -318,9 +283,11 @@ export function UniversalUploader({
           <span>Drag & drop or choose file{multiple ? 's' : ''}</span>
         </div>
       </div>
-      <p className="text-slate-500 text-xs max-w-sm">
-        Tip: You can pick files from iCloud Drive, Google Drive, OneDrive, or Dropbox if they appear in your device file picker.
-      </p>
+      {!hideStorageTip && (
+        <p className="text-slate-500 text-xs max-w-sm">
+          Tip: You can pick files from iCloud Drive, Google Drive, OneDrive, or Dropbox if they appear in your device file picker.
+        </p>
+      )}
     </div>
   );
 }

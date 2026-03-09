@@ -39,7 +39,7 @@ export function AboutHero({
           className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           style={{ fontFamily: 'var(--font-playfair-display), serif' }}
         >
           {headline}
@@ -49,7 +49,7 @@ export function AboutHero({
             className="text-white/80 text-lg mt-4 max-w-xl font-light"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+            transition={{ duration: 0.25, delay: 0.08, ease: [0.4, 0, 0.2, 1] }}
           >
             {subtext}
           </motion.p>

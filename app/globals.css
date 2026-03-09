@@ -15,6 +15,8 @@
   --accent2: #D4B76A;      /* Alias for hover */
   /* Depth highlight (sparingly) */
   --ocean: #2F5D62;
+  /* Phase 7: softened white for hero text (not harsh pure white) */
+  --white-soft: rgba(255, 255, 255, 0.96);
 }
 
 * {
@@ -53,24 +55,27 @@ body {
   --font-ui: var(--font-body), 'Inter', 'Helvetica Neue', system-ui, sans-serif;
   --font-headline: var(--font-display);
   --font-body: var(--font-ui);
-  /* Typography tokens */
-  --text-h1: clamp(2.25rem, 4vw, 4.5rem);
-  --text-h2: clamp(1.625rem, 2.5vw, 2.5rem);
-  --text-h3: clamp(1.25rem, 1.5vw, 1.5rem);
+  /* Typography tokens — Phase 25: coherent scale, readability */
+  --text-h1: clamp(2.25rem, 3vw, 3rem);
+  --text-h2: clamp(1.75rem, 2vw, 2rem);
+  --text-h3: clamp(1.25rem, 1.35vw, 1.375rem);
   --text-subtitle: clamp(1rem, 1.2vw, 1.25rem);
   --text-body: 1.125rem;
   --text-body-mobile: 1rem;
   --text-small: 0.875rem;
-  --text-label: 0.75rem;
+  --text-label: 0.875rem;
   --text-button: 0.9375rem;
   --line-height-tight: 1.2;
-  --line-height-body: 1.6;
-  --line-height-relaxed: 1.7;
+  --line-height-relaxed: 1.75;
   --letter-spacing-tight: -0.02em;
   --letter-spacing-normal: 0;
   --letter-spacing-wide: 0.08em;
   --letter-spacing-nav: 0.12em;
   --letter-spacing-caps: 0.16em;
+  /* Phase 7: hero typography */
+  --letter-spacing-hero-title: 0.06em;
+  --letter-spacing-hero-label: 0.18em;
+  --line-height-body: 1.65;
 }
 @media (max-width: 768px) {
   :root {
@@ -78,13 +83,24 @@ body {
   }
 }
 
-/* Spacing system — 8px scale */
+/* Motion — Phase 24: single easing, standardized durations */
+:root {
+  --motion-fast: 150ms;
+  --motion-standard: 200ms;
+  --motion-page: 250ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Spacing system — 8px scale. Phase 25: vertical rhythm. */
 :root {
   --section-padding-desktop: 120px;
   --section-padding-tablet: 80px;
   --section-padding-mobile: 60px;
   --content-max-width: 1200px;
   --content-padding-x: 24px;
+  --space-sm: 1rem;      /* 16px — small gap */
+  --space-md: 2rem;     /* 32px — medium gap */
+  --space-section: 5rem; /* 80px — large section gap (md) */
   /* Buttons & cards */
   --radius-button: 0.75rem;
   --radius-button-sm: 0.5rem;
@@ -94,6 +110,11 @@ body {
   --shadow-button-hover: 0 0 28px rgba(198, 167, 94, 0.4);
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
+  /* Phase 31: border harmony — soft borders from palette (text for neutral, accent for cards). */
+  --border-subtle: rgba(28, 28, 28, 0.08);
+  /* Phase 29: atmosphere — subtle highlight and section lift. Phase 31: restrained. */
+  --atmosphere-card-highlight: linear-gradient(to bottom, rgba(255, 255, 255, 0.025), transparent 45%);
+  --atmosphere-section-lift: linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0%, transparent 60%);
 }
 
 .section-padding {
@@ -121,6 +142,27 @@ body {
   margin-right: auto;
 }
 
+/* Phase 27: spacing utilities (use for consistent rhythm) */
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.mb-section { margin-bottom: var(--space-section); }
+.mt-section { margin-top: var(--space-section); }
+
+/* Phase 11: global container standard — use Container component or this class */
+.container-standard {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+@media (min-width: 768px) {
+  .container-standard {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -136,16 +178,17 @@ body {
   background: var(--accent-hover);
 }
 
-/* CTA glow — gold (buttons & links) */
+/* CTA glow — Phase 24: var(--motion-standard), var(--ease-standard) */
 .glow {
   box-shadow: var(--shadow-button);
-  transition: box-shadow 0.25s ease;
+  transition: box-shadow var(--motion-standard) var(--ease-standard);
 }
 .glow:hover {
   box-shadow: var(--shadow-button-hover);
 }
 .btn-primary-glow {
   box-shadow: var(--shadow-button);
+  transition: box-shadow var(--motion-standard) var(--ease-standard);
 }
 .btn-primary-glow:hover {
   box-shadow: var(--shadow-button-hover);
@@ -238,36 +281,72 @@ body {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 
+/* Phase 31: surfaces from palette — glass and cards use same warm family (--bg). */
 .glass {
   background: rgba(244, 239, 232, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(28, 28, 28, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .luxury-card {
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(198, 167, 94, 0.25);
+  background: rgba(244, 239, 232, 0.92);
+  border: 1px solid rgba(198, 167, 94, 0.22);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  transition: border-color 0.25s ease-out, box-shadow 0.25s ease-out, background 0.25s ease-out;
+  transition: border-color var(--motion-standard) var(--ease-standard), box-shadow var(--motion-standard) var(--ease-standard), background var(--motion-standard) var(--ease-standard);
 }
 .luxury-card:hover {
-  border-color: rgba(198, 167, 94, 0.5);
+  border-color: rgba(198, 167, 94, 0.45);
   box-shadow: var(--shadow-card-hover);
 }
 
-/* Typography utility classes (use design tokens) */
+/* Phase 29: card atmosphere — very subtle top highlight for depth (use on cards with position relative) */
+.card-atmosphere {
+  position: relative;
+}
+.card-atmosphere::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--atmosphere-card-highlight);
+  pointer-events: none;
+  z-index: 0;
+}
+/* Section lift — barely perceptible tone shift for content sections */
+.section-lift {
+  background: var(--atmosphere-section-lift);
+}
+
+/* Phase 33: signature divider — left fade, soft center, right fade; optional faint glow */
+.signature-divider-line {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(198, 167, 94, 0.06) 18%,
+    rgba(198, 167, 94, 0.2) 50%,
+    rgba(198, 167, 94, 0.06) 82%,
+    transparent 100%
+  );
+  box-shadow: 0 0 20px rgba(198, 167, 94, 0.06);
+}
+
+/* Typography utility classes (use design tokens) — Phase 11 design system lock */
 .type-h1 {
   font-family: var(--font-display);
   font-size: var(--text-h1);
+  font-weight: 600;
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-tight);
 }
 .type-h2 {
   font-family: var(--font-display);
   font-size: var(--text-h2);
+  font-weight: 600;
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-tight);
 }
@@ -287,6 +366,12 @@ body {
   font-size: var(--text-body);
   line-height: var(--line-height-body);
 }
+
+/* Long-form readability — ~65ch, Phase 25 */
+.prose-readability {
+  max-width: 65ch;
+  line-height: var(--line-height-body);
+}
 .type-small {
   font-size: var(--text-small);
   line-height: var(--line-height-body);
@@ -299,6 +384,24 @@ body {
   text-transform: uppercase;
   color: var(--text-muted);
 }
+
+/* Micro label — hero labels, metadata labels (Phase 11) */
+.type-micro-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+}
+
+/* Hero label (small caps over hero) — Phase 7: wider tracking, reduced opacity */
+.type-hero-label {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-hero-label);
+  text-transform: uppercase;
+  opacity: 0.75;
+}
 .type-button {
   font-family: var(--font-ui);
   font-size: var(--text-button);
@@ -306,7 +409,7 @@ body {
   letter-spacing: var(--letter-spacing-wide);
 }
 
-/* Hero CTAs — tactile primary, premium secondary */
+/* Hero CTAs — Phase 7: luxury minimal, 150–200ms, brightness + shadow only (no scale/lift) */
 .hero-cta-primary {
   display: inline-flex;
   align-items: center;
@@ -322,16 +425,16 @@ body {
   border: 1px solid var(--accent);
   border-radius: var(--radius-button);
   box-shadow: var(--shadow-button);
-  transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow var(--motion-standard) var(--ease-standard), background var(--motion-standard) var(--ease-standard), border-color var(--motion-standard) var(--ease-standard), filter var(--motion-standard) var(--ease-standard);
 }
 .hero-cta-primary:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
   box-shadow: var(--shadow-button-hover);
-  transform: translateY(-2px);
+  filter: brightness(1.05);
 }
 .hero-cta-primary:active {
-  transform: translateY(0);
+  filter: brightness(0.98);
   box-shadow: var(--shadow-button);
 }
 .hero-cta-primary:focus-visible {
@@ -349,20 +452,20 @@ body {
   font-size: var(--text-button);
   font-weight: 500;
   letter-spacing: var(--letter-spacing-wide);
-  color: white;
+  color: rgba(255, 255, 255, 0.95);
   background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.45);
   border-radius: var(--radius-button);
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition: background 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out, filter 0.18s ease-out;
 }
 .hero-cta-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.7);
-  color: white;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.98);
+  filter: brightness(1.02);
 }
 .hero-cta-secondary:active {
-  transform: translateY(0);
+  filter: brightness(0.98);
 }
 .hero-cta-secondary:focus-visible {
   outline: none;
@@ -372,6 +475,16 @@ body {
 /* Subtle hero text readability (use on hero headings/subtext) */
 .hero-text-shadow {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Phase 7: very subtle film grain over hero (2–4% opacity, cinematic) */
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
 }
 
 .text-smooth {
