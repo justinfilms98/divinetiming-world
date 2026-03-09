@@ -1,11 +1,14 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Container } from '@/components/ui/Container';
 import type { AboutPhoto, AboutTimelineItem } from '@/lib/types/content';
 
 interface AboutContentProps {
+  /** Short brand statement (e.g. from hero subtext) */
+  brandStatement?: string | null;
   bioText: string;
   /** Sanitized HTML from DB; when present, used instead of bioText */
   bioHtml?: string | null;
@@ -16,6 +19,7 @@ interface AboutContentProps {
 }
 
 export function AboutContent({
+  brandStatement,
   bioText,
   bioHtml,
   photos,
@@ -28,6 +32,24 @@ export function AboutContent({
 
   return (
     <Container className="py-16 md:py-24">
+      {/* Brand statement */}
+      {brandStatement && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          className="max-w-3xl mx-auto text-center mb-20 md:mb-28"
+        >
+          <p className="text-xl md:text-2xl lg:text-3xl text-white/90 leading-relaxed font-light" style={{ fontFamily: 'var(--font-playfair-display), serif' }}>
+            {brandStatement}
+          </p>
+        </motion.section>
+      )}
+
+      {/* Story */}
+      <section className="mb-20 md:mb-28" aria-labelledby="about-story-heading">
+        <h2 id="about-story-heading" className="sr-only">Story</h2>
       {/* Bio with alternating layout when photos exist */}
       {useRichBio ? (
         <motion.section
@@ -100,6 +122,37 @@ export function AboutContent({
         </section>
         )
       )}
+      </section>
+
+      {/* Performance identity / sound — optional short mission line */}
+      {(bioParagraphs.length > 0 || useRichBio) && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-2xl mx-auto text-center py-12 border-y border-white/10"
+        >
+          <p className="text-[var(--text-muted)] type-body italic">
+            Live, evolving, in motion — electronic duo for festivals, club nights, and collaborations.
+          </p>
+        </motion.section>
+      )}
+
+      {/* Press kit CTA */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mt-20 md:mt-28 text-center"
+      >
+        <p className="text-white/80 type-body mb-6">Press & promoters</p>
+        <Link
+          href="/epk"
+          className="inline-flex items-center gap-2 px-6 py-4 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button font-medium"
+        >
+          Download EPK
+        </Link>
+      </motion.section>
 
       {/* Remaining photos if more than bio paragraphs */}
       {photos.length > bioParagraphs.length && (

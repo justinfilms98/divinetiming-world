@@ -5,8 +5,6 @@ import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { DivineTimingIntro } from '@/components/home/DivineTimingIntro';
 import { HeroLogo } from '@/components/home/HeroLogo';
 import { HeroContent } from '@/components/home/HeroContent';
-import { MemberLine } from '@/components/home/MemberLine';
-import { HeroPlatformRow } from '@/components/home/HeroPlatformRow';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { getHeroSection, getHeroCarouselSlides, getSiteSettings, getPageSettings } from '@/lib/content/server';
 import { getPlatformLinks } from '@/lib/platformLinks';
@@ -78,18 +76,13 @@ export default async function HomePage() {
           animationEnabled={animationEnabled}
         />
       )}
-      <MemberLine
-        member1Name={siteSettings?.member_1_name ?? undefined}
-        member2Name={siteSettings?.member_2_name ?? undefined}
-      />
       <HeroContent
-        subtext={heroSection?.subtext}
+        subtext={undefined}
         ctaText={heroSection?.cta_text ?? 'Listen Now'}
         ctaUrl={heroSection?.cta_url || listenUrl}
         secondaryCtaText="Booking"
         secondaryCtaUrl="/booking"
       />
-      <HeroPlatformRow overrides={siteSettings ?? undefined} />
     </div>
   );
 

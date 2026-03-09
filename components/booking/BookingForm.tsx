@@ -18,7 +18,8 @@ export function BookingForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    organization: '',
+    company: '',
+    eventType: '',
     eventDate: '',
     location: '',
     budgetRange: '',
@@ -33,7 +34,11 @@ export function BookingForm() {
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          organization: formData.company,
+          eventType: formData.eventType,
+        }),
       });
 
       if (!res.ok) {
@@ -46,7 +51,8 @@ export function BookingForm() {
       setFormData({
         name: '',
         email: '',
-        organization: '',
+        company: '',
+        eventType: '',
         eventDate: '',
         location: '',
         budgetRange: '',
@@ -103,22 +109,41 @@ export function BookingForm() {
           </div>
 
           <div>
-            <label htmlFor="organization" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Organization
+            <label htmlFor="company" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Company
             </label>
             <input
-              id="organization"
+              id="company"
               type="text"
-              value={formData.organization}
-              onChange={(e) => setFormData((p) => ({ ...p, organization: e.target.value }))}
+              value={formData.company}
+              onChange={(e) => setFormData((p) => ({ ...p, company: e.target.value }))}
               className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
               placeholder="Venue, festival, or company"
             />
           </div>
 
           <div>
+            <label htmlFor="eventType" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Event type
+            </label>
+            <select
+              id="eventType"
+              value={formData.eventType}
+              onChange={(e) => setFormData((p) => ({ ...p, eventType: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+            >
+              <option value="">Select type</option>
+              <option value="Festival">Festival</option>
+              <option value="Club night">Club night</option>
+              <option value="Private event">Private event</option>
+              <option value="Collaboration">Collaboration</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="eventDate" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Event Date
+              Event date
             </label>
             <input
               id="eventDate"

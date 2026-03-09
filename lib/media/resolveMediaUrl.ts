@@ -34,6 +34,14 @@ export async function resolveMediaUrl(
         mimeType: asset.mime_type ?? undefined,
       };
     }
+    if (asset?.provider === 'supabase' && asset.preview_url) {
+      return {
+        url: asset.preview_url,
+        thumbnailUrl: asset.thumbnail_url ?? asset.preview_url,
+        isExternal: true,
+        mimeType: asset.mime_type ?? undefined,
+      };
+    }
     if (asset?.provider === 'google_drive') {
       const isVideo = asset.mime_type?.toLowerCase().startsWith('video/');
       const url = isVideo ? getVideoPreviewUrl(asset.file_id) : getImageUrl(asset.file_id);
@@ -63,6 +71,14 @@ export async function resolveExternalAsset(assetId: string): Promise<ResolvedMed
   if (!asset) return null;
 
   if (asset.provider === 'uploadcare' && asset.preview_url) {
+    return {
+      url: asset.preview_url,
+      thumbnailUrl: asset.thumbnail_url ?? asset.preview_url,
+      isExternal: true,
+      mimeType: asset.mime_type ?? undefined,
+    };
+  }
+  if (asset.provider === 'supabase' && asset.preview_url) {
     return {
       url: asset.preview_url,
       thumbnailUrl: asset.thumbnail_url ?? asset.preview_url,

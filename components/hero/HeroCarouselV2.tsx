@@ -19,15 +19,18 @@ function EmbedIframe({ embedUrl, active }: { embedUrl: string; active: boolean }
   const isYoutube = embedUrl.includes('youtube.com/embed');
   const src = isYoutube ? `${embedUrl}?${YOUTUBE_EMBED_PARAMS}&playlist=${embedUrl.split('/').pop() || ''}` : embedUrl;
   return (
-    <iframe
-      src={src}
-      title="Hero embed"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowFullScreen
-      className="absolute inset-0 w-full h-full object-cover"
-      sandbox="allow-scripts allow-same-origin allow-presentation"
-      referrerPolicy="strict-origin-when-cross-origin"
-    />
+    <div className="absolute inset-0 w-full h-full overflow-hidden">
+      <iframe
+        src={src}
+        title="Hero embed"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="absolute left-1/2 top-1/2 min-h-[100vh] min-w-[177.78vh] w-[100vw] h-[56.25vw] -translate-x-1/2 -translate-y-1/2"
+        style={{ border: 0 }}
+        sandbox="allow-scripts allow-same-origin allow-presentation"
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
   );
 }
 
@@ -158,14 +161,14 @@ export function HeroCarouselV2({
                   loop
                   playsInline
                   preload="metadata"
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
                 />
               ) : currentSlot.media_type === 'image' && currentSlot.resolved_image_url ? (
                 <Image
                   src={currentSlot.resolved_image_url}
                   alt=""
                   fill
-                  className="object-cover"
+                  className="object-cover object-center"
                   sizes="100vw"
                   priority={activeIndex === 0}
                   unoptimized={currentSlot.resolved_image_url.startsWith('blob:')}

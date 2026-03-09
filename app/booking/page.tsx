@@ -47,8 +47,8 @@ export default async function BookingPage() {
   ]);
 
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Booking';
-  const subtext = heroSection?.subtext ?? 'Let\'s create something together.';
-  const ctaText = heroSection?.cta_text ?? 'Book Now';
+  const subtext = heroSection?.subtext ?? "Let's create something together.";
+  const ctaText = heroSection?.cta_text ?? 'Get in touch';
   const ctaUrl = heroSection?.cta_url ?? '#booking-form';
   const mediaType = heroSection?.media_type ?? null;
   const mediaUrl = heroSection?.mediaFinalUrl ?? null;
@@ -60,105 +60,120 @@ export default async function BookingPage() {
   const sponsors = sponsorsRaw ? sponsorsRaw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean) : [];
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
-      <div className="pt-28 md:pt-32">
-      <UnifiedHero
-        mediaType={mediaType ?? undefined}
-        mediaUrl={mediaUrl ?? undefined}
-        overlayOpacity={Number(overlayOpacity)}
-        badge={heroSection?.label_text?.trim() || undefined}
-        headline={headline}
-        subtext={subtext}
-        heightPreset="compact"
-      >
-        <HeroContent ctaText={ctaText} ctaUrl={ctaUrl} />
-        <div className="flex flex-wrap justify-center gap-6 mt-4 type-small">
-          <Link href="/epk" className="text-white/70 hover:text-white transition-colors duration-200 underline underline-offset-2">
-            View EPK
-          </Link>
-          <Link href="/media" className="text-white/70 hover:text-white transition-colors duration-200 underline underline-offset-2">
-            Press Photos
-          </Link>
-        </div>
-      </UnifiedHero>
+    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
+      {/* Refined booking hero */}
+      <div className="pt-20 md:pt-24">
+        <UnifiedHero
+          mediaType={mediaType ?? undefined}
+          mediaUrl={mediaUrl ?? undefined}
+          overlayOpacity={Number(overlayOpacity)}
+          badge={heroSection?.label_text?.trim() || undefined}
+          headline={headline}
+          subtext={subtext}
+          heightPreset="tall"
+        >
+          <HeroContent ctaText={ctaText} ctaUrl={ctaUrl} />
+        </UnifiedHero>
       </div>
 
-      <div className="mt-20" aria-hidden />
-
       <SignatureDivider />
 
-      <BookingStoryScroll sections={bookingSections} />
+      {bookingSections && bookingSections.length > 0 && (
+        <>
+          <BookingStoryScroll sections={bookingSections} />
+          <SignatureDivider />
+        </>
+      )}
 
-      <SignatureDivider />
-
+      {/* Two-column: form left, details right */}
       <Section
         id="booking-form"
-        title="Get in touch"
-        subtitle="Send us your details and we'll get back to you."
-        className="scroll-mt-[5.5rem] md:scroll-mt-32 min-w-0 overflow-x-clip section-lift"
+        title="Booking inquiries"
+        subtitle="Send your details and we'll get back to you."
+        className="scroll-mt-24 md:scroll-mt-28 min-w-0 overflow-x-clip"
         aria-label="Booking form and contact"
       >
-        <Container className="grid grid-cols-1 lg:grid-cols-5 gap-12 min-w-0">
-          <div className="lg:col-span-3 min-w-0">
-            <Card className="p-6 md:p-8">
-              <BookingForm />
-            </Card>
-          </div>
-          <aside className="lg:col-span-2 space-y-6 min-w-0" aria-label="Contact and resources">
-            <Card className="p-6">
-              <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
-                Contact
-              </h3>
-              <div className="space-y-2 type-body text-[var(--text-muted)]">
-                {bookingEmail && (
-                  <p>
-                    <a href={`mailto:${bookingEmail}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
-                      {bookingEmail}
-                    </a>
-                  </p>
-                )}
-                {bookingPhone && (
-                  <p>
-                    <a href={`tel:${bookingPhone}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
-                      {bookingPhone}
-                    </a>
-                  </p>
-                )}
-              </div>
-            </Card>
-            <BookingAboutCard
-              title={pageSettings?.booking_about_title}
-              body={pageSettings?.booking_about_body}
-              imageUrl={pageSettings?.booking_about_image_url}
-            />
-            <BookingBioSection
-              bioHtml={aboutContent?.bio_html ?? null}
-              bioText={aboutContent?.bio_text ?? ''}
-              title="About"
-            />
-            {sponsors.length > 0 && (
-              <Card className="p-6">
-                <h3 className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
-                  Partners & affiliations
-                </h3>
-                <p className="type-body text-[var(--text-muted)] whitespace-pre-line leading-relaxed">{sponsors.join('\n')}</p>
+        <Container className="max-w-[1280px] min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+            {/* Left: form */}
+            <div className="lg:col-span-7 min-w-0">
+              <Card className="p-6 sm:p-8 md:p-10 shadow-lg border border-[var(--accent)]/10">
+                <BookingForm />
               </Card>
-            )}
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/epk"
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button"
-              >
-                View EPK
-              </Link>
-              <Link
-                href="/media"
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] border border-[var(--accent)]/15 text-[var(--text-muted)] hover:bg-white/5 transition-colors duration-200 type-button"
-              >
-                Press Photos
-              </Link>
             </div>
-          </aside>
+
+            {/* Right: contact, EPK, bio, testimonials, partners */}
+            <aside className="lg:col-span-5 flex flex-col gap-8 min-w-0" aria-label="Contact and resources">
+              <Card className="p-6 border border-[var(--accent)]/10">
+                <h3 className="type-h3 text-[var(--text)] mb-4" style={{ fontFamily: 'var(--font-display)' }}>
+                  Contact & management
+                </h3>
+                <div className="space-y-3 type-body text-[var(--text-muted)]">
+                  {bookingEmail && (
+                    <p>
+                      <a href={`mailto:${bookingEmail}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
+                        {bookingEmail}
+                      </a>
+                    </p>
+                  )}
+                  {bookingPhone && (
+                    <p>
+                      <a href={`tel:${bookingPhone}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
+                        {bookingPhone}
+                      </a>
+                    </p>
+                  )}
+                  {!bookingEmail && !bookingPhone && (
+                    <p>Contact details can be set in admin settings.</p>
+                  )}
+                </div>
+              </Card>
+
+              <Card className="p-6 border border-[var(--accent)]/10">
+                <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+                  Press / EPK download
+                </h3>
+                <p className="type-body text-[var(--text-muted)] mb-4">
+                  Download our electronic press kit for promoters and press.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/epk"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button font-medium"
+                  >
+                    View EPK
+                  </Link>
+                  <Link
+                    href="/media"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-button)] border border-[var(--accent)]/15 text-[var(--text-muted)] hover:bg-white/5 transition-colors duration-200 type-button"
+                  >
+                    Press photos
+                  </Link>
+                </div>
+              </Card>
+
+              <BookingBioSection
+                bioHtml={aboutContent?.bio_html ?? null}
+                bioText={aboutContent?.bio_text ?? ''}
+                title="Artist bio"
+              />
+
+              <BookingAboutCard
+                title={pageSettings?.booking_about_title}
+                body={pageSettings?.booking_about_body}
+                imageUrl={pageSettings?.booking_about_image_url}
+              />
+
+              {sponsors.length > 0 && (
+                <Card className="p-6 border border-[var(--accent)]/10">
+                  <h3 className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
+                    Partners & affiliations
+                  </h3>
+                  <p className="type-body text-[var(--text-muted)] whitespace-pre-line leading-relaxed">{sponsors.join('\n')}</p>
+                </Card>
+              )}
+            </aside>
+          </div>
         </Container>
       </Section>
     </div>

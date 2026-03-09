@@ -135,7 +135,14 @@ export function HeroVideoCarouselPremium({
     }
 
     await warmVideo(backEl);
-    await waitForReady(backEl, 1500).catch(() => false);
+    const ready = await Promise.race([
+      waitForReady(backEl, 2000).catch(() => false),
+      new Promise<boolean>((r) => setTimeout(() => r(false), 2500)),
+    ]);
+    if (!ready && backEl.readyState < 2) {
+      scheduleNextRef.current?.(frontIndexRef.current);
+      return;
+    }
 
     setIsFading(true);
     swapTimeoutRef.current = setTimeout(() => {
@@ -188,7 +195,7 @@ export function HeroVideoCarouselPremium({
 
   return (
     <section
-      className={`relative w-full overflow-hidden rounded-b-2xl bg-black ${heightPreset === 'full' ? 'rounded-b-none' : ''}`}
+      className={`relative w-full overflow-hidden rounded-b-2xl bg-black ${heightPreset === 'full' ? 'rounded-b-none min-h-[100vh]' : ''}`}
     >
       <div className={`relative w-full ${heightClasses[heightPreset]}`}>
         <div className="absolute inset-0">
@@ -202,7 +209,7 @@ export function HeroVideoCarouselPremium({
               playsInline
               loop
               preload="auto"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover object-center"
             />
           ) : (
             <>
@@ -227,7 +234,7 @@ export function HeroVideoCarouselPremium({
                 onCanPlay={() => {
                   canplayRef.current.a = true;
                 }}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover object-center"
                 style={{
                   opacity: opacityA,
                   zIndex: opacityA >= 0.5 ? 1 : 0,
@@ -255,7 +262,7 @@ export function HeroVideoCarouselPremium({
                 onCanPlay={() => {
                   canplayRef.current.b = true;
                 }}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover object-center"
                 style={{
                   opacity: opacityB,
                   zIndex: opacityB >= 0.5 ? 1 : 0,

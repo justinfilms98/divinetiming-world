@@ -50,7 +50,7 @@ export default async function AboutPage() {
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <Header />
       <main className="flex-1 pt-16">
         <UnifiedHero
@@ -59,10 +59,11 @@ export default async function AboutPage() {
           overlayOpacity={Number(overlayOpacity)}
           headline={headline}
           subtext={subtext ?? undefined}
-          heightPreset="compact"
+          heightPreset="tall"
         />
 
         <AboutContent
+          brandStatement={heroSection?.subtext ?? undefined}
           bioText={bioText}
           bioHtml={bioHtml}
           photos={aboutPhotos}

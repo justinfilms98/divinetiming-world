@@ -27,7 +27,9 @@ export default function AdminCollectionsPage() {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
+  const [addMediaPickerOpen, setAddMediaPickerOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [addingMedia, setAddingMedia] = useState(false);
   const supabase = createClient();
 
   const load = useCallback(async () => {
@@ -156,6 +158,35 @@ export default function AdminCollectionsPage() {
         } else alert(data.error);
       })
       .catch(() => alert('Failed to clear cover'));
+  };
+
+  const handleAddMediaToCollection = (asset: { id: string; preview_url: string; mime_type?: string | null }) => {
+    if (!editingGallery) return;
+    setAddingMedia(true);
+    const mediaType = (asset.mime_type || '').startsWith('video/') ? 'video' : 'image';
+    fetch('/api/admin/gallery-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        gallery_id: editingGallery.id,
+        media_type: mediaType,
+        url: asset.preview_url,
+        external_media_asset_id: asset.id,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.error) {
+          load();
+          setEditingGallery((prev) => prev ? { ...prev, gallery_media: [...(prev.gallery_media || []), { id: (data.media as { id: string })?.id }] } : null);
+        } else alert(data.error || 'Failed to add media');
+      })
+      .catch(() => alert('Failed to add media'))
+      .finally(() => {
+        setAddingMedia(false);
+        setAddMediaPickerOpen(false);
+      });
   };
 
   return (
@@ -313,6 +344,27 @@ export default function AdminCollectionsPage() {
                     </>
                   )}
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Media in collection</label>
+                <p className="text-xs text-slate-500 mb-2">{(editingGallery.gallery_media?.length ?? 0)} items. Add photos or videos from the library.</p>
+                {addMediaPickerOpen ? (
+                  <MediaLibraryPicker
+                    open={true}
+                    onClose={() => setAddMediaPickerOpen(false)}
+                    onSelect={handleAddMediaToCollection}
+                    title="Add media to collection"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddMediaPickerOpen(true)}
+                    disabled={addingMedia}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
+                  >
+                    {addingMedia ? 'Adding…' : 'Add from library'}
+                  </button>
+                )}
               </div>
             </form>
             <div className="admin-modal-footer">
