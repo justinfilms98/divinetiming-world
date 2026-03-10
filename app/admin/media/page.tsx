@@ -61,16 +61,18 @@ export default function AdminMediaPage() {
   const handleUpload = async (files: UploadedFile[]) => {
     if (files.length === 0) return;
     // Optimistic: show newly registered assets immediately (from register response)
-    const newAssets: LibraryAsset[] = files.map((f) => ({
-      id: f.id,
-      provider: 'supabase',
-      preview_url: f.url,
-      thumbnail_url: f.mimeType?.startsWith('image/') ? f.url : null,
-      mime_type: f.mimeType ?? null,
-      name: f.name ?? null,
-      size_bytes: f.size ?? null,
-      created_at: new Date().toISOString(),
-    }));
+    const newAssets: LibraryAsset[] = files
+      .filter((f): f is UploadedFile & { id: string } => typeof f.id === 'string')
+      .map((f) => ({
+        id: f.id,
+        provider: 'supabase',
+        preview_url: f.url,
+        thumbnail_url: f.mimeType?.startsWith('image/') ? f.url : null,
+        mime_type: f.mimeType ?? null,
+        name: f.name ?? null,
+        size_bytes: f.size ?? null,
+        created_at: new Date().toISOString(),
+      }));
     setAssets((prev) => [...newAssets, ...prev]);
     // Refetch to sync with DB (handles duplicates, server-generated fields)
     await loadLibrary();
