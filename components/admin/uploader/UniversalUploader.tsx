@@ -162,15 +162,9 @@ export function UniversalUploader({
           setError(data?.error || res.statusText || 'Failed to save to library. Check API and try again.');
           return;
         }
-        const assets = Array.isArray(data?.assets) ? data.assets : [];
-        const normalized: UploadedFile[] = assets.map((a: {
-          id: string;
-          preview_url: string;
-          provider?: string;
-          name?: string | null;
-          size_bytes?: number | null;
-          mime_type?: string | null;
-        }) => ({
+        type AssetItem = { id: string; preview_url: string; provider?: string; name?: string | null; size_bytes?: number | null; mime_type?: string | null };
+        const assets: AssetItem[] = Array.isArray(data?.assets) ? (data.assets as AssetItem[]) : [];
+        const normalized: UploadedFile[] = assets.map((a) => ({
           url: a.preview_url,
           id: a.id,
           provider: a.provider || 'supabase',
