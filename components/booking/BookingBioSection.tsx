@@ -22,7 +22,7 @@ export function BookingBioSection({
   const hasContent = useRich || bioParagraphs.length > 0;
 
   return (
-    <Card as="section" className="p-6" aria-labelledby="booking-bio-heading">
+    <Card as="section" className="p-6 w-full" aria-labelledby="booking-bio-heading">
       <h2 id="booking-bio-heading" className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
         {title}
       </h2>

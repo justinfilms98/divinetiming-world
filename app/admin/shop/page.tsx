@@ -9,11 +9,13 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X, AlertTriangle } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 interface ProductImage {
   id: string;
-  image_url: string;
+  image_url: string | null;
   display_order: number;
+  external_media_asset_id?: string | null;
 }
 
 interface Product {
@@ -48,6 +50,7 @@ export default function AdminShopPage() {
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
   const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
+  const { showToast } = useAdminToast();
   const supabase = createClient();
 
   useEffect(() => {
@@ -64,7 +67,7 @@ export default function AdminShopPage() {
   const loadProducts = async () => {
     const { data } = await supabase
       .from('products')
-      .select('*, product_images(id, image_url, display_order)')
+      .select('*, product_images(id, image_url, display_order, external_media_asset_id)')
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
     const sorted = (data || []).map((p: any) => ({
@@ -72,8 +75,33 @@ export default function AdminShopPage() {
       product_images: (p.product_images || []).sort(
         (a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)
       ),
+    })) as Product[];
+    const assetIds = new Set<string>();
+    for (const p of sorted) {
+      for (const img of p.product_images || []) {
+        if (img.external_media_asset_id && !img.image_url) assetIds.add(img.external_media_asset_id);
+      }
+    }
+    let previewByAssetId: Record<string, string> = {};
+    if (assetIds.size > 0) {
+      const { data: assets } = await supabase
+        .from('external_media_assets')
+        .select('id, preview_url')
+        .in('id', Array.from(assetIds));
+      if (assets) {
+        for (const a of assets as { id: string; preview_url: string }[]) {
+          previewByAssetId[a.id] = a.preview_url || '';
+        }
+      }
+    }
+    const withResolved = sorted.map((p) => ({
+      ...p,
+      product_images: (p.product_images || []).map((img: ProductImage) => ({
+        ...img,
+        image_url: img.image_url || previewByAssetId[img.external_media_asset_id!] || null,
+      })),
     }));
-    setProducts(sorted);
+    setProducts(withResolved);
     setIsLoading(false);
   };
 
@@ -132,7 +160,7 @@ export default function AdminShopPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      alert('Error: ' + (data.error || res.statusText));
+      showToast('error', (data.error as string) || res.statusText);
       return;
     }
 
@@ -153,6 +181,7 @@ export default function AdminShopPage() {
     const pathSlug = updated?.slug ?? editingProduct?.slug;
     const paths = pathSlug ? ['/shop', `/shop/${pathSlug}`] : ['/shop'];
     await revalidatePaths(paths);
+    showToast('success', editingProduct ? 'Product updated' : 'Product created');
     closeModal();
   };
 
@@ -162,7 +191,7 @@ export default function AdminShopPage() {
 
   const handleLibraryImageSelect = (asset: { id: string; preview_url: string }) => {
     if (editingProduct) {
-      handleAddImageToProduct(editingProduct.id, asset.preview_url, editingProduct.slug);
+      handleAddImageToProduct(editingProduct.id, asset.preview_url, editingProduct.slug, asset.id);
     } else {
       setPendingImages((prev) => [...prev, { url: asset.preview_url, id: asset.id }]);
     }
@@ -173,11 +202,12 @@ export default function AdminShopPage() {
     const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
     const data = await res.json();
     if (!res.ok) {
-      alert('Error: ' + (data.error || res.statusText));
+      showToast('error', (data.error as string) || res.statusText);
       return;
     }
     await loadProducts();
     await revalidateAfterSave('shop');
+    showToast('success', 'Product deleted');
   };
 
   const handleRemoveImage = async (productId: string, imageId: string, productSlug?: string) => {
@@ -187,43 +217,46 @@ export default function AdminShopPage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      alert('Error: ' + (data.error || res.statusText));
+      showToast('error', (data.error as string) || res.statusText);
       return;
     }
     await loadProducts();
     await revalidatePaths(productSlug ? ['/shop', `/shop/${productSlug}`] : ['/shop']);
     const { data: d } = await supabase
       .from('products')
-      .select('*, product_images(id, image_url, display_order)')
+      .select('*, product_images(id, image_url, display_order, external_media_asset_id)')
       .eq('id', productId)
       .single();
     if (d) setEditingProduct({ ...d, product_images: (d.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
+    showToast('success', 'Image removed');
   };
 
-  const handleAddImageToProduct = async (productId: string, url: string, productSlug?: string) => {
+  const handleAddImageToProduct = async (productId: string, url: string, productSlug?: string, externalAssetId?: string) => {
     const res = await fetch('/api/admin/product-images', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({
         product_id: productId,
-        url: url.trim(),
+        url: url.trim() || undefined,
+        external_asset_id: externalAssetId ?? undefined,
         slug: productSlug,
       }),
     });
     const data = await res.json();
     if (!res.ok) {
-      alert('Error: ' + (data.error || res.statusText));
+      showToast('error', (data.error as string) || res.statusText);
       return;
     }
     await loadProducts();
     await revalidatePaths(productSlug ? ['/shop', `/shop/${productSlug}`] : ['/shop']);
     const { data: d } = await supabase
       .from('products')
-      .select('*, product_images(id, image_url, display_order)')
+      .select('*, product_images(id, image_url, display_order, external_media_asset_id)')
       .eq('id', productId)
       .single();
     if (d) setEditingProduct({ ...d, product_images: (d.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
+    showToast('success', 'Image added');
   };
 
   if (isLoading) {
@@ -279,7 +312,7 @@ export default function AdminShopPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => {
             const images = product.product_images || [];
-            const mainImage = images[0]?.image_url;
+            const mainImage = images[0]?.image_url?.trim() || null;
 
             return (
               <AdminCard key={product.id} className="hover:border-white/20 transition-colors overflow-hidden p-0">
@@ -302,8 +335,9 @@ export default function AdminShopPage() {
                       </div>
                     </>
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/5">
                       <ShoppingBag className="w-12 h-12 text-white/20" />
+                      <span className="text-xs text-white/50 font-medium">No image</span>
                     </div>
                   )}
                 </div>
@@ -311,6 +345,9 @@ export default function AdminShopPage() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-white truncate">{product.name}</h3>
+                      {product.subtitle && (
+                        <p className="text-sm text-white/60 truncate mt-0.5">{product.subtitle}</p>
+                      )}
                       <div className="flex items-center gap-2 text-[var(--accent)] mt-1">
                         <DollarSign className="w-4 h-4 flex-shrink-0" />
                         <span className="font-medium">{formatPrice(product.price_cents)}</span>
@@ -346,6 +383,11 @@ export default function AdminShopPage() {
                     {product.is_featured && (
                       <span className="px-2 py-1 bg-[var(--accent)]/20 text-[var(--accent)] text-xs rounded">
                         Featured
+                      </span>
+                    )}
+                    {product.badge && (
+                      <span className="px-2 py-1 text-xs rounded border border-white/20 text-white/80">
+                        {product.badge}
                       </span>
                     )}
                   </div>
@@ -398,14 +440,15 @@ export default function AdminShopPage() {
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm font-medium mb-2">Slug</label>
+                <label className="block text-white/70 text-sm font-medium mb-2">Product URL</label>
                 <input
                   type="text"
                   name="slug"
                   defaultValue={editingProduct?.slug || ''}
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
-                  placeholder="url-friendly-name (auto-generated if empty)"
+                  placeholder="e.g. my-product (auto-generated if empty)"
                 />
+                <p className="text-white/50 text-xs mt-1">Used in product links (e.g. /shop/my-product). Use lowercase with hyphens.</p>
               </div>
 
               <div>

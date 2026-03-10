@@ -7,6 +7,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { MediaThumb } from '@/components/admin/MediaThumb';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { Image as ImageIcon, Trash2, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 type LibraryFilter = 'all' | 'image' | 'video';
 type SortOrder = 'newest' | 'oldest' | 'name';
@@ -39,6 +40,7 @@ export default function AdminMediaPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showLegacy, setShowLegacy] = useState(false);
   const [legacyDetailsOpen, setLegacyDetailsOpen] = useState(false);
+  const { showToast } = useAdminToast();
   const supabase = createClient();
 
   const loadLibrary = useCallback(async () => {
@@ -58,7 +60,21 @@ export default function AdminMediaPage() {
 
   const handleUpload = async (files: UploadedFile[]) => {
     if (files.length === 0) return;
+    // Optimistic: show newly registered assets immediately (from register response)
+    const newAssets: LibraryAsset[] = files.map((f) => ({
+      id: f.id,
+      provider: 'supabase',
+      preview_url: f.url,
+      thumbnail_url: f.mimeType?.startsWith('image/') ? f.url : null,
+      mime_type: f.mimeType ?? null,
+      name: f.name ?? null,
+      size_bytes: f.size ?? null,
+      created_at: new Date().toISOString(),
+    }));
+    setAssets((prev) => [...newAssets, ...prev]);
+    // Refetch to sync with DB (handles duplicates, server-generated fields)
     await loadLibrary();
+    showToast('success', files.length === 1 ? 'File uploaded' : `${files.length} files uploaded`);
   };
 
   const isLegacy = (a: LibraryAsset) => (a.provider || '').toLowerCase() === 'uploadcare';
@@ -111,10 +127,11 @@ export default function AdminMediaPage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      alert('Error: ' + (data.error || res.statusText));
+      showToast('error', data.error || res.statusText);
       return;
     }
     setAssets((prev) => prev.filter((a) => a.id !== id));
+    showToast('success', 'Removed from library');
   };
 
   return (
@@ -181,25 +198,28 @@ export default function AdminMediaPage() {
             <p className="text-slate-600 text-sm">No current media. Enable &quot;Show legacy items&quot; below to see older uploads.</p>
           </AdminCard>
         ) : null}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {filteredCurrent.map((asset) => {
             const isImage = (asset.mime_type || '').startsWith('image/');
             const thumb = asset.thumbnail_url || asset.preview_url || displayUrl(asset);
             return (
-              <AdminCard key={asset.id} className="p-0 overflow-hidden">
-                <MediaThumb
-                  src={thumb || null}
-                  isImage={isImage}
-                  alt={asset.name || ''}
-                  posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
-                  className="rounded-none"
-                />
-                <div className="p-3 space-y-1">
+              <AdminCard key={asset.id} className="p-0 overflow-hidden flex flex-col">
+                <div className="aspect-square w-full bg-slate-100 flex-shrink-0">
+                  <MediaThumb
+                    src={thumb || null}
+                    isImage={isImage}
+                    alt={asset.name || ''}
+                    posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
+                    className="rounded-none w-full h-full !aspect-square"
+                  />
+                </div>
+                <div className="p-3 space-y-1 flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate" title={asset.name || ''}>
                     {asset.name || 'Untitled'}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    {isImage ? 'Image' : 'Video'} · {formatDate(asset.created_at)}
+                  <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">{isImage ? 'Image' : 'Video'}</span>
+                    <span>{formatDate(asset.created_at)}</span>
                   </p>
                 </div>
                 <div className="flex gap-2 p-3 border-t border-slate-200">
@@ -228,25 +248,28 @@ export default function AdminMediaPage() {
         {showLegacy && filteredLegacy.length > 0 && (
           <div className="mt-10">
             <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Legacy</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
               {filteredLegacy.map((asset) => {
                 const isImage = (asset.mime_type || '').startsWith('image/');
                 const thumb = asset.thumbnail_url || asset.preview_url || displayUrl(asset);
                 return (
-                  <AdminCard key={asset.id} className="p-0 overflow-hidden">
-                    <MediaThumb
-                      src={thumb || null}
-                      isImage={isImage}
-                      alt={asset.name || ''}
-                      posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
-                      className="rounded-none"
-                    />
-                    <div className="p-3 space-y-1">
+                  <AdminCard key={asset.id} className="p-0 overflow-hidden flex flex-col">
+                    <div className="aspect-square w-full bg-slate-100 flex-shrink-0">
+                      <MediaThumb
+                        src={thumb || null}
+                        isImage={isImage}
+                        alt={asset.name || ''}
+                        posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
+                        className="rounded-none w-full h-full !aspect-square"
+                      />
+                    </div>
+                    <div className="p-3 space-y-1 flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-800 truncate" title={asset.name || ''}>
                         {asset.name || 'Untitled'}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {isImage ? 'Image' : 'Video'} · {formatDate(asset.created_at)}
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">{isImage ? 'Image' : 'Video'}</span>
+                        <span>{formatDate(asset.created_at)}</span>
                       </p>
                     </div>
                     <div className="flex gap-2 p-3 border-t border-slate-200">

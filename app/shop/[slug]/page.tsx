@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
@@ -6,7 +5,10 @@ import { ProductImageGallery } from '@/components/shop/ProductImageGallery';
 import { Container } from '@/components/ui/Container';
 import { Section } from '@/components/ui/Section';
 import { absoluteImageUrl } from '@/lib/site';
+import { getProductBySlug } from '@/lib/content/server';
 import type { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
@@ -14,17 +16,11 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { data: product } = await supabase
-    .from('products')
-    .select('name, description, product_images(image_url)')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const product = await getProductBySlug(slug);
   if (!product) return { title: 'Product' };
   const path = `/shop/${slug}`;
   const description = product.description || `Shop ${product.name} — Divine Timing`;
-  const firstImage = (product.product_images as { image_url: string }[] | null)?.[0]?.image_url;
+  const firstImage = (product.product_images as { image_url: string }[] | undefined)?.[0]?.image_url;
   const ogImageUrl = absoluteImageUrl(firstImage ?? null);
   return {
     title: `${product.name} | Divine Timing Shop`,
@@ -50,20 +46,9 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
-
-  const { data: product } = await supabase
-    .from('products')
-    .select('*, product_images(*), product_variants(*)')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const product = await getProductBySlug(slug);
 
   if (!product) {
-    notFound();
-  }
-  const withStatus = product && 'status' in product && (product as { status?: string }).status != null;
-  if (withStatus && (product as { status: string }).status !== 'published') {
     notFound();
   }
 

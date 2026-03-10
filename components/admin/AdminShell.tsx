@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { AdminToastProvider } from '@/components/admin/AdminToast';
 import { OverflowDebug } from '@/components/dev/OverflowDebug';
 import { LogOut, ExternalLink, PanelLeftClose, PanelLeft } from 'lucide-react';
 import '@/app/admin/admin.css';
@@ -94,7 +95,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="min-w-0 flex flex-col">
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-              {children}
+              <AdminToastProvider>{children}</AdminToastProvider>
             </div>
           </main>
         </div>

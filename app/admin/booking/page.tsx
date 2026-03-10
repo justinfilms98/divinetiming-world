@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { Save, Check, ExternalLink, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
+import { Save, ExternalLink, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 interface HeroRow {
   headline: string | null;
@@ -32,7 +33,7 @@ export default function AdminBookingPage() {
   const [bookingPhone, setBookingPhone] = useState('');
   const [bookingSponsors, setBookingSponsors] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message?: string } | null>(null);
+  const { showToast } = useAdminToast();
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -54,11 +55,6 @@ export default function AdminBookingPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const showToast = (type: 'success' | 'error', message?: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const saveHero = async (): Promise<boolean> => {
     if (!hero) return false;
@@ -182,17 +178,6 @@ export default function AdminBookingPage() {
       title="Booking"
       subtitle="Edit booking page hero, story blocks, and contact. Hero media: Dashboard → Hero editor (select Booking)."
     >
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg ${
-            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-          }`}
-        >
-          {toast.type === 'success' ? <Check className="w-5 h-5" /> : null}
-          <span>{toast.type === 'success' ? 'Saved' : toast.message ?? 'Error'}</span>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <button
           type="button"

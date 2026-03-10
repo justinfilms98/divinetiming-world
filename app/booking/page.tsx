@@ -70,7 +70,7 @@ export default async function BookingPage() {
           badge={heroSection?.label_text?.trim() || undefined}
           headline={headline}
           subtext={subtext}
-          heightPreset="tall"
+          heightPreset="standard"
         >
           <HeroContent ctaText={ctaText} ctaUrl={ctaUrl} />
         </UnifiedHero>
@@ -81,98 +81,111 @@ export default async function BookingPage() {
       {bookingSections && bookingSections.length > 0 && (
         <>
           <BookingStoryScroll sections={bookingSections} />
-          <SignatureDivider />
+          <SignatureDivider className="mb-8 md:mb-10" />
         </>
       )}
 
-      {/* Two-column: form left, details right */}
+      {/* Inquiry section: centered two-column block, heading inside container for alignment */}
       <Section
         id="booking-form"
-        title="Booking inquiries"
-        subtitle="Send your details and we'll get back to you."
-        className="scroll-mt-24 md:scroll-mt-28 min-w-0 overflow-x-clip"
+        className="scroll-mt-24 md:scroll-mt-28 min-w-0 overflow-x-clip pt-10 md:pt-12 pb-12 md:pb-16"
         aria-label="Booking form and contact"
       >
         <Container className="min-w-0">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
-            {/* Left: form */}
-            <div className="lg:col-span-7 min-w-0">
-              <Card className="p-6 sm:p-8 md:p-10 shadow-lg border border-[var(--accent)]/10">
-                <BookingForm />
-              </Card>
-            </div>
+          <header className="mb-8 md:mb-10">
+            <h2 className="type-h2 font-semibold tracking-tight text-[var(--text)]" style={{ fontFamily: 'var(--font-display)' }}>
+              Booking inquiries
+            </h2>
+            <p className="mt-2 text-[var(--text-muted)] type-body prose-readability">
+              Send your details and we&apos;ll get back to you.
+            </p>
+          </header>
 
-            {/* Right: contact, EPK, bio, testimonials, partners */}
-            <aside className="lg:col-span-5 flex flex-col gap-8 min-w-0" aria-label="Contact and resources">
-              <Card className="p-6 border border-[var(--accent)]/10">
-                <h3 className="type-h3 text-[var(--text)] mb-4" style={{ fontFamily: 'var(--font-display)' }}>
-                  Contact & management
-                </h3>
-                <div className="space-y-3 type-body text-[var(--text-muted)]">
-                  {bookingEmail && (
-                    <p>
-                      <a href={`mailto:${bookingEmail}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
-                        {bookingEmail}
-                      </a>
-                    </p>
-                  )}
-                  {bookingPhone && (
-                    <p>
-                      <a href={`tel:${bookingPhone}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
-                        {bookingPhone}
-                      </a>
-                    </p>
-                  )}
-                  {!bookingEmail && !bookingPhone && (
-                    <p>Contact details can be set in admin settings.</p>
-                  )}
-                </div>
-              </Card>
-
-              <Card className="p-6 border border-[var(--accent)]/10">
-                <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
-                  Press / EPK download
-                </h3>
-                <p className="type-body text-[var(--text-muted)] mb-4">
-                  Download our electronic press kit for promoters and press.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/epk"
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button font-medium"
-                  >
-                    View EPK
-                  </Link>
-                  <Link
-                    href="/media"
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-button)] border border-[var(--accent)]/15 text-[var(--text-muted)] hover:bg-white/5 transition-colors duration-200 type-button"
-                  >
-                    Press photos
-                  </Link>
-                </div>
-              </Card>
-
-              <BookingBioSection
-                bioHtml={aboutContent?.bio_html ?? null}
-                bioText={aboutContent?.bio_text ?? ''}
-                title="Artist bio"
-              />
-
-              <BookingAboutCard
-                title={pageSettings?.booking_about_title}
-                body={pageSettings?.booking_about_body}
-                imageUrl={pageSettings?.booking_about_image_url}
-              />
-
-              {sponsors.length > 0 && (
-                <Card className="p-6 border border-[var(--accent)]/10">
-                  <h3 className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-ui)' }}>
-                    Partners & affiliations
-                  </h3>
-                  <p className="type-body text-[var(--text-muted)] whitespace-pre-line leading-relaxed">{sponsors.join('\n')}</p>
+          {/* Centered two-column block: form substantial, aside supporting rail */}
+          <div className="max-w-[1000px] mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,340px)] gap-8 lg:gap-12">
+              {/* Form column */}
+              <div className="min-w-0">
+                <Card className="p-6 sm:p-8 shadow-lg border border-[var(--accent)]/10">
+                  <BookingForm />
                 </Card>
-              )}
-            </aside>
+              </div>
+
+              {/* Aside: unified supporting rail */}
+              <aside
+                className="flex flex-col gap-6 min-w-0 lg:min-w-[280px]"
+                aria-label="Contact and resources"
+              >
+                <Card className="p-6 border border-[var(--accent)]/10 w-full">
+                  <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+                    Contact & management
+                  </h3>
+                  <div className="space-y-2 type-body text-[var(--text-muted)]">
+                    {bookingEmail && (
+                      <p>
+                        <a href={`mailto:${bookingEmail}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
+                          {bookingEmail}
+                        </a>
+                      </p>
+                    )}
+                    {bookingPhone && (
+                      <p>
+                        <a href={`tel:${bookingPhone}`} className="text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">
+                          {bookingPhone}
+                        </a>
+                      </p>
+                    )}
+                    {!bookingEmail && !bookingPhone && (
+                      <p className="text-sm">Contact details can be set in admin settings.</p>
+                    )}
+                  </div>
+                </Card>
+
+                <Card className="p-6 border border-[var(--accent)]/10 w-full">
+                  <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+                    Press / EPK download
+                  </h3>
+                  <p className="type-body text-[var(--text-muted)] mb-4 text-sm leading-relaxed">
+                    Download our electronic press kit for promoters and press.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Link
+                      href="/epk"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[var(--radius-button)] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/25 hover:bg-[var(--accent)]/25 transition-colors duration-200 type-button text-sm font-medium"
+                    >
+                      View EPK
+                    </Link>
+                    <Link
+                      href="/media"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[var(--radius-button)] border border-[var(--accent)]/15 text-[var(--text-muted)] hover:bg-white/5 transition-colors duration-200 type-button text-sm"
+                    >
+                      Press photos
+                    </Link>
+                  </div>
+                </Card>
+
+                <BookingBioSection
+                  bioHtml={aboutContent?.bio_html ?? null}
+                  bioText={aboutContent?.bio_text ?? ''}
+                  title="Artist bio"
+                />
+
+                <BookingAboutCard
+                  title={pageSettings?.booking_about_title}
+                  body={pageSettings?.booking_about_body}
+                  imageUrl={pageSettings?.booking_about_image_url}
+                />
+
+                {sponsors.length > 0 && (
+                  <Card className="p-6 border border-[var(--accent)]/10 w-full">
+                    <h3 className="type-h3 text-[var(--text-muted)] mb-2 text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-ui)' }}>
+                      Partners & affiliations
+                    </h3>
+                    <p className="type-body text-[var(--text-muted)] text-sm whitespace-pre-line leading-relaxed">{sponsors.join('\n')}</p>
+                  </Card>
+                )}
+              </aside>
+            </div>
           </div>
         </Container>
       </Section>

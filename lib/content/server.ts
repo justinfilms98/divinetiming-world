@@ -12,6 +12,7 @@ import {
   resolveGalleryMediaUrl,
   resolveVideoThumbnailUrl,
 } from '@/lib/mediaGallery';
+import { resolveMediaUrl } from '@/lib/media/resolveMediaUrl';
 import type {
   PageSettings,
   HeroSection,
@@ -238,7 +239,8 @@ export async function getGalleriesForHub(): Promise<GalleryForHub[]> {
       return { ...g, resolved_cover_url, media_count };
     })
   );
-  return withResolved;
+  // Only show collections that have at least one media item (deliberate empty-state choice)
+  return withResolved.filter((g) => (g as { media_count: number }).media_count > 0);
 }
 
 export async function getGalleriesWithMedia(): Promise<(Gallery & { gallery_media: GalleryMedia[] })[]> {
@@ -307,20 +309,70 @@ export async function getGalleryBySlug(
   return { ...g, resolved_cover_url, gallery_media: resolvedMedia };
 }
 
-/** Public list: only published products (or is_active if status column not yet present). */
+/** Resolve product_images so each has a displayable image_url (from image_url or external_media_asset_id). */
+async function resolveProductImages<T extends { image_url?: string | null; external_media_asset_id?: string | null }>(
+  images: T[]
+): Promise<{ image_url: string; display_order: number }[]> {
+  const out: { image_url: string; display_order: number }[] = [];
+  for (const img of images) {
+    const order = (img as { display_order?: number }).display_order ?? 0;
+    const direct = img.image_url?.trim();
+    if (direct && (direct.startsWith('http://') || direct.startsWith('https://'))) {
+      out.push({ image_url: direct, display_order: order });
+      continue;
+    }
+    const assetId = img.external_media_asset_id ?? null;
+    if (assetId) {
+      const resolved = await resolveMediaUrl(null, assetId);
+      if (resolved?.url) {
+        out.push({ image_url: resolved.url, display_order: order });
+        continue;
+      }
+    }
+    out.push({ image_url: '', display_order: order });
+  }
+  return out.sort((a, b) => a.display_order - b.display_order);
+}
+
+/** Public list: only published products (or is_active if status column not yet present). Returns products with resolved product_images (displayable image_url). */
 export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient();
   let query = supabase
     .from('products')
-    .select('*, product_images(image_url, display_order), product_variants(id, name, price_cents, inventory_count)')
+    .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(id, name, price_cents, inventory_count)')
     .order('display_order', { ascending: true });
   const { data, error } = await query;
   if (error) return [];
-  let products = (data || []) as Product[];
+  let products = (data || []) as (Product & { product_images?: { image_url?: string | null; display_order?: number; external_media_asset_id?: string | null }[] })[];
   const withStatus = products.some((p) => 'status' in p && (p as { status?: string }).status != null);
   if (withStatus) products = products.filter((p) => (p as { status?: string }).status === 'published');
   else products = products.filter((p) => p.is_active);
-  return products;
+  const withResolved = await Promise.all(
+    products.map(async (p) => {
+      const raw = p.product_images ?? [];
+      const resolved = await resolveProductImages(raw);
+      return { ...p, product_images: resolved.filter((r) => r.image_url) } as Product;
+    })
+  );
+  return withResolved;
+}
+
+/** Public product by slug: published only, with resolved product_images. */
+export async function getProductBySlug(slug: string): Promise<(Product & { product_variants?: { id: string; name: string; price_cents: number | null; inventory_count: number }[] }) | null> {
+  const supabase = await createClient();
+  const normalizedSlug = slug.trim().toLowerCase();
+  const { data, error } = await supabase
+    .from('products')
+    .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(id, name, price_cents, inventory_count, stripe_price_id)')
+    .eq('slug', normalizedSlug)
+    .single();
+  if (error || !data) return null;
+  const p = data as Product & { product_images?: { image_url?: string | null; display_order?: number; external_media_asset_id?: string | null }[]; status?: string };
+  if (p.status != null && p.status !== 'published') return null;
+  if (!('status' in p) && !p.is_active) return null;
+  const raw = p.product_images ?? [];
+  const resolved = await resolveProductImages(raw);
+  return { ...p, product_images: resolved.filter((r) => r.image_url) } as Product & { product_variants?: { id: string; name: string; price_cents: number | null; inventory_count: number; stripe_price_id?: string | null }[] };
 }
 
 export async function getBookingContent(): Promise<BookingContentSection[]> {

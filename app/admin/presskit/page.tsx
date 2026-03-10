@@ -6,6 +6,7 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Save, Check, ExternalLink } from 'lucide-react';
 import { revalidatePaths } from '@/lib/revalidate';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 interface PressKitRow {
   id: string;
@@ -24,6 +25,7 @@ export default function AdminPressKitPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useAdminToast();
 
   useEffect(() => {
     (async () => {
@@ -69,11 +71,12 @@ export default function AdminPressKitPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert('Error saving: ' + (json.error || res.statusText));
+        showToast('error', (json.error as string) || res.statusText);
       } else {
         if (json.title !== undefined) setData({ ...data, ...json });
         await revalidatePaths(['/presskit']);
         setSaved(true);
+        showToast('success', 'Press kit saved');
         setTimeout(() => setSaved(false), 3000);
       }
     } finally {
@@ -100,7 +103,7 @@ export default function AdminPressKitPage() {
   return (
     <AdminPage
       title="Press Kit"
-      subtitle="Edit bio, experience, audience, links, tech rider, and PDF. Shown at /presskit."
+      subtitle="Edit bio, experience, audience, links, tech rider, and PDF. Content is shown on the public Press Kit page."
       actions={
         <Link
           href="/presskit"

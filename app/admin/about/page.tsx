@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 const extensions = [
   StarterKit.configure({
@@ -39,6 +40,7 @@ export default function AdminAboutPage() {
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const { showToast } = useAdminToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -100,12 +102,13 @@ export default function AdminAboutPage() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setSaved(true);
+        showToast('success', 'About page saved');
         setTimeout(() => setSaved(false), 2500);
       } else {
-        console.error('Save failed:', data?.error ?? res.statusText);
+        showToast('error', (data?.error as string) ?? res.statusText);
       }
     } catch (e) {
-      console.error('Save error:', e);
+      showToast('error', e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }

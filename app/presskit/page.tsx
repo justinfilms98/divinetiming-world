@@ -3,6 +3,8 @@ import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Container } from '@/components/ui/Container';
 import type { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Press Kit',
   description: 'Press kit and media resources for Divine Timing.',

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { createClient } from '@/lib/supabase/client';
 
 type VideoStatus = 'draft' | 'published' | 'archived';
@@ -30,6 +31,7 @@ export default function AdminVideosPage() {
   const [title, setTitle] = useState('');
   const [youtubeInput, setYoutubeInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showToast } = useAdminToast();
   const supabase = createClient();
 
   const load = useCallback(async () => {
@@ -48,7 +50,7 @@ export default function AdminVideosPage() {
     e.preventDefault();
     const youtube_id = parseYoutubeId(youtubeInput);
     if (!title.trim() || !youtube_id) {
-      alert('Title and YouTube URL or video ID required');
+      showToast('error', 'Title and YouTube URL or video ID required');
       return;
     }
     setLoading(true);
@@ -64,8 +66,9 @@ export default function AdminVideosPage() {
       setTitle('');
       setYoutubeInput('');
       await load();
+      showToast('success', 'Video added');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to add video');
+      showToast('error', err instanceof Error ? err.message : 'Failed to add video');
     } finally {
       setLoading(false);
     }
@@ -79,10 +82,11 @@ export default function AdminVideosPage() {
     });
     if (!res.ok) {
       const d = await res.json();
-      alert(d.error || 'Delete failed');
+      showToast('error', (d.error as string) || 'Delete failed');
       return;
     }
     await load();
+    showToast('success', 'Video removed');
   };
 
   const handleStatusChange = async (id: string, status: VideoStatus) => {
@@ -94,10 +98,11 @@ export default function AdminVideosPage() {
     });
     if (!res.ok) {
       const d = await res.json();
-      alert(d.error || 'Update failed');
+      showToast('error', (d.error as string) || 'Update failed');
       return;
     }
     await load();
+    showToast('success', 'Video updated');
   };
 
   return (

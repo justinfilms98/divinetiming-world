@@ -2,7 +2,6 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
-import { uploadToSupabase } from '@/lib/supabaseStorage';
 
 export type UploadedFile = {
   url: string;
@@ -118,25 +117,47 @@ export function UniversalUploader({
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
           setProgress((i / total) * 100);
-          const result = await uploadToSupabase(file, {
-            onProgress: (value) => setProgress(((i + value) / total) * 100),
+          const form = new FormData();
+          form.append('file', file);
+          const uploadRes = await fetch('/api/admin/media/upload', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: form,
           });
-          results.push({
-            storage_path: result.storage_path,
-            public_url: result.public_url,
-            name: result.name,
-            mimeType: result.mimeType,
-            size: result.size,
-          });
+          const uploadData = await uploadRes.json().catch(() => ({}));
+          if (!uploadRes.ok) {
+            setError(uploadData?.error || uploadRes.statusText || 'Upload failed');
+            return;
+          }
+          if (uploadData?.storage_path && uploadData?.public_url) {
+            results.push({
+              storage_path: uploadData.storage_path,
+              public_url: uploadData.public_url,
+              name: uploadData.name ?? file.name,
+              mimeType: uploadData.mimeType ?? file.type ?? 'application/octet-stream',
+              size: uploadData.size ?? file.size ?? 0,
+            });
+          }
         }
         setProgress(100);
+        if (results.length === 0) {
+          setError('Upload produced no files to register.');
+          return;
+        }
         const res = await fetch('/api/admin/media/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify({ provider: 'supabase', files: results }),
         });
-        const data = await res.json().catch(() => ({}));
+        let data: { assets?: unknown[]; error?: string } = {};
+        try {
+          const text = await res.text();
+          data = (JSON.parse(text) as { assets?: unknown[]; error?: string }) ?? {};
+        } catch {
+          setError('Failed to save to library. The server returned an unexpected response.');
+          return;
+        }
         if (!res.ok) {
           setError(data?.error || res.statusText || 'Failed to save to library. Check API and try again.');
           return;

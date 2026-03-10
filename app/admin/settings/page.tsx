@@ -6,12 +6,14 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Save, Check } from 'lucide-react';
 import { revalidatePaths } from '@/lib/revalidate';
+import { useAdminToast } from '@/components/admin/AdminToast';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { showToast } = useAdminToast();
   const supabase = createClient();
 
   useEffect(() => {
@@ -49,11 +51,12 @@ export default function AdminSettingsPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      alert('Error saving settings: ' + (data.error || res.statusText));
+      showToast('error', data.error || res.statusText);
     } else {
       if (data.settings) setSettings(data.settings);
       await revalidatePaths(['/', '/events', '/media', '/shop', '/booking', '/about']);
       setSaved(true);
+      showToast('success', 'Settings saved');
       setTimeout(() => setSaved(false), 3000);
     }
 

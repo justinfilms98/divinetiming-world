@@ -6,6 +6,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
@@ -38,6 +39,7 @@ export default function AdminEventsPage() {
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
+  const { showToast } = useAdminToast();
 
   useEffect(() => {
     loadEvents();
@@ -146,11 +148,11 @@ export default function AdminEventsPage() {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      alert('Error saving event: ' + (body.error ?? res.statusText));
+      showToast('error', (body.error as string) ?? res.statusText);
       return;
     }
     if (!body.ok) {
-      alert('Error saving event: ' + (body.error ?? 'Unknown error'));
+      showToast('error', (body.error as string) ?? 'Unknown error');
       return;
     }
 
@@ -168,6 +170,7 @@ export default function AdminEventsPage() {
     }
     await loadEvents();
     await revalidateAfterSave('events');
+    showToast('success', editingEvent ? 'Event updated' : 'Event created');
     closeModal();
   };
 
@@ -179,11 +182,12 @@ export default function AdminEventsPage() {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body.ok) {
-      alert('Error deleting event: ' + (body.error ?? res.statusText));
+      showToast('error', (body.error as string) ?? res.statusText);
       return;
     }
     await loadEvents();
     await revalidateAfterSave('events');
+    showToast('success', 'Event deleted');
   };
 
   const handleMove = async (index: number, direction: 'up' | 'down') => {
@@ -201,11 +205,12 @@ export default function AdminEventsPage() {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body.ok) {
-      alert('Error: ' + (body.error ?? res.statusText));
+      showToast('error', (body.error as string) ?? res.statusText);
       return;
     }
     await loadEvents();
     await revalidateAfterSave('events');
+    showToast('success', 'Order updated');
   };
 
   const formatDate = (dateString: string) => {
@@ -280,10 +285,11 @@ export default function AdminEventsPage() {
                       />
                     </div>
                   ) : (
-                    <div className="aspect-video md:aspect-square bg-white/5 flex items-center justify-center">
+                    <div className="aspect-video md:aspect-square bg-white/5 flex flex-col items-center justify-center gap-1">
                       <span className="text-white/30 text-3xl font-light">
                         {new Date(event.date).toLocaleDateString('en-US', { month: 'short' }).charAt(0)}
                       </span>
+                      <span className="text-white/40 text-xs font-medium">No thumbnail</span>
                     </div>
                   )}
                 </div>
@@ -410,15 +416,15 @@ export default function AdminEventsPage() {
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm font-medium mb-2">URL slug</label>
+                <label className="block text-white/70 text-sm font-medium mb-2">Event URL</label>
                 <input
                   type="text"
                   name="slug"
                   defaultValue={editingEvent?.slug ?? ''}
                   placeholder={editingEvent ? 'e.g. my-event-2025-01-15' : 'Leave empty to auto-generate from title + date'}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                 />
-                <p className="text-white/50 text-xs mt-1">Lowercase, kebab-case. Used in /events/[slug].</p>
+                <p className="text-white/50 text-xs mt-1">Used in event links (e.g. /events/my-event). Use lowercase with hyphens.</p>
               </div>
 
               <div>
