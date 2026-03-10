@@ -8,7 +8,7 @@ interface ProductVariant {
   name: string;
   price_cents: number | null;
   inventory_count: number;
-  stripe_price_id: string | null;
+  stripe_price_id?: string | null;
 }
 
 interface Product {
