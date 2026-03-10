@@ -567,7 +567,7 @@ export default function AdminShopPage() {
                       <div key={img.id} className="relative group">
                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-white/5 relative">
                           <img
-                            src={img.image_url}
+                            src={img.image_url ?? ''}
                             alt=""
                             className="w-full h-full object-cover"
                             onError={(e) => {
