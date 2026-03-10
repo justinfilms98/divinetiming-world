@@ -404,10 +404,11 @@ export function DashboardHeroEditor() {
         alert('Error saving: ' + msg);
         return;
       }
-      if (data.hero) {
+      if (data.hero && typeof data.hero === 'object' && !Array.isArray(data.hero)) {
+        const heroUpdate = data.hero as Record<string, unknown>;
         setHeroSections((prev) => ({
           ...prev,
-          [selectedPage]: { ...prev[selectedPage], ...data.hero },
+          [selectedPage]: { ...prev[selectedPage], ...heroUpdate },
         }));
       }
       const path = selectedPage === 'home' ? '/' : `/${selectedPage}`;
