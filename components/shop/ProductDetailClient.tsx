@@ -16,8 +16,8 @@ interface Product {
   name: string;
   slug: string;
   price_cents: number;
-  stripe_product_id: string | null;
-  product_variants: ProductVariant[];
+  stripe_product_id?: string | null;
+  product_variants?: ProductVariant[];
   product_images?: { image_url: string }[];
 }
 
