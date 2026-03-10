@@ -9,6 +9,14 @@ function normalizeYouTubeId(input: string | null | undefined): string | null {
   return parseYouTubeId(input.trim());
 }
 
+/** True if error likely means caption/is_vertical columns are missing (migration 034 not applied). */
+function isColumnMissingError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === '42703') return true; // PostgreSQL undefined_column
+  const msg = (error.message || '').toLowerCase();
+  return /column.*does not exist|undefined column/.test(msg);
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
@@ -16,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, title, youtube_id: rawYoutubeId, youtube_url, thumbnail_url, is_featured, display_order, status: statusInput } = body;
+    const { id, title, youtube_id: rawYoutubeId, youtube_url, thumbnail_url, caption, is_vertical, is_featured, display_order, status: statusInput } = body;
 
     const youtubeIdInput = rawYoutubeId ?? youtube_url;
     const normalizedId = normalizeYouTubeId(youtubeIdInput);
@@ -25,6 +33,8 @@ export async function POST(request: NextRequest) {
       const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (title != null) updates.title = title;
       if (thumbnail_url != null) updates.thumbnail_url = thumbnail_url;
+      if (caption !== undefined) updates.caption = caption ?? null;
+      if (is_vertical != null) updates.is_vertical = !!is_vertical;
       if (is_featured != null) updates.is_featured = is_featured;
       if (display_order != null) updates.display_order = display_order;
       const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
@@ -39,18 +49,28 @@ export async function POST(request: NextRequest) {
         updates.youtube_id = normalizedId;
       }
 
-      const { data, error } = await supabase
+      let result = await supabase
         .from('videos')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
-      if (error) {
-        console.error('Admin videos update error:', error);
+      if (result.error && isColumnMissingError(result.error)) {
+        delete updates.caption;
+        delete updates.is_vertical;
+        result = await supabase
+          .from('videos')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+      }
+      if (result.error) {
+        console.error('Admin videos update error:', result.error);
         return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
       revalidatePath('/media');
-      return NextResponse.json({ video: data });
+      return NextResponse.json({ video: result.data });
     }
 
     if (!normalizedId) {
@@ -69,24 +89,28 @@ export async function POST(request: NextRequest) {
 
     const order = display_order ?? (maxOrder?.display_order ?? -1) + 1;
 
-    const { data, error } = await supabase
-      .from('videos')
-      .insert({
-        title: title ?? '',
-        youtube_id: normalizedId,
-        thumbnail_url: thumbnail_url ?? null,
-        is_featured: is_featured ?? false,
-        display_order: order,
-        status: statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published',
-      })
-      .select()
-      .single();
-    if (error) {
-      console.error('Admin videos insert error:', error);
+    const insertPayload: Record<string, unknown> = {
+      title: title ?? '',
+      youtube_id: normalizedId,
+      thumbnail_url: thumbnail_url ?? null,
+      caption: caption ?? null,
+      is_vertical: !!is_vertical,
+      is_featured: is_featured ?? false,
+      display_order: order,
+      status: statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published',
+    };
+    let insertResult = await supabase.from('videos').insert(insertPayload).select().single();
+    if (insertResult.error && isColumnMissingError(insertResult.error)) {
+      delete insertPayload.caption;
+      delete insertPayload.is_vertical;
+      insertResult = await supabase.from('videos').insert(insertPayload).select().single();
+    }
+    if (insertResult.error) {
+      console.error('Admin videos insert error:', insertResult.error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
-    return NextResponse.json({ video: data });
+    return NextResponse.json({ video: insertResult.data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Admin videos POST error:', err);

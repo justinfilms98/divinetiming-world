@@ -49,11 +49,26 @@ export default function AdminCollectionsPage() {
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('galleries')
-      .select('id, name, slug, description, cover_image_url, external_cover_asset_id, display_order, status, gallery_media(id)')
+      .select('*, gallery_media(id)')
       .order('display_order', { ascending: true });
-    setGalleries((data || []) as GalleryRow[]);
+    if (error) {
+      setGalleries([]);
+      return;
+    }
+    const rows = (data || []) as Record<string, unknown>[];
+    setGalleries(rows.map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      slug: r.slug as string,
+      description: (r.description as string | null) ?? null,
+      cover_image_url: (r.cover_image_url as string | null) ?? null,
+      external_cover_asset_id: (r.external_cover_asset_id as string | null | undefined) ?? null,
+      display_order: (r.display_order as number | undefined) ?? 0,
+      status: (r.status as GalleryStatus | undefined) ?? 'published',
+      gallery_media: (r.gallery_media as { id: string }[] | undefined) ?? [],
+    })));
   }, [supabase]);
 
   useEffect(() => {

@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const now = new Date().toISOString();
+    const thumbUrl = typeof thumbnail_url === 'string' ? thumbnail_url.trim() || null : thumbnail_url || null;
+    const extThumbId = typeof external_thumbnail_asset_id === 'string' ? external_thumbnail_asset_id.trim() || null : external_thumbnail_asset_id || null;
     const eventData: Record<string, unknown> = {
       date: date ?? null,
       city: city ?? null,
@@ -72,8 +74,8 @@ export async function POST(request: NextRequest) {
       title: title || null,
       description: description || null,
       time: time || null,
-      thumbnail_url: thumbnail_url || null,
-      external_thumbnail_asset_id: external_thumbnail_asset_id || null,
+      thumbnail_url: thumbUrl,
+      external_thumbnail_asset_id: extThumbId,
       updated_at: now,
     };
     const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';

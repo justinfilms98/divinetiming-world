@@ -420,22 +420,32 @@ export async function getAboutTimeline(): Promise<AboutTimelineItem[]> {
   return (data || []) as AboutTimelineItem[];
 }
 
-/** Public list: only published videos (or all if status column not yet present). */
+/** Public list: only published videos (or all if status column not yet present). Resilient to missing caption/is_vertical (migration 034). */
 export async function getVideos(): Promise<MediaPageVideo[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('videos')
-    .select('id, title, youtube_id, thumbnail_url, status')
+    .select('*')
     .order('display_order', { ascending: true });
 
   if (error) return [];
-  const rows = (data || []) as { id: string; title: string; youtube_id: string; thumbnail_url?: string | null; status?: string }[];
+  const rows = (data || []) as Record<string, unknown>[];
   const withStatus = rows.some((r) => r.status != null);
   const filtered = withStatus ? rows.filter((r) => r.status === 'published') : rows;
-  return filtered.map((v) => ({
-    ...v,
-    resolved_thumbnail_url: resolveVideoThumbnailUrl(v),
-  }));
+  return filtered.map((v) => {
+    const caption = (v.caption as string | null | undefined) ?? null;
+    const is_vertical = (v.is_vertical as boolean | null | undefined) ?? false;
+    const row = v as { id: string; title: string; youtube_id: string; thumbnail_url?: string | null };
+    return {
+      id: row.id,
+      title: row.title,
+      youtube_id: row.youtube_id,
+      thumbnail_url: row.thumbnail_url ?? null,
+      caption,
+      is_vertical,
+      resolved_thumbnail_url: resolveVideoThumbnailUrl(row),
+    };
+  });
 }
 
 export async function getSiteSettings(): Promise<SiteSettings | null> {

@@ -13,6 +13,8 @@ interface VideoRow {
   title: string;
   youtube_id: string;
   thumbnail_url: string | null;
+  caption?: string | null;
+  is_vertical?: boolean;
   display_order: number;
   status?: VideoStatus;
 }
@@ -30,16 +32,32 @@ export default function AdminVideosPage() {
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [title, setTitle] = useState('');
   const [youtubeInput, setYoutubeInput] = useState('');
+  const [caption, setCaption] = useState('');
+  const [isVertical, setIsVertical] = useState(false);
   const [loading, setLoading] = useState(false);
   const { showToast } = useAdminToast();
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('videos')
-      .select('id, title, youtube_id, thumbnail_url, display_order, status')
+      .select('*')
       .order('display_order', { ascending: true });
-    setVideos((data || []) as VideoRow[]);
+    if (error) {
+      setVideos([]);
+      return;
+    }
+    const rows = (data || []) as Record<string, unknown>[];
+    setVideos(rows.map((r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      youtube_id: r.youtube_id as string,
+      thumbnail_url: (r.thumbnail_url as string | null) ?? null,
+      caption: (r.caption as string | null | undefined) ?? null,
+      is_vertical: (r.is_vertical as boolean | null | undefined) ?? false,
+      display_order: (r.display_order as number) ?? 0,
+      status: r.status as VideoRow['status'],
+    })));
   }, [supabase]);
 
   useEffect(() => {
@@ -58,13 +76,20 @@ export default function AdminVideosPage() {
       const res = await fetch('/api/admin/videos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), youtube_id }),
+        body: JSON.stringify({
+          title: title.trim(),
+          youtube_id,
+          caption: caption.trim() || null,
+          is_vertical: isVertical,
+        }),
         credentials: 'same-origin',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       setTitle('');
       setYoutubeInput('');
+      setCaption('');
+      setIsVertical(false);
       await load();
       showToast('success', 'Video added');
     } catch (err) {
@@ -129,6 +154,25 @@ export default function AdminVideosPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             />
           </div>
+          <div className="min-w-[200px]">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Caption (optional)</label>
+            <input
+              type="text"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Short caption"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+            />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isVertical}
+              onChange={(e) => setIsVertical(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            <span className="text-sm text-slate-700">Vertical / short-form (9:16)</span>
+          </label>
           <button
             type="submit"
             disabled={loading || !title.trim() || !youtubeInput.trim()}

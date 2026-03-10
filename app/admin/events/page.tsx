@@ -116,8 +116,10 @@ export default function AdminEventsPage() {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
-    const thumbnailUrl = (formData.get('thumbnail_url') as string) || null;
-    const externalThumbId = (formData.get('external_thumbnail_asset_id') as string) || null;
+    const rawThumb = formData.get('thumbnail_url');
+    const rawExt = formData.get('external_thumbnail_asset_id');
+    const thumbnailUrl = typeof rawThumb === 'string' ? rawThumb.trim() || null : null;
+    const externalThumbId = typeof rawExt === 'string' ? rawExt.trim() || null : null;
     const slugValue = (formData.get('slug') as string)?.trim() || null;
     const payload: Record<string, unknown> = {
       date: formData.get('date') as string,
@@ -429,11 +431,11 @@ export default function AdminEventsPage() {
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Thumbnail</label>
-                {(previewThumbnail || editingEvent?.thumbnail_url) ? (
+                {(previewThumbnail || editingEvent?.thumbnail_url || editingEvent?.resolved_thumbnail_url) ? (
                   <div className="flex items-center gap-3">
                     <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-white/5">
                       <img
-                        src={previewThumbnail || editingEvent!.thumbnail_url!}
+                        src={previewThumbnail || editingEvent?.thumbnail_url || editingEvent?.resolved_thumbnail_url || ''}
                         alt=""
                         className="w-full h-full object-cover"
                         onError={(e) => {
