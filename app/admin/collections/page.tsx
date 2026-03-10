@@ -347,7 +347,7 @@ export default function AdminCollectionsPage() {
                   <p className="font-medium text-slate-800 truncate">{g.name}</p>
                   {g.status === 'published' ? (
                     <span className="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-700">Published</span>
-                  ) : (g.status && g.status !== 'published') ? (
+                  ) : g.status ? (
                     <span className={`px-2 py-0.5 text-xs rounded ${g.status === 'draft' ? 'bg-amber-500/20 text-amber-700' : 'bg-slate-500/20 text-slate-600'}`}>
                       {g.status === 'draft' ? 'Draft' : 'Archived'}
                     </span>
