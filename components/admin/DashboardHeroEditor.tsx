@@ -206,16 +206,28 @@ export function DashboardHeroEditor() {
       }
       setPosterUploading(true);
       try {
-        const form = new FormData();
-        form.set('page_slug', selectedPage);
-        form.set('slot_index', '1');
-        form.set('kind', 'poster');
-        form.append('file', file);
-        const res = await fetch('/api/admin/hero-slot/upload', { method: 'POST', credentials: 'same-origin', body: form });
-        const data = await parseJsonResponse(res, 'Poster upload failed');
-        if (!res.ok) throw new Error((data?.error as string) || res.statusText || 'Poster upload failed');
-        const path = data?.storage_path as string | undefined;
-        if (path) setPosterStoragePath(path);
+        const pathRes = await fetch('/api/admin/hero-slot/upload-path', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            page_slug: selectedPage,
+            slot_index: '1',
+            kind: 'poster',
+            filename: file.name,
+          }),
+        });
+        const pathData = await parseJsonResponse(pathRes, 'Poster upload failed');
+        if (!pathRes.ok || !pathData?.path) {
+          throw new Error((pathData?.error as string) || 'Could not get upload path');
+        }
+        const { path } = pathData as { path: string };
+        const { error: uploadErr } = await supabase.storage.from('media').upload(path, file, {
+          contentType: file.type || 'image/jpeg',
+          upsert: true,
+        });
+        if (uploadErr) throw new Error(uploadErr.message || 'Storage upload failed');
+        setPosterStoragePath(path);
       } catch (err) {
         alert(err instanceof Error ? err.message : 'Poster upload failed');
       } finally {

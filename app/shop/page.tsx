@@ -4,6 +4,7 @@ import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { ShopPageClient } from '@/components/shop/ShopPageClient';
 import { Section } from '@/components/ui/Section';
+import { ContentRail } from '@/components/layout/ContentRail';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -52,9 +53,9 @@ export default async function ShopPage() {
       <div className="mt-20" />
       <SignatureDivider className="my-14 md:my-16" />
       <Section className="section-lift py-14 md:py-20">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+        <ContentRail>
           <ShopPageClient products={products} />
-        </div>
+        </ContentRail>
       </Section>
     </div>
   );

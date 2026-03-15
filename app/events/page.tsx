@@ -4,6 +4,7 @@ import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { Reveal } from '@/components/motion/Reveal';
 import { EventsListClient } from '@/components/events/EventsListClient';
 import { Section } from '@/components/ui/Section';
+import { ContentRail } from '@/components/layout/ContentRail';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -70,7 +71,7 @@ export default async function EventsPage() {
               />
             </Reveal>
           </div>
-        </div>
+        </ContentRail>
       </Section>
     </div>
   );

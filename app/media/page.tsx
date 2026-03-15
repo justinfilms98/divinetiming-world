@@ -10,6 +10,7 @@ import {
   getPageSettings,
 } from '@/lib/content/server';
 import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
+import { ContentRail } from '@/components/layout/ContentRail';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -77,7 +78,7 @@ export default async function MediaPage() {
               showHeadline={false}
             />
           </div>
-        </div>
+        </ContentRail>
       </Section>
     </div>
   );

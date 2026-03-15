@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ContentRail } from '@/components/layout/ContentRail';
 import { getEventBySlug, getHeroSection } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { EventDetailCard } from '@/components/events/EventDetailCard';
@@ -101,7 +102,7 @@ export default async function EventDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}
       />
-      <div className="max-w-[1200px] mx-auto w-full px-4 md:px-6 lg:px-8">
+      <ContentRail>
         <div className="w-full max-h-[420px] overflow-hidden rounded-b-2xl">
         <UnifiedHero
           mediaUrl={heroMediaUrl}
@@ -113,9 +114,9 @@ export default async function EventDetailPage({
           heightPreset="standard"
         />
         </div>
-      </div>
+      </ContentRail>
       <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+        <ContentRail>
           <div className="w-full">
           <Link
             href="/events"
@@ -168,7 +169,7 @@ export default async function EventDetailPage({
             </div>
           </div>
           </div>
-        </div>
+        </ContentRail>
       </main>
     </div>
   );

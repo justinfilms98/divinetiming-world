@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { ContentRail } from '@/components/layout/ContentRail';
 import { getGalleryBySlug } from '@/lib/content/server';
 import { GalleryDetailClient } from '@/components/media/GalleryDetailClient';
 import { absoluteImageUrl } from '@/lib/site';
@@ -72,7 +73,7 @@ export default async function GalleryPage({
               media={gridItems}
             />
           </div>
-        </div>
+        </ContentRail>
       </main>
     </div>
   );

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
 import { ProductImageGallery } from '@/components/shop/ProductImageGallery';
 import { Section } from '@/components/ui/Section';
+import { ContentRail } from '@/components/layout/ContentRail';
 import { absoluteImageUrl } from '@/lib/site';
 import { getProductBySlug } from '@/lib/content/server';
 import type { Metadata } from 'next';
@@ -61,7 +62,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
         <Section className="px-0">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+          <ContentRail>
             <div className="w-full">
             <Link
               href="/shop"
@@ -112,7 +113,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </div>
             </div>
             </div>
-          </div>
+          </ContentRail>
         </Section>
       </main>
     </div>
