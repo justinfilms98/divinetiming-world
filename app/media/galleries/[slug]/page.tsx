@@ -65,7 +65,7 @@ export default async function GalleryPage({
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-24 md:pt-28 pb-16 min-w-0">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+        <ContentRail>
           <div className="w-full">
             <GalleryDetailClient
               galleryName={gallery.name}

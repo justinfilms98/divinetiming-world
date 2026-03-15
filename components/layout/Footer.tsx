@@ -26,7 +26,7 @@ export function Footer({ siteSettings }: { siteSettings?: SiteSettings | null })
 
   return (
     <footer className="border-t border-[var(--text)]/10 mt-auto bg-[var(--bg)]/60" role="contentinfo">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-20 w-full">
+      <ContentRail className="py-16 md:py-20">
         <div className="flex flex-col items-center justify-center text-center w-full">
           <div className="flex flex-col items-center gap-1.5">
             <p
