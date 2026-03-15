@@ -100,7 +100,7 @@ export default async function BookingPage() {
             </p>
           </header>
 
-          <div className="w-full">
+          <div className="w-full max-w-5xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_320px] gap-14 lg:gap-16 items-start">
               <div className="min-w-0">
                 <Card className="p-6 sm:p-8 md:p-10 shadow-[var(--shadow-card)] border border-[var(--accent)]/10 bg-[var(--bg)] rounded-2xl">

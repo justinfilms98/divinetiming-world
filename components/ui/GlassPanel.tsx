@@ -24,7 +24,7 @@ export function GlassPanel({ children, className = '', delay = 0 }: GlassPanelPr
         rounded-2xl
         shadow-lg
         p-8 md:p-12
-        max-w-4xl mx-auto
+        w-full max-w-4xl mx-auto
         card-atmosphere
         ${className}
       `}

@@ -117,7 +117,7 @@ export default async function EventDetailPage({
       </ContentRail>
       <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
         <ContentRail>
-          <div className="w-full">
+          <div className="w-full max-w-full">
           <Link
             href="/events"
             className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded nav-link-underline"
@@ -125,7 +125,7 @@ export default async function EventDetailPage({
             ← Back to Events
           </Link>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-14 lg:gap-20 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-14 lg:gap-20 items-start max-w-5xl mx-auto w-full">
             <article className="min-w-0 space-y-10">
               {imageUrl ? (
                 <div className="w-full max-w-[65ch]">

@@ -1,6 +1,6 @@
 # Phase 42B — Regression proof output
 
-**Status:** Code fixes applied. Preview must be pushed and screenshots captured from the **new preview URL** to satisfy “visible in preview.”
+**Status:** Fixes committed and pushed; deployment from commit **faae8f4**. Root cause: Phase 42B was uncommitted (preview built 1318525). ContentRail added. Code fixes applied. Preview must be pushed and screenshots captured from the **new preview URL** to satisfy “visible in preview.”
 
 ---
 

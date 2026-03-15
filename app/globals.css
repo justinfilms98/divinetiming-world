@@ -431,7 +431,7 @@ body {
 
 /* Hero CTAs — gold primary, white border, black text; hover white bg + underline */
 .hero-cta-primary {
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
   min-height: 48px;
@@ -440,17 +440,17 @@ body {
   font-size: var(--text-button);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-wide);
-  color: #0a0a0a;
-  background: #c9a227;
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  color: #0a0a0a !important;
+  background: #c9a227 !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
   border-radius: var(--radius-button);
   box-shadow: var(--shadow-button);
-  transition: background var(--motion-standard) var(--ease-standard), border-color var(--motion-standard) var(--ease-standard), color var(--motion-standard) var(--ease-standard), box-shadow var(--motion-standard) var(--ease-standard), text-decoration-color var(--motion-standard) var(--ease-standard);
+  transition: background var(--motion-standard) var(--ease-standard), border-color var(--motion-standard) var(--ease-standard), color var(--motion-standard) var(--ease-standard), box-shadow var(--motion-standard) var(--ease-standard), text-decoration var(--motion-standard) var(--ease-standard);
 }
 .hero-cta-primary:hover {
-  background: #fff;
-  border-color: #0a0a0a;
-  color: #0a0a0a;
+  background: #fff !important;
+  border-color: #0a0a0a !important;
+  color: #0a0a0a !important;
   text-decoration: underline;
   text-underline-offset: 0.2em;
   box-shadow: var(--shadow-button-hover);

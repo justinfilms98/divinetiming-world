@@ -20,7 +20,7 @@ export function EventsListClient({ upcomingEvents, pastEvents }: EventsListClien
   ];
 
   return (
-    <div>
+    <div className="w-full max-w-full">
       {tabs.length > 1 && (
         <div className="flex justify-center mb-10">
           <LuxuryTabs
@@ -31,7 +31,7 @@ export function EventsListClient({ upcomingEvents, pastEvents }: EventsListClien
         </div>
       )}
       {events.length > 0 ? (
-        <div className="space-y-8 w-full">
+        <div className="space-y-8 w-full max-w-4xl mx-auto">
           {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}

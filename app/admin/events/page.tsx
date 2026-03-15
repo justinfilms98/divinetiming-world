@@ -304,9 +304,9 @@ export default function AdminEventsPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between p-4 gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-[var(--accent)] text-sm font-semibold">
                         {formatDate(event.date)}
                         {event.time && ` · ${event.time}`}
@@ -322,8 +322,8 @@ export default function AdminEventsPage() {
                         </span>
                       )}
                     </div>
-                    <h3 className="text-lg font-semibold text-white">{event.title || event.city}</h3>
-                    <p className="text-white/70 text-sm">{[event.venue, event.city].filter(Boolean).join(' · ')}</p>
+                    <h3 className="text-lg font-semibold text-white truncate" title={event.title || event.city || 'Untitled'}>{event.title || event.city || 'Untitled'}</h3>
+                    <p className="text-white/70 text-sm truncate">{[event.venue, event.city].filter(Boolean).join(' · ') || '—'}</p>
                     {event.description && (
                       <p className="text-white/60 text-sm mt-1 line-clamp-2">{event.description}</p>
                     )}

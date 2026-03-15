@@ -37,8 +37,8 @@ export function MediaPageClient({
   const showEmptyVideos = activeTab === 'videos' && !hasVideos;
 
   return (
-    <div className="flex-1 flex items-center justify-center py-16 px-4 min-w-0">
-      <GlassPanel className="w-full">
+    <div className="flex-1 w-full max-w-full py-16 px-0 min-w-0">
+      <GlassPanel className="w-full !max-w-none mx-auto">
         {showHeadline && (
           <>
             <h1 className="type-h1 text-[var(--text)] mb-8 text-center tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
@@ -97,7 +97,7 @@ export function MediaPageClient({
               hidden: {},
             }}
           >
-            <Grid cols={4} className="justify-items-center">
+            <Grid cols={3} className="justify-items-center gap-10 md:gap-12 w-full">
             {galleries.map((gallery) => {
               const coverUrl = gallery.resolved_cover_url ?? null;
               const hasMedia = gallery.media_count > 0;

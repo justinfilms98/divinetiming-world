@@ -15,15 +15,24 @@ interface VideoFeedProps {
 }
 
 /**
- * Vertical short-form video experience.
- * Desktop: centered 9:16 player with prev/next; balanced layout.
- * Mobile: one focal video; swipe left/right to change; prev/next buttons.
- * Only the active video is rendered (single iframe) to avoid layout jumps and clutter.
+ * Video feed: detects orientation so horizontal footage fills a landscape container (no letterboxing).
+ * Vertical footage uses 9:16. Only the active video is rendered.
  */
 export function VideoFeed({ videos }: VideoFeedProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [aspectClass, setAspectClass] = useState<'aspect-[9/16]' | 'aspect-video'>('aspect-[9/16]');
   const current = videos[currentIndex] ?? null;
   const touchStartX = useRef<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const onVideoLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const el = e.currentTarget;
+    const w = el.videoWidth;
+    const h = el.videoHeight;
+    if (w > 0 && h > 0) {
+      setAspectClass(w >= h ? 'aspect-video' : 'aspect-[9/16]');
+    }
+  }, []);
 
   const goPrev = useCallback(() => {
     setCurrentIndex((i) => (i <= 0 ? videos.length - 1 : i - 1));
@@ -38,6 +47,14 @@ export function VideoFeed({ videos }: VideoFeedProps) {
       setCurrentIndex(0);
     }
   }, [currentIndex, videos.length]);
+
+  useEffect(() => {
+    if (current?.video_url) {
+      setAspectClass('aspect-[9/16]');
+    } else if (current?.youtube_id) {
+      setAspectClass('aspect-video');
+    }
+  }, [current?.id, current?.video_url, current?.youtube_id]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
@@ -64,18 +81,20 @@ export function VideoFeed({ videos }: VideoFeedProps) {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Single focal area: one 9:16 player, no layout jump */}
+      {/* Container aspect: vertical 9:16 or horizontal aspect-video based on source */}
       <div
-        className="relative w-full aspect-[9/16] max-h-[78vh] rounded-2xl overflow-hidden bg-black border border-[var(--accent)]/15 shadow-[var(--shadow-card-hover)] ring-1 ring-[var(--text)]/5"
+        className={`relative w-full ${aspectClass} max-h-[78vh] rounded-2xl overflow-hidden bg-black border border-[var(--accent)]/15 shadow-[var(--shadow-card-hover)] ring-1 ring-[var(--text)]/5`}
         style={{ contain: 'layout' }}
       >
         {current && (current.video_url ? (
           <video
             key={current.id}
+            ref={videoRef}
             src={current.video_url}
             title={current.title}
             controls
             playsInline
+            onLoadedMetadata={onVideoLoadedMetadata}
             className="absolute inset-0 w-full h-full object-contain bg-black"
           />
         ) : current.youtube_id ? (

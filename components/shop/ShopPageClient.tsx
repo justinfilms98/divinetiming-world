@@ -23,12 +23,13 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
 
   return (
     <>
-      <div className="w-full">
+      <div className="w-full max-w-full">
           <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
             Official merchandise and music.
           </p>
           {products.length > 0 ? (
           <motion.div
+            className="w-full"
             initial="hidden"
             animate="visible"
             variants={{
@@ -36,7 +37,7 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
               hidden: {},
             }}
           >
-            <Grid cols={3} className="gap-8 md:gap-10 justify-items-center">
+            <Grid cols={3} className="gap-8 md:gap-10 justify-items-center w-full">
               {products.map((product) => {
                 const images = product.product_images as { image_url: string; display_order: number }[] | undefined;
                 const sortedImages = images?.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
