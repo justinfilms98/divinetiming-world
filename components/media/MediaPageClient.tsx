@@ -97,7 +97,7 @@ export function MediaPageClient({
               hidden: {},
             }}
           >
-            <Grid cols={4}>
+            <Grid cols={4} className="justify-items-center">
             {galleries.map((gallery) => {
               const coverUrl = gallery.resolved_cover_url ?? null;
               const hasMedia = gallery.media_count > 0;
@@ -106,7 +106,7 @@ export function MediaPageClient({
 
               const cardContent = (
                 <>
-                  <div className="relative aspect-[4/5] rounded-xl overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere">
+                  <div className="relative aspect-[4/5] w-full min-w-0 rounded-xl overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere">
                     {coverUrl ? (
                       <Image
                         src={coverUrl}

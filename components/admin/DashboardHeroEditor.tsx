@@ -9,7 +9,6 @@ import {
 } from '@/components/admin/uploader/UniversalUploader';
 import { revalidatePaths } from '@/lib/revalidate';
 import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
-import { updateHeroMedia, validateHeroFile } from '@/lib/storageUpload';
 import { Save, Check, Copy, ImageIcon, Video, Upload, HelpCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/ui/cn';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
@@ -193,45 +192,8 @@ export function DashboardHeroEditor() {
     }
   }, [hero?.media_type, hero?.hero_slots]);
 
-  const supabaseMediaInputRef = useRef<HTMLInputElement>(null);
-  const supabaseLogoInputRef = useRef<HTMLInputElement>(null);
   const posterFileInputRef = useRef<HTMLInputElement>(null);
-  const [supabaseUploading, setSupabaseUploading] = useState<'media' | 'logo' | null>(null);
   const [posterUploading, setPosterUploading] = useState(false);
-
-  const handleSupabaseMediaUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (!file || !selectedPage) return;
-      const err = validateHeroFile(file, 'media');
-      if (err) {
-        alert(err);
-        return;
-      }
-      setSupabaseUploading('media');
-      try {
-        const { storagePath } = await updateHeroMedia(selectedPage, file, 'media');
-        setHeroSections((prev) => ({
-          ...prev,
-          [selectedPage]: {
-            ...(prev[selectedPage] || ({} as HeroSection)),
-            page_slug: selectedPage,
-            media_storage_path: storagePath,
-            media_type: 'image',
-            media_url: prev[selectedPage]?.media_url ?? null,
-          } as HeroSection,
-        }));
-        const path = selectedPage === 'home' ? '/' : `/${selectedPage}`;
-        await revalidatePaths([path]);
-      } catch (err) {
-        alert(err instanceof Error ? err.message : 'Upload failed');
-      } finally {
-        setSupabaseUploading(null);
-      }
-    },
-    [selectedPage]
-  );
 
   const handlePosterUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,39 +220,6 @@ export function DashboardHeroEditor() {
         alert(err instanceof Error ? err.message : 'Poster upload failed');
       } finally {
         setPosterUploading(false);
-      }
-    },
-    [selectedPage]
-  );
-
-  const handleSupabaseLogoUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (!file || !selectedPage) return;
-      const err = validateHeroFile(file, 'logo');
-      if (err) {
-        alert(err);
-        return;
-      }
-      setSupabaseUploading('logo');
-      try {
-        const { storagePath } = await updateHeroMedia(selectedPage, file, 'logo');
-        setHeroSections((prev) => ({
-          ...prev,
-          [selectedPage]: {
-            ...(prev[selectedPage] || ({} as HeroSection)),
-            page_slug: selectedPage,
-            hero_logo_storage_path: storagePath,
-            hero_logo_url: prev[selectedPage]?.hero_logo_url ?? null,
-          } as HeroSection,
-        }));
-        const path = selectedPage === 'home' ? '/' : `/${selectedPage}`;
-        await revalidatePaths([path]);
-      } catch (err) {
-        alert(err instanceof Error ? err.message : 'Upload failed');
-      } finally {
-        setSupabaseUploading(null);
       }
     },
     [selectedPage]
@@ -504,28 +433,13 @@ export function DashboardHeroEditor() {
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <input
-                ref={supabaseMediaInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={handleSupabaseMediaUpload}
-              />
-              <button
-                type="button"
-                onClick={() => supabaseMediaInputRef.current?.click()}
-                disabled={!!supabaseUploading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
-              >
-                <Upload className="w-4 h-4" /> Upload
-              </button>
               <UniversalUploader
                 acceptedTypes={['image', 'video']}
                 multiple={false}
                 onSelected={handleReplaceMedia}
                 onUploadingChange={setUploadInProgress}
-                buttonLabel="Replace"
-hideStorageTip
+                buttonLabel="Upload image or video"
+                hideStorageTip
               />
               {(heroMediaDisplayUrl || hero.media_url) && hero.media_type !== 'default' && (
                 <button
@@ -556,24 +470,9 @@ hideStorageTip
                     Source: {hero.hero_logo_storage_path ? `Storage: ${hero.hero_logo_storage_path}` : hero.hero_logo_url}
                   </p>
                   <div className="flex flex-col gap-2">
-                    <input
-                      ref={supabaseLogoInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="hidden"
-                      onChange={handleSupabaseLogoUpload}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => supabaseLogoInputRef.current?.click()}
-                      disabled={!!supabaseUploading}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 w-fit"
-                    >
-                      <Upload className="w-3 h-3" /> Upload
-                    </button>
                     <UniversalUploader
                       acceptedTypes={['image']}
-                      acceptOverride="image/png,image/svg+xml"
+                      acceptOverride="image/png"
                       multiple={false}
                       maxSizeBytes={2 * 1024 * 1024}
                       onSelected={(files) => {
@@ -581,8 +480,8 @@ hideStorageTip
                         if (url) updateHero({ hero_logo_url: url });
                       }}
                       onUploadingChange={setUploadInProgress}
-                      buttonLabel="Replace"
-hideStorageTip
+                      buttonLabel="Replace logo"
+                      hideStorageTip
                     />
                     <button
                       type="button"
@@ -594,36 +493,19 @@ hideStorageTip
                   </div>
                 </div>
               ) : (
-                <>
-                  <input
-                    ref={supabaseLogoInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    onChange={handleSupabaseLogoUpload}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => supabaseLogoInputRef.current?.click()}
-                    disabled={!!supabaseUploading}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    <Upload className="w-4 h-4" /> Upload logo
-                  </button>
-                  <UniversalUploader
-                    acceptedTypes={['image']}
-                    acceptOverride="image/png,image/svg+xml"
-                    multiple={false}
-                    maxSizeBytes={2 * 1024 * 1024}
-                    onSelected={(files) => {
-                      const url = files[0]?.url;
-                      if (url) updateHero({ hero_logo_url: url });
-                    }}
-                    onUploadingChange={setUploadInProgress}
-                    buttonLabel="Upload logo"
-hideStorageTip
-                  />
-                </>
+                <UniversalUploader
+                  acceptedTypes={['image']}
+                  acceptOverride="image/png"
+                  multiple={false}
+                  maxSizeBytes={2 * 1024 * 1024}
+                  onSelected={(files) => {
+                    const url = files[0]?.url;
+                    if (url) updateHero({ hero_logo_url: url });
+                  }}
+                  onUploadingChange={setUploadInProgress}
+                  buttonLabel="Upload logo (PNG)"
+                  hideStorageTip
+                />
               )}
             </div>
           )}
@@ -670,7 +552,7 @@ hideStorageTip
                       <input
                         ref={posterFileInputRef}
                         type="file"
-                        accept="image/png,image/jpeg,image/webp"
+                        accept="image/*"
                         className="hidden"
                         onChange={handlePosterUpload}
                       />

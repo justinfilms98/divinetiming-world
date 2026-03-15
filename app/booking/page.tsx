@@ -90,7 +90,7 @@ export default async function BookingPage() {
         className="scroll-mt-24 md:scroll-mt-28 bg-[var(--bg-secondary)]/30 border-y border-[var(--text)]/[0.06] mt-2 md:mt-4"
         aria-label="Booking form and contact"
       >
-        <Container className="min-w-0 py-16 md:py-24">
+        <Container className="min-w-0 max-w-[1100px] mx-auto px-4 md:px-6 py-16 md:py-24">
           <header className="text-center mb-14 md:mb-16">
             <h2 className="type-h2 font-semibold tracking-tight text-[var(--text)]" style={{ fontFamily: 'var(--font-display)' }}>
               Booking inquiries
@@ -100,7 +100,7 @@ export default async function BookingPage() {
             </p>
           </header>
 
-          <div className="max-w-[1000px] mx-auto">
+          <div className="w-full">
             <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_320px] gap-14 lg:gap-16 items-start">
               <div className="min-w-0">
                 <Card className="p-6 sm:p-8 md:p-10 shadow-[var(--shadow-card)] border border-[var(--accent)]/10 bg-[var(--bg)] rounded-2xl">

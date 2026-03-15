@@ -23,29 +23,29 @@ export function Header() {
               DIVINE:TIMING
             </Link>
 
-            {/* Desktop Nav — consistent hover and underline */}
+            {/* Desktop Nav — gold/white/black CTA + link underline */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="/events" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/events" className="relative group nav-link-underline text-[var(--text)] hover:text-[var(--text)] transition-colors duration-200">
                 Events
               </Link>
-              <Link href="/shop" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/shop" className="relative group nav-link-underline text-[var(--text)] hover:text-[var(--text)] transition-colors duration-200">
                 Shop
               </Link>
-              <Link href="/media" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/media" className="relative group nav-link-underline text-[var(--text)] hover:text-[var(--text)] transition-colors duration-200">
                 Media
               </Link>
-              <Link href="/about" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/about" className="relative group nav-link-underline text-[var(--text)] hover:text-[var(--text)] transition-colors duration-200">
                 About
               </Link>
-              <Link href="/booking" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/booking" className="relative group nav-link-underline text-[var(--text)] hover:text-[var(--text)] transition-colors duration-200">
                 Booking
               </Link>
-              <Link href="/presskit" className="relative nav-link-underline text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200">
+              <Link href="/presskit" className="relative group nav-link-underline text-[var(--text)] hover:text-[var(--text)] transition-colors duration-200">
                 Press Kit
               </Link>
               <Link
                 href="/booking"
-                className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded-md hover:bg-[var(--accent2)] transition-colors duration-200 glow"
+                className="px-4 py-2 rounded-md font-medium transition-all duration-200 border-2 border-white bg-[var(--accent)] text-black hover:bg-white hover:text-black hover:border-black underline-offset-4 hover:underline glow focus-ring"
               >
                 Book Now
               </Link>

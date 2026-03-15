@@ -268,7 +268,14 @@ export default function AdminEventsPage() {
         <div className="grid gap-4">
           {events.map((event, index) => (
             <AdminCard key={event.id} className="p-0 overflow-hidden">
-              <div className="flex flex-col md:flex-row">
+              <div
+                className="flex flex-col md:flex-row cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onClick={() => openEdit(event)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(event); } }}
+                aria-label={`Edit ${event.title || event.city}`}
+              >
                 {/* Thumbnail: resolved URL or premium placeholder */}
                 <div className="md:w-40 md:flex-shrink-0">
                   {(event.resolved_thumbnail_url ?? event.thumbnail_url) ? (
@@ -322,9 +329,10 @@ export default function AdminEventsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col">
                       <button
+                        type="button"
                         onClick={() => handleMove(index, 'up')}
                         disabled={index === 0}
                         className="p-1.5 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
@@ -333,6 +341,7 @@ export default function AdminEventsPage() {
                         <ChevronUp className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleMove(index, 'down')}
                         disabled={index === events.length - 1}
                         className="p-1.5 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
@@ -353,6 +362,7 @@ export default function AdminEventsPage() {
                       </a>
                     )}
                     <button
+                      type="button"
                       onClick={() => openEdit(event)}
                       className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-lg"
                       title="Edit"
@@ -360,6 +370,7 @@ export default function AdminEventsPage() {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleDelete(event.id)}
                       className="p-2 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
                       title="Delete"
@@ -450,8 +461,11 @@ export default function AdminEventsPage() {
                     <div className="flex flex-wrap gap-2">
                       <UniversalUploader
                         acceptedTypes={['image']}
+                        acceptOverride="image/*"
                         onSelected={handleThumbnailSelected}
                         onUploadingChange={setUploadInProgress}
+                        buttonLabel="Replace thumbnail"
+                        hideStorageTip
                         className="inline-flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg text-sm hover:border-slate-400"
                       />
                       <button
@@ -481,8 +495,11 @@ export default function AdminEventsPage() {
                   <div className="flex flex-wrap gap-2">
                     <UniversalUploader
                       acceptedTypes={['image']}
+                      acceptOverride="image/*"
                       onSelected={handleThumbnailSelected}
                       onUploadingChange={setUploadInProgress}
+                      buttonLabel="Upload thumbnail (image)"
+                      hideStorageTip
                       className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-500"
                     />
                     <button

@@ -448,6 +448,30 @@ export async function getVideos(): Promise<MediaPageVideo[]> {
   });
 }
 
+/** Library video assets (Supabase-uploaded MP4 etc.) for Media Videos tab. Option B: show alongside YouTube. */
+export async function getLibraryVideoAssets(): Promise<MediaPageVideo[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('external_media_assets')
+    .select('id, name, preview_url, thumbnail_url, mime_type')
+    .eq('provider', 'supabase')
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  const rows = (data || []) as { id: string; name?: string | null; preview_url?: string | null; thumbnail_url?: string | null; mime_type?: string | null }[];
+  return rows
+    .filter((r) => (r.mime_type || '').toLowerCase().startsWith('video/'))
+    .map((r) => ({
+      id: `lib-${r.id}`,
+      title: (r.name || 'Video').trim() || 'Video',
+      video_url: (r.preview_url || '').trim() || undefined,
+      thumbnail_url: (r.thumbnail_url || r.preview_url || '').trim() || null,
+      resolved_thumbnail_url: (r.thumbnail_url || r.preview_url || '').trim() || '',
+      caption: null,
+      is_vertical: false,
+    }));
+}
+
 export async function getSiteSettings(): Promise<SiteSettings | null> {
   const supabase = await createClient();
   const { data, error } = await supabase

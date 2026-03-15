@@ -6,6 +6,7 @@ import { Section } from '@/components/ui/Section';
 import {
   getGalleriesForHub,
   getVideos,
+  getLibraryVideoAssets,
   getHeroSection,
   getPageSettings,
 } from '@/lib/content/server';
@@ -32,12 +33,14 @@ export const metadata: Metadata = {
 };
 
 export default async function MediaPage() {
-  const [galleries, videos, heroSection, pageSettings] = await Promise.all([
+  const [galleries, youtubeVideos, libraryVideos, heroSection, pageSettings] = await Promise.all([
     getGalleriesForHub(),
     getVideos(),
+    getLibraryVideoAssets(),
     getHeroSection('media'),
     getPageSettings('media'),
   ]);
+  const videos = [...youtubeVideos, ...libraryVideos];
 
   const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Media';
   const subtext = stripArtistBylineFromHeroSubtext(heroSection?.subtext);
@@ -62,8 +65,8 @@ export default async function MediaPage() {
       <SignatureDivider className="my-14 md:my-16" />
 
       <Section className="section-lift py-14 md:py-20">
-        <Container>
-          <div className="max-w-[1000px] mx-auto w-full">
+        <Container className="max-w-[1100px] mx-auto px-4 md:px-6">
+          <div className="w-full">
             <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
               Browse photo collections and videos.
             </p>

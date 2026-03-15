@@ -59,8 +59,8 @@ export default async function EventsPage() {
       />
 
       <Section className="flex-1 mt-20 overflow-x-clip section-lift py-14 md:py-20">
-        <Container className="min-w-0">
-          <div className="max-w-[1000px] mx-auto w-full">
+        <Container className="min-w-0 max-w-[1100px] mx-auto px-4 md:px-6">
+          <div className="w-full">
             <Reveal>
               <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
                 Upcoming and past shows.

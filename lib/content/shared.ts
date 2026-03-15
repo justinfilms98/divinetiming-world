@@ -104,11 +104,14 @@ export function parseYouTubeId(source: string): string | null {
   return m ? m[1]! : null;
 }
 
-/** Video with resolved thumbnail for media page (client receives this from server) */
+/** Video with resolved thumbnail for media page (client receives this from server). YouTube entries have youtube_id; library MP4s have video_url. */
 export interface MediaPageVideo {
   id: string;
   title: string;
-  youtube_id: string;
+  /** Set for Admin → Videos (YouTube) entries */
+  youtube_id?: string;
+  /** Set for Media Library uploaded video assets (MP4 etc.) shown in Videos tab */
+  video_url?: string;
   thumbnail_url?: string | null;
   caption?: string | null;
   is_vertical?: boolean;

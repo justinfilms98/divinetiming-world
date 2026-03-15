@@ -31,7 +31,7 @@ export function EventsListClient({ upcomingEvents, pastEvents }: EventsListClien
         </div>
       )}
       {events.length > 0 ? (
-        <div className="space-y-8">
+        <div className="space-y-8 w-full">
           {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}

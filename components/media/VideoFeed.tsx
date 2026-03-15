@@ -69,7 +69,16 @@ export function VideoFeed({ videos }: VideoFeedProps) {
         className="relative w-full aspect-[9/16] max-h-[78vh] rounded-2xl overflow-hidden bg-black border border-[var(--accent)]/15 shadow-[var(--shadow-card-hover)] ring-1 ring-[var(--text)]/5"
         style={{ contain: 'layout' }}
       >
-        {current && (
+        {current && (current.video_url ? (
+          <video
+            key={current.id}
+            src={current.video_url}
+            title={current.title}
+            controls
+            playsInline
+            className="absolute inset-0 w-full h-full object-contain bg-black"
+          />
+        ) : current.youtube_id ? (
           <iframe
             key={current.id}
             src={embedUrl(current.youtube_id)}
@@ -80,7 +89,7 @@ export function VideoFeed({ videos }: VideoFeedProps) {
             allowFullScreen
             className="absolute inset-0 w-full h-full"
           />
-        )}
+        ) : null)}
       </div>
 
       {/* Title + caption: clear hierarchy */}

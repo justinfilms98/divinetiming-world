@@ -139,7 +139,7 @@ export default function AdminMediaPage() {
   return (
     <AdminPage
       title="Media"
-      subtitle="Upload and manage media library"
+      subtitle="Upload and manage media library. Video uploads also appear in the public Media → Videos tab."
       actions={
         <UniversalUploader
           multiple
