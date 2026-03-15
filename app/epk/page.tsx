@@ -4,6 +4,7 @@ import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { AuthorityCTAs } from '@/components/authority/AuthorityCTAs';
 import { Reveal } from '@/components/motion/Reveal';
+import { Container } from '@/components/ui/Container';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -97,6 +98,7 @@ export default async function EPKPage() {
             <AuthorityCTAs showBook showListen showEPK={false} />
           </Reveal>
         </div>
+        </Container>
       </section>
     </div>
   );

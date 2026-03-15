@@ -13,7 +13,6 @@ import { BookingForm } from '@/components/booking/BookingForm';
 import { BookingAboutCard } from '@/components/booking/BookingAboutCard';
 import { BookingBioSection } from '@/components/booking/BookingBioSection';
 import { Container } from '@/components/ui/Container';
-import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -61,8 +60,8 @@ export default async function BookingPage() {
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
-      {/* Refined booking hero */}
-      <div className="pt-20 md:pt-24">
+      {/* Hero: compact, supports page without dominating */}
+      <div className="pt-[4.5rem] md:pt-24">
         <UnifiedHero
           mediaType={mediaType ?? undefined}
           mediaUrl={mediaUrl ?? undefined}
@@ -70,54 +69,48 @@ export default async function BookingPage() {
           badge={heroSection?.label_text?.trim() || undefined}
           headline={headline}
           subtext={subtext}
-          heightPreset="standard"
+          heightPreset="compact"
         >
           <HeroContent ctaText={ctaText} ctaUrl={ctaUrl} />
         </UnifiedHero>
       </div>
 
-      <SignatureDivider />
+      <SignatureDivider className="my-14 md:my-16" />
 
       {bookingSections && bookingSections.length > 0 && (
         <>
           <BookingStoryScroll sections={bookingSections} />
-          <SignatureDivider className="mb-8 md:mb-10" />
+          <SignatureDivider className="my-14 md:my-16" />
         </>
       )}
 
-      {/* Inquiry section: centered two-column block, heading inside container for alignment */}
-      <Section
+      {/* Inquiry: full-bleed band — premium destination feel */}
+      <section
         id="booking-form"
-        className="scroll-mt-24 md:scroll-mt-28 min-w-0 overflow-x-clip pt-10 md:pt-12 pb-12 md:pb-16"
+        className="scroll-mt-24 md:scroll-mt-28 bg-[var(--bg-secondary)]/30 border-y border-[var(--text)]/[0.06] mt-2 md:mt-4"
         aria-label="Booking form and contact"
       >
-        <Container className="min-w-0">
-          <header className="mb-8 md:mb-10">
+        <Container className="min-w-0 py-16 md:py-24">
+          <header className="text-center mb-14 md:mb-16">
             <h2 className="type-h2 font-semibold tracking-tight text-[var(--text)]" style={{ fontFamily: 'var(--font-display)' }}>
               Booking inquiries
             </h2>
-            <p className="mt-2 text-[var(--text-muted)] type-body prose-readability">
+            <p className="mt-5 text-[var(--text-muted)] type-body max-w-[40ch] mx-auto leading-relaxed">
               Send your details and we&apos;ll get back to you.
             </p>
           </header>
 
-          {/* Centered two-column block: form substantial, aside supporting rail */}
           <div className="max-w-[1000px] mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,340px)] gap-8 lg:gap-12">
-              {/* Form column */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_320px] gap-14 lg:gap-16 items-start">
               <div className="min-w-0">
-                <Card className="p-6 sm:p-8 shadow-lg border border-[var(--accent)]/10">
+                <Card className="p-6 sm:p-8 md:p-10 shadow-[var(--shadow-card)] border border-[var(--accent)]/10 bg-[var(--bg)] rounded-2xl">
                   <BookingForm />
                 </Card>
               </div>
 
-              {/* Aside: unified supporting rail */}
-              <aside
-                className="flex flex-col gap-6 min-w-0 lg:min-w-[280px]"
-                aria-label="Contact and resources"
-              >
-                <Card className="p-6 border border-[var(--accent)]/10 w-full">
-                  <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+              <aside className="flex flex-col gap-6 min-w-0 lg:min-w-[280px]" aria-label="Contact and resources">
+                <Card className="p-6 border border-[var(--accent)]/[0.08] bg-[var(--bg)]/80 rounded-xl">
+                  <h3 className="type-h3 text-[var(--text)] mb-3.5 font-medium" style={{ fontFamily: 'var(--font-display)' }}>
                     Contact & management
                   </h3>
                   <div className="space-y-2 type-body text-[var(--text-muted)]">
@@ -141,12 +134,12 @@ export default async function BookingPage() {
                   </div>
                 </Card>
 
-                <Card className="p-6 border border-[var(--accent)]/10 w-full">
-                  <h3 className="type-h3 text-[var(--text)] mb-3" style={{ fontFamily: 'var(--font-display)' }}>
-                    Press / EPK download
+                <Card className="p-6 border border-[var(--accent)]/[0.08] bg-[var(--bg)]/80 rounded-xl">
+                  <h3 className="type-h3 text-[var(--text)] mb-3.5 font-medium" style={{ fontFamily: 'var(--font-display)' }}>
+                    Press / EPK
                   </h3>
                   <p className="type-body text-[var(--text-muted)] mb-4 text-sm leading-relaxed">
-                    Download our electronic press kit for promoters and press.
+                    Electronic press kit for promoters and press.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Link
@@ -177,7 +170,7 @@ export default async function BookingPage() {
                 />
 
                 {sponsors.length > 0 && (
-                  <Card className="p-6 border border-[var(--accent)]/10 w-full">
+                  <Card className="p-6 border border-[var(--accent)]/[0.08] bg-[var(--bg)]/80 rounded-xl">
                     <h3 className="type-h3 text-[var(--text-muted)] mb-2 text-xs font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-ui)' }}>
                       Partners & affiliations
                     </h3>
@@ -188,7 +181,7 @@ export default async function BookingPage() {
             </div>
           </div>
         </Container>
-      </Section>
+      </section>
     </div>
   );
 }

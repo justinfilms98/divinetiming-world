@@ -50,8 +50,8 @@ export default async function ShopPage() {
         heightPreset="compact"
       />
       <div className="mt-20" />
-      <SignatureDivider />
-      <Section className="section-lift">
+      <SignatureDivider className="my-14 md:my-16" />
+      <Section className="section-lift py-14 md:py-20">
         <ShopPageClient products={products} />
       </Section>
     </div>

@@ -45,28 +45,30 @@ export function GalleryDetailClient({
     <>
       <Link
         href="/media"
-        className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded nav-link-underline relative"
+        className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded nav-link-underline relative"
       >
         ← Back to Media
       </Link>
-      <h1 className="type-h1 text-[var(--text)] mb-4 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-        {galleryName}
-      </h1>
-      {galleryDescription ? (
-        <p className="type-body text-[var(--text-muted)] mb-10 md:mb-12 prose-readability max-w-[60ch] leading-relaxed">
-          {galleryDescription}
-        </p>
-      ) : (
-        <p className="type-body text-[var(--text-muted)] mb-10 max-w-[45ch]">Photos and media from this collection.</p>
-      )}
+      <header className="mb-12 md:mb-16">
+        <h1 className="type-h1 text-[var(--text)] mb-4 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+          {galleryName}
+        </h1>
+        {galleryDescription ? (
+          <p className="type-body text-[var(--text-muted)] prose-readability max-w-[60ch] leading-relaxed">
+            {galleryDescription}
+          </p>
+        ) : (
+          <p className="type-body text-[var(--text-muted)] max-w-[45ch]">Photos and media from this collection.</p>
+        )}
+      </header>
       {media.length === 0 ? (
-        <div className="py-20 text-center">
+        <div className="py-24 text-center">
           <p className="text-[var(--text-muted)] text-lg tracking-wide type-body">
             No media in this collection yet.
           </p>
         </div>
       ) : (
-        <GalleryGrid items={media} onItemClick={handleItemClick} />
+        <GalleryGrid items={media} onItemClick={handleItemClick} className="mt-4 gap-6 md:gap-8" />
       )}
 
       {viewerIndex !== null && (

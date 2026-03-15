@@ -44,7 +44,7 @@ export default function CartPage() {
         subtext={items.length > 0 ? `${items.length} item${items.length === 1 ? '' : 's'}` : undefined}
         heightPreset="standard"
       />
-      <main className="flex-1 py-12">
+      <main className="flex-1 pt-24 md:pt-28 pb-16 min-w-0">
         <Container>
         <div className="max-w-2xl mx-auto">
           {items.length === 0 ? (

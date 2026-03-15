@@ -23,8 +23,8 @@ export function GalleryGrid({ items, onItemClick, className }: GalleryGridProps)
   if (!items.length) return null;
 
   return (
-    <Reveal className={className}>
-      <Grid cols={4}>
+    <Reveal>
+      <Grid cols={4} className={className}>
         {items.map((item, index) => (
           <MediaTile
             key={item.id}

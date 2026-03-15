@@ -93,11 +93,13 @@ export async function POST(request: NextRequest) {
     const { data: inserted, error } = await supabase
       .from('products')
       .insert(productData)
-      .select('id')
+      .select()
       .single();
     if (error) {
       console.error('Admin products insert error:', error);
-      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
+      const isDuplicate = error.code === '23505' || (error.message || '').toLowerCase().includes('unique') || (error.message || '').toLowerCase().includes('duplicate');
+      const message = isDuplicate ? 'A product with this URL (slug) already exists. Use a different URL or edit the existing product.' : (error.message || 'Operation failed.');
+      return NextResponse.json({ error: message }, { status: isDuplicate ? 409 : 500 });
     }
 
     if (Array.isArray(images) && images.length > 0) {

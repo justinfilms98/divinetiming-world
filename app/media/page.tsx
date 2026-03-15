@@ -59,21 +59,22 @@ export default async function MediaPage() {
 
       <div className="mt-20" />
 
-      <SignatureDivider />
+      <SignatureDivider className="my-14 md:my-16" />
 
-      {/* Gallery tabs below hero */}
-      <Section className="section-lift">
+      <Section className="section-lift py-14 md:py-20">
         <Container>
-          <p className="text-center text-[var(--text-muted)] type-body mb-10 max-w-[45ch] mx-auto">
-            Browse photo collections and videos.
-          </p>
-          <MediaPageClient
-          galleries={galleries}
-          videos={videos}
-          headline={headline}
-          subtext={subtext}
-          showHeadline={false}
-        />
+          <div className="max-w-[1000px] mx-auto w-full">
+            <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
+              Browse photo collections and videos.
+            </p>
+            <MediaPageClient
+              galleries={galleries}
+              videos={videos}
+              headline={headline}
+              subtext={subtext}
+              showHeadline={false}
+            />
+          </div>
         </Container>
       </Section>
     </div>

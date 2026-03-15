@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { track } from '@/lib/analytics/track';
 import { MediaEmptyCard } from '@/components/media/MediaEmptyCard';
 import { VideoPlayerModal } from '@/components/media/VideoPlayerModal';
+import { VideoFeed } from '@/components/media/VideoFeed';
 import { Grid } from '@/components/ui/Grid';
 import type { MediaPageVideo, GalleryForHub } from '@/lib/content/shared';
 
@@ -76,14 +77,14 @@ export function MediaPageClient({
         </div>
 
         {showEmptyCollections ? (
-          <div className="py-20 text-center">
-            <p className="text-[var(--text-muted)] text-lg tracking-wide" style={{ fontFamily: 'var(--font-ui)' }}>
+          <div className="py-24 md:py-32 text-center">
+            <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">
               Media collections coming soon.
             </p>
           </div>
         ) : showEmptyVideos ? (
-          <div className="py-20 text-center">
-            <p className="text-[var(--text-muted)] text-lg tracking-wide" style={{ fontFamily: 'var(--font-ui)' }}>
+          <div className="py-24 md:py-32 text-center">
+            <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">
               Videos coming soon.
             </p>
           </div>
@@ -170,44 +171,7 @@ export function MediaPageClient({
             </Grid>
           </motion.div>
         ) : (
-          <Grid cols={3}>
-            {videos.map((video, index) => {
-              const isTall = index % 3 === 1;
-              return (
-                <button
-                  key={video.id}
-                  type="button"
-                  onClick={() => {
-                    track({ event_name: 'video_click', entity_type: 'video', entity_id: video.id });
-                    setVideoModal(video);
-                  }}
-                  className={`group text-left rounded-xl overflow-hidden border border-[var(--accent)]/20 bg-[var(--bg-secondary)] shadow-[var(--shadow-card)] transition-[border-color,box-shadow,filter] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere aspect-video ${isTall ? 'md:aspect-[9/16]' : ''}`}
-                >
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={video.resolved_thumbnail_url}
-                      alt={video.title}
-                      fill
-                      loading="lazy"
-                      placeholder="blur"
-                      blurDataURL={BLUR_PLACEHOLDER}
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-[filter] duration-[200ms] ease-out group-hover:brightness-[1.05]"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-[200ms]" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-[var(--accent)] text-[var(--accent)] bg-black/20 group-hover:bg-black/30 transition-colors duration-[200ms]" aria-hidden>
-                        <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-[var(--text)] font-semibold type-small truncate">{video.title}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </Grid>
+          <VideoFeed videos={videos} />
         )}
       </GlassPanel>
 

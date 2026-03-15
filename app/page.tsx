@@ -2,6 +2,7 @@ import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { DivineTimingIntro } from '@/components/home/DivineTimingIntro';
 import { HeroLogo } from '@/components/home/HeroLogo';
 import { HeroContent } from '@/components/home/HeroContent';
+import { HeroPlatformRow } from '@/components/home/HeroPlatformRow';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content/server';
 import { getHeroSingleSource } from '@/lib/content/heroSingleSource';
@@ -76,12 +77,13 @@ export default async function HomePage() {
         />
       )}
       <HeroContent
-        subtext={undefined}
+        subtext={heroSection?.subtext ?? undefined}
         ctaText={heroSection?.cta_text ?? 'Listen Now'}
         ctaUrl={heroSection?.cta_url || listenUrl}
         secondaryCtaText="Booking"
         secondaryCtaUrl="/booking"
       />
+      <HeroPlatformRow overrides={siteSettings ?? undefined} delay={0.5} />
     </div>
   );
 
@@ -99,7 +101,7 @@ export default async function HomePage() {
       </UnifiedHero>
 
       <main className="flex flex-col flex-1 w-full">
-        <SignatureDivider />
+        <SignatureDivider className="my-14 md:my-20" />
       </main>
     </div>
   );

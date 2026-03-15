@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
           .single();
         if (error) {
           console.error('Register media update error:', error);
-          return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
+          return NextResponse.json({ error: error.message || 'Failed to update library entry.' }, { status: 500 });
         }
         inserted.push(updated);
       } else {
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           .single();
         if (error) {
           console.error('Register media insert error:', error);
-          return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
+          return NextResponse.json({ error: error.message || 'Failed to add file to library.' }, { status: 500 });
         }
         inserted.push(created);
       }
@@ -113,6 +113,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
     console.error('Register media error:', err);
-    return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
+    return NextResponse.json({ error: msg && msg.length < 200 ? msg : 'Failed to register files. Check server logs.' }, { status: 500 });
   }
 }

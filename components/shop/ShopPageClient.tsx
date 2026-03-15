@@ -25,10 +25,11 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
   return (
     <>
       <Container>
-        <p className="text-center text-[var(--text-muted)] type-body mb-10 md:mb-12 max-w-[45ch] mx-auto">
-          Official merchandise and music.
-        </p>
-        {products.length > 0 ? (
+        <div className="max-w-[1000px] mx-auto w-full">
+          <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
+            Official merchandise and music.
+          </p>
+          {products.length > 0 ? (
           <motion.div
             initial="hidden"
             animate="visible"
@@ -56,10 +57,11 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
             </Grid>
           </motion.div>
         ) : (
-          <div className="py-20 text-center">
-            <p className="text-[var(--text-muted)] text-lg tracking-wide type-body">No products yet.</p>
+          <div className="py-24 md:py-32 text-center">
+            <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">No products yet. Check back soon.</p>
           </div>
         )}
+        </div>
       </Container>
     </>
   );
@@ -84,14 +86,14 @@ function ProductCard({
     <motion.article
       variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 8 } }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      className="group relative flex flex-col items-center text-center rounded-xl border border-[var(--accent)]/20 bg-[var(--bg-secondary)] p-6 shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/45 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 card-atmosphere"
+      className="group relative flex flex-col items-center text-center rounded-2xl border border-[var(--accent)]/15 bg-[var(--bg-secondary)] p-6 md:p-8 shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-[var(--motion-standard)] ease-[var(--ease-standard)] hover:border-[var(--accent)]/35 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 card-atmosphere"
     >
       <Link
         href={`/shop/${product.slug}`}
         className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] rounded-xl"
         onClick={() => track({ event_name: 'product_click', entity_type: 'product', entity_id: product.id })}
       >
-        <div className="relative aspect-square w-full max-w-sm mx-auto mb-5 rounded-xl overflow-hidden bg-[var(--bg)]">
+        <div className="relative aspect-square w-full max-w-sm mx-auto mb-6 rounded-xl overflow-hidden bg-[var(--bg)]/80 border border-[var(--accent)]/5">
           {showImage ? (
             <Image
               src={mainImage}
@@ -105,30 +107,30 @@ function ProductCard({
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="absolute inset-0 bg-[var(--bg)] flex items-center justify-center">
-              <span className="text-[var(--text-muted)] text-4xl font-light" aria-hidden>—</span>
+            <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg)]/50">
+              <span className="text-[var(--text-muted)]/50 text-2xl font-light tracking-widest" style={{ fontFamily: 'var(--font-display)' }} aria-hidden>—</span>
             </div>
           )}
         </div>
       </Link>
-      <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+      <div className="flex flex-wrap justify-center gap-2 mb-3">
         {product.is_featured && (
-          <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)]/20 text-[var(--accent)]">Featured</span>
+          <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--accent)]/15 text-[var(--accent)]">Featured</span>
         )}
         {product.badge && (
-          <span className="px-2 py-0.5 rounded text-xs font-medium border border-[var(--accent)]/40 text-[var(--accent)]">{product.badge}</span>
+          <span className="px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--accent)]/30 text-[var(--accent)]">{product.badge}</span>
         )}
         {(() => {
           const variants = product.product_variants ?? [];
           const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);
           return soldOut ? (
-            <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--text-muted)]/20 text-[var(--text-muted)]">Sold out</span>
+            <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--text-muted)]/15 text-[var(--text-muted)]">Sold out</span>
           ) : null;
         })()}
       </div>
-      <h3 className="type-h3 font-medium text-[var(--text)] tracking-tight mb-1" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h3>
-      {product.subtitle && <p className="type-small text-[var(--text-muted)] mb-2">{product.subtitle}</p>}
-      <p className="text-[var(--accent)] font-semibold type-body mb-5">{formatPrice(product.price_cents)}</p>
+      <h3 className="type-h3 font-medium text-[var(--text)] tracking-tight mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h3>
+      {product.subtitle && <p className="type-small text-[var(--text-muted)] mb-2.5">{product.subtitle}</p>}
+      <p className="text-[var(--accent)] font-semibold type-body mb-6">{formatPrice(product.price_cents)}</p>
       {(() => {
         const variants = product.product_variants ?? [];
         const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);

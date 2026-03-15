@@ -20,6 +20,14 @@ export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
 
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+    console.error('Media upload: SUPABASE_SERVICE_ROLE_KEY is missing or empty');
+    return NextResponse.json(
+      { error: 'Server misconfiguration: storage is not configured. Add SUPABASE_SERVICE_ROLE_KEY to the environment.' },
+      { status: 503 }
+    );
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -45,7 +53,12 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
+      const message = error.message || 'Storage upload failed';
+      console.error('Media upload storage error:', error);
+      return NextResponse.json(
+        { error: message.includes('Bucket') ? `Storage bucket "${BUCKET}" may not exist or is not accessible. Check Supabase dashboard.` : message },
+        { status: 500 }
+      );
     }
 
     const public_url = supabasePublicObjectUrl(storagePath) ?? '';
@@ -57,6 +70,14 @@ export async function POST(request: NextRequest) {
       size: file.size,
     });
   } catch (err) {
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Media upload error:', err);
+    const safeMessage =
+      msg.includes('fetch') || msg.includes('body') || msg.includes('payload')
+        ? 'Upload failed. File may be too large for this environment (try a smaller file).'
+        : msg && msg.length < 200
+          ? msg
+          : 'Upload failed. Check server logs for details.';
+    return NextResponse.json({ error: safeMessage }, { status: 500 });
   }
 }

@@ -1,4 +1,3 @@
-import { Header } from '@/components/layout/Header';
 import { notFound } from 'next/navigation';
 import { getGalleryBySlug } from '@/lib/content/server';
 import { GalleryDetailClient } from '@/components/media/GalleryDetailClient';
@@ -65,14 +64,15 @@ export default async function GalleryPage({
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
-      <Header />
-      <main className="flex-1 py-16 min-w-0">
+      <main className="flex-1 pt-24 md:pt-28 pb-16 min-w-0">
         <Container>
-          <GalleryDetailClient
-            galleryName={gallery.name}
-            galleryDescription={gallery.description}
-            media={gridItems}
-          />
+          <div className="max-w-[1000px] mx-auto w-full">
+            <GalleryDetailClient
+              galleryName={gallery.name}
+              galleryDescription={gallery.description}
+              media={gridItems}
+            />
+          </div>
         </Container>
       </main>
     </div>

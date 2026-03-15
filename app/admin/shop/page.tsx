@@ -49,6 +49,7 @@ export default function AdminShopPage() {
   const [pendingImages, setPendingImages] = useState<{ url: string; id?: string }[]>([]);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
   const { showToast } = useAdminToast();
   const supabase = createClient();
@@ -126,6 +127,7 @@ export default function AdminShopPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
@@ -140,49 +142,54 @@ export default function AdminShopPage() {
 
     const images = [...pendingImages.map((p) => ({ url: p.url, external_media_asset_id: p.id })), ...textareaUrls].filter((i) => i.url);
 
-    const res = await fetch('/api/admin/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({
-        id: editingProduct?.id,
-        name: formData.get('name'),
-        slug,
-        subtitle: (formData.get('subtitle') as string)?.trim() || null,
-        description: (formData.get('description') as string) || null,
-        price: parseFloat((formData.get('price') as string) || '0'),
-        is_featured: formData.get('is_featured') === 'on',
-        badge: (formData.get('badge') as string) || null,
-        status: (formData.get('status') as string) || 'published',
-        images,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      showToast('error', (data.error as string) || res.statusText);
-      return;
-    }
-
-    const updated = data.product as Product | undefined;
-    if (updated?.id) {
-      setProducts((prev) => {
-        const idx = prev.findIndex((p) => p.id === updated.id);
-        if (idx >= 0) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], ...updated };
-          return next;
-        }
-        return prev;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          id: editingProduct?.id,
+          name: formData.get('name'),
+          slug,
+          subtitle: (formData.get('subtitle') as string)?.trim() || null,
+          description: (formData.get('description') as string) || null,
+          price: parseFloat((formData.get('price') as string) || '0'),
+          is_featured: formData.get('is_featured') === 'on',
+          badge: (formData.get('badge') as string) || null,
+          status: (formData.get('status') as string) || 'published',
+          images,
+        }),
       });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('error', (data?.error as string) || res.statusText || 'Request failed');
+        return;
+      }
+
+      const updated = data?.product as Product | undefined;
+      if (updated?.id) {
+        setProducts((prev) => {
+          const idx = prev.findIndex((p) => p.id === updated.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...updated };
+            return next;
+          }
+          return prev;
+        });
+      }
+      setPendingImages([]);
+      await loadProducts();
+      const pathSlug = updated?.slug ?? editingProduct?.slug;
+      const paths = pathSlug ? ['/shop', `/shop/${pathSlug}`] : ['/shop'];
+      await revalidatePaths(paths);
+      showToast('success', editingProduct ? 'Product updated' : 'Product created');
+      closeModal();
+    } finally {
+      setSaving(false);
     }
-    setPendingImages([]);
-    await loadProducts();
-    const pathSlug = updated?.slug ?? editingProduct?.slug;
-    const paths = pathSlug ? ['/shop', `/shop/${pathSlug}`] : ['/shop'];
-    await revalidatePaths(paths);
-    showToast('success', editingProduct ? 'Product updated' : 'Product created');
-    closeModal();
   };
 
   const handleImageSelected = (files: UploadedFile[]) => {
@@ -315,8 +322,8 @@ export default function AdminShopPage() {
             const mainImage = images[0]?.image_url?.trim() || null;
 
             return (
-              <AdminCard key={product.id} className="hover:border-white/20 transition-colors overflow-hidden p-0">
-                <div className="aspect-square relative bg-white/5">
+              <AdminCard key={product.id} className="hover:border-white/20 transition-colors overflow-hidden p-0 flex flex-col">
+                <div className="aspect-square relative bg-white/5 flex-shrink-0">
                   {mainImage ? (
                     <>
                       <img
@@ -331,62 +338,64 @@ export default function AdminShopPage() {
                         }}
                       />
                       <div className="product-card-fallback absolute inset-0 hidden flex items-center justify-center bg-white/5">
-                        <ShoppingBag className="w-12 h-12 text-white/20" />
+                        <ShoppingBag className="w-10 h-10 text-white/25" />
+                        <span className="text-xs text-white/40 mt-1">Image unavailable</span>
                       </div>
                     </>
                   ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/5">
-                      <ShoppingBag className="w-12 h-12 text-white/20" />
+                      <ShoppingBag className="w-10 h-10 text-white/25" />
                       <span className="text-xs text-white/50 font-medium">No image</span>
+                      <span className="text-[10px] text-white/40">Add in edit</span>
                     </div>
                   )}
                 </div>
-                <div className="p-4">
+                <div className="p-4 flex-1 flex flex-col min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-white truncate">{product.name}</h3>
+                      <h3 className="text-base font-semibold text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h3>
                       {product.subtitle && (
                         <p className="text-sm text-white/60 truncate mt-0.5">{product.subtitle}</p>
                       )}
-                      <div className="flex items-center gap-2 text-[var(--accent)] mt-1">
+                      <div className="flex items-center gap-1.5 text-[var(--accent)] mt-1.5">
                         <DollarSign className="w-4 h-4 flex-shrink-0" />
-                        <span className="font-medium">{formatPrice(product.price_cents)}</span>
+                        <span className="font-medium text-sm">{formatPrice(product.price_cents)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => openEdit(product)}
-                        className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-lg"
-                        title="Edit"
+                        className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                        title="Edit product"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
-                        className="p-2 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+                        className="p-2.5 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
                     {((product as { status?: string }).status && (product as { status?: string }).status !== 'published') ? (
-                      <span className={`px-2 py-1 text-xs rounded ${(product as { status?: string }).status === 'draft' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                      <span className={`px-2 py-0.5 text-xs rounded-md font-medium ${(product as { status?: string }).status === 'draft' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-500/20 text-slate-400'}`}>
                         {(product as { status?: string }).status === 'draft' ? 'Draft' : 'Archived'}
                       </span>
                     ) : (
-                      <span className="px-2 py-1 text-xs rounded bg-green-400/20 text-green-400">
+                      <span className="px-2 py-0.5 text-xs rounded-md font-medium bg-green-500/20 text-green-400">
                         Published
                       </span>
                     )}
                     {product.is_featured && (
-                      <span className="px-2 py-1 bg-[var(--accent)]/20 text-[var(--accent)] text-xs rounded">
+                      <span className="px-2 py-0.5 text-xs rounded-md font-medium bg-[var(--accent)]/20 text-[var(--accent)]">
                         Featured
                       </span>
                     )}
                     {product.badge && (
-                      <span className="px-2 py-1 text-xs rounded border border-white/20 text-white/80">
+                      <span className="px-2 py-0.5 text-xs rounded-md border border-white/25 text-white/80">
                         {product.badge}
                       </span>
                     )}
@@ -402,9 +411,9 @@ export default function AdminShopPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-xl shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-[#0f0c10] z-10">
-              <h2 className="text-xl font-semibold text-white">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-2xl shadow-2xl">
+            <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0f0c10] z-10">
+              <h2 className="text-lg font-semibold text-white" style={{ fontFamily: 'var(--font-display)' }}>
                 {editingProduct ? 'Edit Product' : 'Create Product'}
               </h2>
               <button onClick={closeModal} className="p-2 text-white/70 hover:text-white rounded-lg">
@@ -412,7 +421,7 @@ export default function AdminShopPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-5">
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
                 <select
@@ -647,10 +656,10 @@ export default function AdminShopPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  disabled={uploadInProgress}
+                  disabled={uploadInProgress || saving}
                   className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {uploadInProgress ? 'Uploading…' : editingProduct ? 'Update' : 'Create'}
+                  {saving ? 'Saving…' : uploadInProgress ? 'Uploading…' : editingProduct ? 'Update' : 'Create'}
                 </button>
                 <button type="button" onClick={closeModal} className="px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
                   Cancel

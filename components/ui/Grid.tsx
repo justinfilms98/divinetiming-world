@@ -21,7 +21,7 @@ const colClasses = {
 export function Grid({ children, className, cols = 3 }: GridProps) {
   return (
     <div
-      className={cn('grid gap-6 md:gap-8', colClasses[cols], className)}
+      className={cn('grid gap-6 md:gap-8 items-start', colClasses[cols], className)}
       role="list"
     >
       {children}

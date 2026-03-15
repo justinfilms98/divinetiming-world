@@ -5,6 +5,7 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { createClient } from '@/lib/supabase/client';
+import { X } from 'lucide-react';
 
 type VideoStatus = 'draft' | 'published' | 'archived';
 
@@ -35,6 +36,13 @@ export default function AdminVideosPage() {
   const [caption, setCaption] = useState('');
   const [isVertical, setIsVertical] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<VideoRow | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editYoutubeInput, setEditYoutubeInput] = useState('');
+  const [editCaption, setEditCaption] = useState('');
+  const [editIsVertical, setEditIsVertical] = useState(false);
+  const [editStatus, setEditStatus] = useState<VideoStatus>('published');
+  const [savingEdit, setSavingEdit] = useState(false);
   const { showToast } = useAdminToast();
   const supabase = createClient();
 
@@ -130,6 +138,56 @@ export default function AdminVideosPage() {
     showToast('success', 'Video updated');
   };
 
+  const openEdit = (v: VideoRow) => {
+    setEditingVideo(v);
+    setEditTitle(v.title);
+    setEditYoutubeInput(v.youtube_id ? `https://www.youtube.com/watch?v=${v.youtube_id}` : '');
+    setEditCaption(v.caption ?? '');
+    setEditIsVertical(v.is_vertical ?? false);
+    setEditStatus((v.status as VideoStatus) ?? 'published');
+  };
+
+  const closeEdit = () => {
+    setEditingVideo(null);
+    setSavingEdit(false);
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVideo) return;
+    const youtube_id = parseYoutubeId(editYoutubeInput);
+    if (!editTitle.trim() || !youtube_id) {
+      showToast('error', 'Title and YouTube URL or video ID required');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await fetch('/api/admin/videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          id: editingVideo.id,
+          title: editTitle.trim(),
+          youtube_id,
+          caption: editCaption.trim() || null,
+          is_vertical: editIsVertical,
+          status: editStatus,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast('error', (data?.error as string) || 'Update failed');
+        return;
+      }
+      await load();
+      showToast('success', 'Video updated');
+      closeEdit();
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <AdminPage title="Videos" subtitle="Videos shown on the public Media page (Videos tab). Use unlisted YouTube links.">
       <AdminCard className="mb-6">
@@ -205,6 +263,14 @@ export default function AdminVideosPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openEdit(v)}
+                className="px-3 py-1.5 text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 text-sm"
+                title="Edit title, caption, link"
+              >
+                Edit
+              </button>
               <select
                 value={v.status ?? 'published'}
                 onChange={(e) => handleStatusChange(v.id, e.target.value as VideoStatus)}
@@ -231,6 +297,88 @@ export default function AdminVideosPage() {
         <AdminCard>
           <p className="text-slate-500 text-center py-6">No videos yet. Add one above.</p>
         </AdminCard>
+      )}
+
+      {/* Edit modal */}
+      {editingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" aria-modal="true" role="dialog">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-800">Edit video</h3>
+              <button type="button" onClick={closeEdit} className="p-2 text-slate-500 hover:text-slate-700 rounded-lg" aria-label="Close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleEditSave} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Video title"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">YouTube URL or video ID</label>
+                <input
+                  type="text"
+                  value={editYoutubeInput}
+                  onChange={(e) => setEditYoutubeInput(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Caption (optional)</label>
+                <input
+                  type="text"
+                  value={editCaption}
+                  onChange={(e) => setEditCaption(e.target.value)}
+                  placeholder="Short caption"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-vertical"
+                  checked={editIsVertical}
+                  onChange={(e) => setEditIsVertical(e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                <label htmlFor="edit-vertical" className="text-sm text-slate-700">Vertical / short-form (9:16)</label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Visibility</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as VideoStatus)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-700"
+                >
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {savingEdit ? 'Saving…' : 'Save'}
+                </button>
+                <button type="button" onClick={closeEdit} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </AdminPage>
   );

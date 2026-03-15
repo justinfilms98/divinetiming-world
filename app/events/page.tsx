@@ -58,17 +58,19 @@ export default async function EventsPage() {
         showScrollCue
       />
 
-      <Section className="flex-1 mt-20 overflow-x-clip section-lift">
+      <Section className="flex-1 mt-20 overflow-x-clip section-lift py-14 md:py-20">
         <Container className="min-w-0">
-          <Reveal>
-            <p className="text-center text-[var(--text-muted)] type-body mb-10 max-w-[45ch] mx-auto">
-              Upcoming and past shows.
-            </p>
-            <EventsListClient
-              upcomingEvents={upcomingEvents}
-              pastEvents={pastEvents}
-            />
-          </Reveal>
+          <div className="max-w-[1000px] mx-auto w-full">
+            <Reveal>
+              <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
+                Upcoming and past shows.
+              </p>
+              <EventsListClient
+                upcomingEvents={upcomingEvents}
+                pastEvents={pastEvents}
+              />
+            </Reveal>
+          </div>
         </Container>
       </Section>
     </div>

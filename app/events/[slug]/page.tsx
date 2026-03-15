@@ -102,7 +102,8 @@ export default async function EventDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}
       />
-      <div className="max-w-[1200px] mx-auto w-full max-h-[480px] overflow-hidden rounded-b-2xl px-5 md:px-8">
+      <div className="max-w-[1200px] mx-auto w-full px-5 md:px-8">
+        <div className="w-full max-h-[420px] overflow-hidden rounded-b-2xl">
         <UnifiedHero
           mediaUrl={heroMediaUrl}
           mediaType={heroMediaType}
@@ -112,22 +113,23 @@ export default async function EventDetailPage({
           subtext={location}
           heightPreset="standard"
         />
+        </div>
       </div>
-      <main className="flex-1 py-16 min-w-0">
+      <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
         <Container>
+          <div className="max-w-[1000px] mx-auto w-full">
           <Link
             href="/events"
-            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors mb-8"
+            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded nav-link-underline"
           >
             ← Back to Events
           </Link>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
-            {/* Left column: story */}
-            <article className="min-w-0 space-y-6">
-              <div className="max-w-[65ch]">
-                <div className="relative aspect-video rounded-xl overflow-hidden bg-[var(--bg)] border border-[var(--accent)]/10 shadow-[var(--shadow-card)]">
-                  {imageUrl ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-14 lg:gap-20 items-start">
+            <article className="min-w-0 space-y-10">
+              {imageUrl ? (
+                <div className="w-full max-w-[65ch]">
+                  <div className="relative aspect-video rounded-2xl overflow-hidden bg-[var(--bg)] border border-[var(--accent)]/10 shadow-[var(--shadow-card)]">
                     <Image
                       src={imageUrl}
                       alt={title}
@@ -135,18 +137,20 @@ export default async function EventDetailPage({
                       className="object-cover"
                       sizes="(max-width: 1024px) 100vw, 65ch"
                     />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center border border-[var(--accent)]/10" aria-hidden>
-                      <span className="text-[var(--text-muted)]/40 text-3xl font-light tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
-                        {new Date(event.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="w-full max-w-[65ch]">
+                  <div className="relative aspect-video rounded-2xl overflow-hidden bg-[var(--bg)] border border-[var(--accent)]/10 flex items-center justify-center" aria-hidden>
+                    <span className="text-[var(--text-muted)]/40 text-3xl font-light tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+                      {new Date(event.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {event.description && (
-                <div className="max-w-[65ch] leading-relaxed space-y-6 text-[var(--text)]" style={{ fontFamily: 'var(--font-body)' }}>
+                <div className="max-w-[65ch] leading-relaxed space-y-6 text-[var(--text)] type-body" style={{ fontFamily: 'var(--font-body)' }}>
                   {descriptionParagraphs.length > 0 ? (
                     descriptionParagraphs.map((para, i) => (
                       <p key={i} className="whitespace-pre-line">
@@ -160,10 +164,10 @@ export default async function EventDetailPage({
               )}
             </article>
 
-            {/* Right column: event card (ticket panel) */}
-            <div className="lg:min-w-0">
+            <div className="lg:sticky lg:top-28 lg:min-w-0">
               <EventDetailCard event={event} sharePath={sharePath} />
             </div>
+          </div>
           </div>
         </Container>
       </main>

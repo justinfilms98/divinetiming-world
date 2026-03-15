@@ -110,6 +110,8 @@ export interface MediaPageVideo {
   title: string;
   youtube_id: string;
   thumbnail_url?: string | null;
+  caption?: string | null;
+  is_vertical?: boolean;
   resolved_thumbnail_url: string;
 }
 

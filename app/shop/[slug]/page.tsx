@@ -60,22 +60,23 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
-      <main className="flex-1 pt-20 md:pt-24 min-w-0">
+      <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
         <Section className="px-0">
           <Container>
+            <div className="max-w-[1000px] mx-auto w-full">
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] rounded nav-link-underline relative"
+              className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] rounded nav-link-underline relative"
             >
               ← Back to Shop
             </Link>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 md:gap-14 items-start">
-              <div className="w-full max-w-md mx-auto md:mx-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
+              <div className="w-full max-w-lg mx-auto md:mx-0 md:sticky md:top-28">
                 <ProductImageGallery images={images} productName={product.name} />
               </div>
 
               <div className="min-w-0 flex flex-col">
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {(product as { is_featured?: boolean }).is_featured && (
                     <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)]/20 text-[var(--accent)]">Featured</span>
                   )}
@@ -94,20 +95,23 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   {product.name}
                 </h1>
                 {(product as { subtitle?: string | null }).subtitle && (
-                  <p className="type-subtitle text-[var(--text-muted)] mb-3">{(product as { subtitle: string }).subtitle}</p>
+                  <p className="type-subtitle text-[var(--text-muted)] mb-4">{(product as { subtitle: string }).subtitle}</p>
                 )}
-                <p className="text-[var(--accent)] type-h3 font-semibold mb-6">{formatPrice(product.price_cents)}</p>
+                <p className="text-[var(--accent)] type-h3 font-semibold mb-8">{formatPrice(product.price_cents)}</p>
 
                 {product.description && (
-                  <div className="text-[var(--text-muted)] type-body mb-8 flex-1 prose-readability space-y-4 leading-relaxed">
+                  <div className="text-[var(--text-muted)] type-body mb-12 flex-1 prose-readability space-y-5 leading-relaxed max-w-[65ch]">
                     {product.description.trim().split(/\n\n+/).filter(Boolean).map((para: string, i: number) => (
                       <p key={i}>{para.replace(/\n/g, ' ').trim()}</p>
                     ))}
                   </div>
                 )}
 
-                <ProductDetailClient product={product} />
+                <div className="pt-6 mt-2 border-t border-[var(--accent)]/10">
+                  <ProductDetailClient product={product} />
+                </div>
               </div>
+            </div>
             </div>
           </Container>
         </Section>

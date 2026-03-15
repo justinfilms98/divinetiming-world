@@ -126,7 +126,8 @@ export function UniversalUploader({
           });
           const uploadData = await uploadRes.json().catch(() => ({}));
           if (!uploadRes.ok) {
-            setError(uploadData?.error || uploadRes.statusText || 'Upload failed');
+            const serverMessage = typeof uploadData?.error === 'string' ? uploadData.error : '';
+            setError(serverMessage || uploadRes.statusText || (uploadRes.status === 503 ? 'Storage not configured. Add SUPABASE_SERVICE_ROLE_KEY to the server environment.' : 'Upload failed'));
             return;
           }
           if (uploadData?.storage_path && uploadData?.public_url) {
