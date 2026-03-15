@@ -12,6 +12,7 @@ import {
   FileText,
   FolderOpen,
   Mail,
+  BookOpen,
   UserCircle,
 } from 'lucide-react';
 
@@ -23,7 +24,8 @@ const NAV_ITEMS = [
   { label: 'Media Library', href: '/admin/media', icon: ImageIcon },
   { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
   { label: 'Shop', href: '/admin/shop', icon: ShoppingBag },
-  { label: 'Booking Inquiries', href: '/admin/booking', icon: Mail },
+  { label: 'Booking', href: '/admin/booking', icon: BookOpen },
+  { label: 'Booking Inquiries', href: '/admin/booking-inquiries', icon: Mail },
   { label: 'Press Kit', href: '/admin/presskit', icon: FileText },
   { label: 'About', href: '/admin/about', icon: UserCircle },
   { label: 'Site Settings', href: '/admin/settings', icon: Settings },

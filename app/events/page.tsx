@@ -3,7 +3,6 @@ import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { Reveal } from '@/components/motion/Reveal';
 import { EventsListClient } from '@/components/events/EventsListClient';
-import { Container } from '@/components/ui/Container';
 import { Section } from '@/components/ui/Section';
 import type { Metadata } from 'next';
 
@@ -59,7 +58,7 @@ export default async function EventsPage() {
       />
 
       <Section className="flex-1 mt-20 overflow-x-clip section-lift py-14 md:py-20">
-        <Container className="min-w-0 max-w-[1100px] mx-auto px-4 md:px-6">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full min-w-0">
           <div className="w-full">
             <Reveal>
               <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
@@ -71,7 +70,7 @@ export default async function EventsPage() {
               />
             </Reveal>
           </div>
-        </Container>
+        </div>
       </Section>
     </div>
   );

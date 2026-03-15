@@ -12,7 +12,6 @@ import { BookingStoryScroll } from '@/components/booking/BookingStoryScroll';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { BookingAboutCard } from '@/components/booking/BookingAboutCard';
 import { BookingBioSection } from '@/components/booking/BookingBioSection';
-import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -90,7 +89,7 @@ export default async function BookingPage() {
         className="scroll-mt-24 md:scroll-mt-28 bg-[var(--bg-secondary)]/30 border-y border-[var(--text)]/[0.06] mt-2 md:mt-4"
         aria-label="Booking form and contact"
       >
-        <Container className="min-w-0 max-w-[1100px] mx-auto px-4 md:px-6 py-16 md:py-24">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24 w-full min-w-0">
           <header className="text-center mb-14 md:mb-16">
             <h2 className="type-h2 font-semibold tracking-tight text-[var(--text)]" style={{ fontFamily: 'var(--font-display)' }}>
               Booking inquiries
@@ -180,7 +179,7 @@ export default async function BookingPage() {
               </aside>
             </div>
           </div>
-        </Container>
+        </div>
       </section>
     </div>
   );

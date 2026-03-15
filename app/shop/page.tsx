@@ -52,7 +52,9 @@ export default async function ShopPage() {
       <div className="mt-20" />
       <SignatureDivider className="my-14 md:my-16" />
       <Section className="section-lift py-14 md:py-20">
-        <ShopPageClient products={products} />
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+          <ShopPageClient products={products} />
+        </div>
       </Section>
     </div>
   );

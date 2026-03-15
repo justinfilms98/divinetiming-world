@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { getEventBySlug, getHeroSection } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { EventDetailCard } from '@/components/events/EventDetailCard';
-import { Container } from '@/components/ui/Container';
 import { absoluteImageUrl, BASE_URL } from '@/lib/site';
 import type { Metadata } from 'next';
 
@@ -102,7 +101,7 @@ export default async function EventDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}
       />
-      <div className="max-w-[1200px] mx-auto w-full px-5 md:px-8">
+      <div className="max-w-[1200px] mx-auto w-full px-4 md:px-6 lg:px-8">
         <div className="w-full max-h-[420px] overflow-hidden rounded-b-2xl">
         <UnifiedHero
           mediaUrl={heroMediaUrl}
@@ -116,8 +115,8 @@ export default async function EventDetailPage({
         </div>
       </div>
       <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
-        <Container>
-          <div className="max-w-[1000px] mx-auto w-full">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+          <div className="w-full">
           <Link
             href="/events"
             className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded nav-link-underline"
@@ -169,7 +168,7 @@ export default async function EventDetailPage({
             </div>
           </div>
           </div>
-        </Container>
+        </div>
       </main>
     </div>
   );

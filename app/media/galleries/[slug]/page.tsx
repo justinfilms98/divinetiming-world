@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getGalleryBySlug } from '@/lib/content/server';
 import { GalleryDetailClient } from '@/components/media/GalleryDetailClient';
-import { Container } from '@/components/ui/Container';
 import { absoluteImageUrl } from '@/lib/site';
 import type { Metadata } from 'next';
 
@@ -65,15 +64,15 @@ export default async function GalleryPage({
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-24 md:pt-28 pb-16 min-w-0">
-        <Container>
-          <div className="max-w-[1000px] mx-auto w-full">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+          <div className="w-full">
             <GalleryDetailClient
               galleryName={gallery.name}
               galleryDescription={gallery.description}
               media={gridItems}
             />
           </div>
-        </Container>
+        </div>
       </main>
     </div>
   );

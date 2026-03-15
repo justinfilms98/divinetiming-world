@@ -7,7 +7,6 @@ import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import Link from 'next/link';
 import { useCart } from './CartContext';
 import { track } from '@/lib/analytics/track';
-import { Container } from '@/components/ui/Container';
 import { Grid } from '@/components/ui/Grid';
 import type { Product } from '@/lib/types/content';
 
@@ -24,8 +23,7 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
 
   return (
     <>
-      <Container>
-        <div className="max-w-[1000px] mx-auto w-full">
+      <div className="w-full">
           <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
             Official merchandise and music.
           </p>
@@ -38,7 +36,7 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
               hidden: {},
             }}
           >
-            <Grid cols={3} className="gap-8 md:gap-10">
+            <Grid cols={3} className="gap-8 md:gap-10 justify-items-center">
               {products.map((product) => {
                 const images = product.product_images as { image_url: string; display_order: number }[] | undefined;
                 const sortedImages = images?.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -61,8 +59,7 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
             <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">No products yet. Check back soon.</p>
           </div>
         )}
-        </div>
-      </Container>
+      </div>
     </>
   );
 }

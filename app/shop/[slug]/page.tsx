@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ProductDetailClient } from '@/components/shop/ProductDetailClient';
 import { ProductImageGallery } from '@/components/shop/ProductImageGallery';
-import { Container } from '@/components/ui/Container';
 import { Section } from '@/components/ui/Section';
 import { absoluteImageUrl } from '@/lib/site';
 import { getProductBySlug } from '@/lib/content/server';
@@ -62,8 +61,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
         <Section className="px-0">
-          <Container>
-            <div className="max-w-[1000px] mx-auto w-full">
+          <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
+            <div className="w-full">
             <Link
               href="/shop"
               className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] rounded nav-link-underline relative"
@@ -113,7 +112,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </div>
             </div>
             </div>
-          </Container>
+          </div>
         </Section>
       </main>
     </div>

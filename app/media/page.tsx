@@ -1,7 +1,6 @@
 import { MediaPageClient } from '@/components/media/MediaPageClient';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
-import { Container } from '@/components/ui/Container';
 import { Section } from '@/components/ui/Section';
 import {
   getGalleriesForHub,
@@ -65,7 +64,7 @@ export default async function MediaPage() {
       <SignatureDivider className="my-14 md:my-16" />
 
       <Section className="section-lift py-14 md:py-20">
-        <Container className="max-w-[1100px] mx-auto px-4 md:px-6">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 w-full">
           <div className="w-full">
             <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
               Browse photo collections and videos.
@@ -78,7 +77,7 @@ export default async function MediaPage() {
               showHeadline={false}
             />
           </div>
-        </Container>
+        </div>
       </Section>
     </div>
   );

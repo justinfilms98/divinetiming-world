@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export type UploadedFile = {
   url: string;
@@ -114,31 +115,37 @@ export function UniversalUploader({
       const total = list.length;
       const results: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       try {
+        const supabase = createClient();
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
           setProgress((i / total) * 100);
-          const form = new FormData();
-          form.append('file', file);
-          const uploadRes = await fetch('/api/admin/media/upload', {
+          const pathRes = await fetch('/api/admin/media/upload-path', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: form,
+            body: JSON.stringify({ filename: file.name }),
           });
-          const uploadData = await uploadRes.json().catch(() => ({}));
-          if (!uploadRes.ok) {
-            const serverMessage = typeof uploadData?.error === 'string' ? uploadData.error : '';
-            setError(serverMessage || uploadRes.statusText || (uploadRes.status === 503 ? 'Storage not configured. Add SUPABASE_SERVICE_ROLE_KEY to the server environment.' : 'Upload failed'));
+          const pathData = await pathRes.json().catch(() => ({}));
+          if (!pathRes.ok || !pathData?.path) {
+            setError(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload path');
             return;
           }
-          if (uploadData?.storage_path && uploadData?.public_url) {
-            results.push({
-              storage_path: uploadData.storage_path,
-              public_url: uploadData.public_url,
-              name: uploadData.name ?? file.name,
-              mimeType: uploadData.mimeType ?? file.type ?? 'application/octet-stream',
-              size: uploadData.size ?? file.size ?? 0,
-            });
+          const { path, publicUrl } = pathData;
+          const { error: uploadErr } = await supabase.storage.from('media').upload(path, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: true,
+          });
+          if (uploadErr) {
+            setError(uploadErr.message || 'Storage upload failed. Ensure you are logged in and the media bucket allows uploads.');
+            return;
           }
+          results.push({
+            storage_path: path,
+            public_url: publicUrl || path,
+            name: file.name,
+            mimeType: file.type ?? 'application/octet-stream',
+            size: file.size ?? 0,
+          });
         }
         setProgress(100);
         if (results.length === 0) {
