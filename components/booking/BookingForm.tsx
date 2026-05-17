@@ -1,0 +1,216 @@
+'use client';
+
+import { useState } from 'react';
+import { track } from '@/lib/analytics/track';
+
+const BUDGET_OPTIONS = [
+  'Under $1,000',
+  '$1,000 - $5,000',
+  '$5,000 - $10,000',
+  '$10,000 - $25,000',
+  '$25,000 - $50,000',
+  '$50,000+',
+  'To be discussed',
+];
+
+export function BookingForm() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    eventType: '',
+    eventDate: '',
+    location: '',
+    budgetRange: '',
+    message: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+
+    try {
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          organization: formData.company,
+          eventType: formData.eventType,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to submit');
+      }
+
+      track({ event_name: 'booking_submit' });
+      setStatus('success');
+      setFormData({
+        name: '',
+        email: '',
+        company: '',
+        eventType: '',
+        eventDate: '',
+        location: '',
+        budgetRange: '',
+        message: '',
+      });
+    } catch (err) {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="min-w-0">
+      {status === 'success' && (
+        <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--text)] text-center type-body">
+          Thank you. Your inquiry has been sent and we&apos;ll get back to you soon.
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--text-muted)]/30 bg-white/5 text-[var(--text-muted)] text-center type-body">
+          Something went wrong. Please try again or contact us directly.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="name" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Name *
+            </label>
+            <input
+              id="name"
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              placeholder="Your name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Email *
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="company" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Company
+            </label>
+            <input
+              id="company"
+              type="text"
+              value={formData.company}
+              onChange={(e) => setFormData((p) => ({ ...p, company: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              placeholder="Venue, festival, or company"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="eventType" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Event type
+            </label>
+            <select
+              id="eventType"
+              value={formData.eventType}
+              onChange={(e) => setFormData((p) => ({ ...p, eventType: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+            >
+              <option value="">Select type</option>
+              <option value="Festival">Festival</option>
+              <option value="Club night">Club night</option>
+              <option value="Private event">Private event</option>
+              <option value="Collaboration">Collaboration</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="eventDate" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Event date
+            </label>
+            <input
+              id="eventDate"
+              type="text"
+              value={formData.eventDate}
+              onChange={(e) => setFormData((p) => ({ ...p, eventDate: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              placeholder="e.g. June 15, 2025"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="location" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Location
+            </label>
+            <input
+              id="location"
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              placeholder="City, country"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="budgetRange" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Budget Range
+            </label>
+            <select
+              id="budgetRange"
+              value={formData.budgetRange}
+              onChange={(e) => setFormData((p) => ({ ...p, budgetRange: e.target.value }))}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+            >
+              <option value="">Select range</option>
+              {BUDGET_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="message" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+              Message *
+            </label>
+            <textarea
+              id="message"
+              required
+              rows={5}
+              value={formData.message}
+              onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+              className="w-full min-h-[120px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 resize-none transition-colors duration-200"
+              placeholder="Tell us about your event..."
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={status === 'loading'}
+            className="w-full min-h-[48px] py-4 hero-cta-primary disabled:opacity-50 disabled:cursor-not-allowed transition-[opacity,transform] duration-200 active:scale-[0.98]"
+          >
+            {status === 'loading' ? 'Sending...' : 'Submit Inquiry'}
+          </button>
+        </form>
+    </div>
+  );
+}
