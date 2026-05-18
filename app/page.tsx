@@ -5,7 +5,7 @@ import { HeroContent } from '@/components/home/HeroContent';
 import { HeroPlatformRow } from '@/components/home/HeroPlatformRow';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content/server';
-import { getHeroSingleSource } from '@/lib/content/heroSingleSource';
+import { getHeroSingleSource, getHeroAllSlots } from '@/lib/content/heroSingleSource';
 import { getPlatformLinks } from '@/lib/platformLinks';
 import { DEFAULT_OG_IMAGE } from '@/lib/site';
 import type { Metadata } from 'next';
@@ -49,6 +49,7 @@ export default async function HomePage() {
   const labelText = heroSection?.label_text?.trim() || undefined;
 
   const { mediaUrl, mediaType, posterUrl } = getHeroSingleSource(heroSection);
+  const heroSlides = getHeroAllSlots(heroSection);
 
   const heroContent = (
     <div className="relative z-10 flex flex-col items-center justify-center text-center w-full min-w-0 pt-[max(env(safe-area-inset-top),1.5rem)] pb-8 px-4 md:px-6">
@@ -93,6 +94,7 @@ export default async function HomePage() {
         mediaUrl={mediaUrl}
         mediaType={mediaType}
         posterUrl={posterUrl}
+        slides={heroSlides}
         overlayOpacity={Number(overlayOpacity)}
         heightPreset="full"
         showScrollCue

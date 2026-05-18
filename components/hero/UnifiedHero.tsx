@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react';
 import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
 import { motion } from 'framer-motion';
+import type { HeroSingleSource } from '@/lib/content/heroSingleSource';
 
 export interface UnifiedHeroProps {
   mediaUrl?: string | null;
   mediaType?: 'image' | 'video' | string | null;
   /** Poster image URL for video (shows immediately, improves LCP) */
   posterUrl?: string | null;
+  /** Multiple slides for carousel mode */
+  slides?: HeroSingleSource[];
   externalAsset?: { provider?: string; preview_url?: string; mime_type?: string | null } | null;
   overlayOpacity?: number;
   headline?: string | null;
@@ -31,6 +34,7 @@ export function UnifiedHero({
   mediaUrl,
   mediaType,
   posterUrl,
+  slides,
   overlayOpacity = 0.5,
   headline,
   subtext,
@@ -48,8 +52,27 @@ export function UnifiedHero({
     setReducedMotion(mq.matches);
   }, []);
 
-  const url = mediaUrl ?? undefined;
-  const type = (mediaType === 'image' || mediaType === 'video' ? mediaType : null) ?? 'default';
+  const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [flare, setFlare] = useState(false);
+  const activeSlide = allSlides[activeIndex] ?? allSlides[0];
+
+  useEffect(() => {
+    if (allSlides.length <= 1) return;
+    const DURATION = 10000;
+    const timer = setTimeout(() => {
+      setFlare(true);
+      setTimeout(() => {
+        setActiveIndex((prev) => (prev + 1) % allSlides.length);
+        setFlare(false);
+      }, 600);
+    }, DURATION);
+    return () => clearTimeout(timer);
+  }, [activeIndex, allSlides.length]);
+
+  const url = activeSlide?.mediaUrl ?? undefined;
+  const type = (activeSlide?.mediaType === 'image' || activeSlide?.mediaType === 'video' ? activeSlide.mediaType : null) ?? 'default';
+  const activePoster = activeSlide?.posterUrl ?? posterUrl ?? undefined;
 
   return (
     <section
@@ -61,7 +84,7 @@ export function UnifiedHero({
           <MediaAssetRenderer
             url={url || null}
             mediaType={type}
-            poster={posterUrl ?? null}
+            poster={activePoster ?? null}
             fallback={HeroEclipseFallback}
             priority={true}
             sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
@@ -77,6 +100,15 @@ export function UnifiedHero({
             style={{ opacity: opacity * 0.9 }}
           />
           <div className="hero-grain" aria-hidden="true" />
+          {flare && (
+            <div
+              className="absolute inset-0 pointer-events-none z-20"
+              style={{
+                background: 'linear-gradient(105deg, transparent 20%, rgba(198,167,94,0.3) 50%, transparent 80%)',
+                animation: 'lensFlare 1.1s cubic-bezier(0.4,0,0.2,1) both',
+              }}
+            />
+          )}
         </div>
 
         {/* Content */}
@@ -135,6 +167,23 @@ export function UnifiedHero({
                 </svg>
               </motion.div>
             </motion.div>
+          )}
+          {allSlides.length > 1 && (
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+              {allSlides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setFlare(true);
+                    setTimeout(() => { setActiveIndex(i); setFlare(false); }, 600);
+                  }}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === activeIndex ? 'bg-[#C6A75E] w-4' : 'bg-white/40 w-1.5'
+                  }`}
+                  aria-label={`Go to slide ${i + 1}`}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>

@@ -205,7 +205,7 @@ export default function AdminShopPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product? This cannot be undone.')) return;
+    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
     const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
     const data = await res.json();
     if (!res.ok) {
@@ -323,7 +323,7 @@ export default function AdminShopPage() {
 
             return (
               <AdminCard key={product.id} className="hover:border-white/20 transition-colors overflow-hidden p-0 flex flex-col">
-                <div className="aspect-square relative bg-white/5 flex-shrink-0">
+                <div className="aspect-[4/5] relative bg-white/5 flex-shrink-0">
                   {mainImage ? (
                     <>
                       <img
@@ -353,13 +353,15 @@ export default function AdminShopPage() {
                 <div className="p-4 flex-1 flex flex-col min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h3>
+                      <h3 className="text-xl font-semibold text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>{product.name}</h3>
                       {product.subtitle && (
                         <p className="text-sm text-white/60 truncate mt-0.5">{product.subtitle}</p>
                       )}
-                      <div className="flex items-center gap-1.5 text-[var(--accent)] mt-1.5">
-                        <DollarSign className="w-4 h-4 flex-shrink-0" />
-                        <span className="font-medium text-sm">{formatPrice(product.price_cents)}</span>
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#C6A75E]/15 text-[#C6A75E] text-sm font-semibold">
+                          <DollarSign className="w-3.5 h-3.5 flex-shrink-0" />
+                          {formatPrice(product.price_cents)}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -411,7 +413,7 @@ export default function AdminShopPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-2xl shadow-2xl">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-2xl shadow-2xl">
             <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0f0c10] z-10">
               <h2 className="text-lg font-semibold text-white" style={{ fontFamily: 'var(--font-display)' }}>
                 {editingProduct ? 'Edit Product' : 'Create Product'}
@@ -422,6 +424,33 @@ export default function AdminShopPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-5 space-y-5">
+              {/* Live image preview */}
+              {(() => {
+                const previewUrl = editingProduct
+                  ? (editingProduct.product_images?.[0]?.image_url ?? null)
+                  : (pendingImages[0]?.url ?? null);
+                return (
+                  <div className="w-full">
+                    {previewUrl ? (
+                      <div className="w-full aspect-[4/5] rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                        <img
+                          src={previewUrl}
+                          alt="Cover image"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-[4/5] rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-2 text-white/40">
+                        <ShoppingBag className="w-10 h-10" />
+                        <span className="text-sm">No images yet — upload below</span>
+                      </div>
+                    )}
+                    <p className="mt-1.5 text-xs text-white/40 text-center tracking-wide">Cover image</p>
+                  </div>
+                );
+              })()}
+
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
                 <select
@@ -552,7 +581,7 @@ export default function AdminShopPage() {
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:border-slate-400"
+                      className="px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:border-[#C6A75E] hover:text-[#C6A75E] transition-colors"
                     >
                       Add from library
                     </button>
@@ -602,7 +631,7 @@ export default function AdminShopPage() {
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-2 border border-white/20 rounded-lg text-white/90 hover:bg-white/10 text-sm"
+                      className="px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:border-[#C6A75E] hover:text-[#C6A75E] transition-colors"
                     >
                       Add from library
                     </button>

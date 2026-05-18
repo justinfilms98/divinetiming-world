@@ -122,7 +122,7 @@ export default function AdminMediaPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Remove this asset from the library?')) return;
+    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
     const res = await fetch(`/api/admin/media-library?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',

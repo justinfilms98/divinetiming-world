@@ -177,7 +177,7 @@ export default function AdminEventsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
     const res = await fetch(`/api/admin/events?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -277,7 +277,7 @@ export default function AdminEventsPage() {
                 aria-label={`Edit ${event.title || event.city}`}
               >
                 {/* Thumbnail: resolved URL or premium placeholder */}
-                <div className="md:w-40 md:flex-shrink-0">
+                <div className="md:w-48 md:flex-shrink-0">
                   {(event.resolved_thumbnail_url ?? event.thumbnail_url) ? (
                     <div className="relative aspect-video md:aspect-square w-full">
                       <MediaAssetRenderer
@@ -286,7 +286,7 @@ export default function AdminEventsPage() {
                         alt={event.title || event.city}
                         fallback={
                           <div className="absolute inset-0 flex items-center justify-center bg-white/5">
-                            <span className="text-white/30 text-2xl font-light">
+                            <span style={{ color: '#C6A75E', fontSize: '40px', fontFamily: 'var(--font-display)' }}>
                               {new Date(event.date).toLocaleDateString('en-US', { month: 'short' }).charAt(0)}
                             </span>
                           </div>
@@ -295,7 +295,7 @@ export default function AdminEventsPage() {
                     </div>
                   ) : (
                     <div className="aspect-video md:aspect-square bg-white/5 flex flex-col items-center justify-center gap-1">
-                      <span className="text-white/30 text-3xl font-light">
+                      <span style={{ color: '#C6A75E', fontSize: '40px', fontFamily: 'var(--font-display)' }}>
                         {new Date(event.date).toLocaleDateString('en-US', { month: 'short' }).charAt(0)}
                       </span>
                       <span className="text-white/40 text-xs font-medium">No thumbnail</span>
@@ -307,7 +307,7 @@ export default function AdminEventsPage() {
                 <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 min-w-0">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-[var(--accent)] text-sm font-semibold">
+                      <span className="text-[var(--accent)] text-base font-bold">
                         {formatDate(event.date)}
                         {event.time && ` · ${event.time}`}
                       </span>
@@ -322,8 +322,8 @@ export default function AdminEventsPage() {
                         </span>
                       )}
                     </div>
-                    <h3 className="text-lg font-semibold text-white truncate" title={event.title || event.city || 'Untitled'}>{event.title || event.city || 'Untitled'}</h3>
-                    <p className="text-white/70 text-sm truncate">{[event.venue, event.city].filter(Boolean).join(' · ') || '—'}</p>
+                    <h3 className="text-xl font-semibold text-white truncate" style={{ fontFamily: 'var(--font-display)' }} title={event.title || event.city || 'Untitled'}>{event.title || event.city || 'Untitled'}</h3>
+                    <p className="text-white/50 text-sm tracking-wide truncate">{[event.venue, event.city].filter(Boolean).join(' · ') || '—'}</p>
                     {event.description && (
                       <p className="text-white/60 text-sm mt-1 line-clamp-2">{event.description}</p>
                     )}
@@ -389,7 +389,7 @@ export default function AdminEventsPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-xl shadow-2xl">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-xl shadow-2xl">
             <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-[#0f0c10] z-10">
               <h2 className="text-xl font-semibold text-white">
                 {editingEvent ? 'Edit Event' : 'Create Event'}
@@ -402,6 +402,29 @@ export default function AdminEventsPage() {
             <form key={editingEvent?.id ?? 'new'} onSubmit={handleSubmit} className="p-4 space-y-4">
               <input type="hidden" name="thumbnail_url" defaultValue={editingEvent?.thumbnail_url ?? ''} />
               <input type="hidden" name="external_thumbnail_asset_id" defaultValue={editingEvent?.external_thumbnail_asset_id ?? ''} />
+
+              {/* Live thumbnail preview */}
+              {(() => {
+                const thumb = previewThumbnail || editingEvent?.resolved_thumbnail_url || editingEvent?.thumbnail_url || null;
+                return (
+                  <div className="w-full">
+                    {thumb ? (
+                      <div className="w-full aspect-video rounded-xl overflow-hidden border border-[#C6A75E]/30 bg-white/5">
+                        <img
+                          src={thumb}
+                          alt="Thumbnail preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-video rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex items-center justify-center">
+                        <span className="text-white/30 text-sm">Add thumbnail below</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
@@ -466,12 +489,12 @@ export default function AdminEventsPage() {
                         onUploadingChange={setUploadInProgress}
                         buttonLabel="Replace thumbnail"
                         hideStorageTip
-                        className="inline-flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg text-sm hover:border-slate-400"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setLibraryPickerOpen(true)}
-                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:border-slate-400"
+                        className="px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                       >
                         Choose from library
                       </button>
@@ -498,14 +521,14 @@ export default function AdminEventsPage() {
                       acceptOverride="image/*"
                       onSelected={handleThumbnailSelected}
                       onUploadingChange={setUploadInProgress}
-                      buttonLabel="Upload thumbnail (image)"
+                      buttonLabel="Upload thumbnail"
                       hideStorageTip
-                      className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-500"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:border-slate-500"
+                      className="px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                     >
                       Choose from library
                     </button>

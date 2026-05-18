@@ -21,11 +21,16 @@ export function AdminPage({
 }: AdminPageProps) {
   return (
     <div className={cn('space-y-8', className)}>
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <header className="flex items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">{title}</h1>
+          <h1
+            className="text-3xl font-semibold text-white tracking-tight"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {title}
+          </h1>
           {subtitle && (
-            <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{subtitle}</p>
+            <p className="mt-1 text-sm text-white/50 leading-relaxed">{subtitle}</p>
           )}
         </div>
         {actions && (

@@ -46,3 +46,36 @@ export function getHeroSingleSource(hero: HeroSection | null): HeroSingleSource 
     mediaType: type,
   };
 }
+
+/** Returns ALL resolved media slots for carousel use. Falls back to legacy single source as slot 0. */
+export function getHeroAllSlots(hero: HeroSection | null): HeroSingleSource[] {
+  if (!hero) return [];
+  const slots = hero.hero_slots;
+  if (slots && slots.length > 0) {
+    const resolved: HeroSingleSource[] = [];
+    for (const s of slots) {
+      if (s.media_type === 'video' && s.resolved_video_url) {
+        resolved.push({
+          mediaUrl: s.resolved_video_url,
+          mediaType: 'video',
+          posterUrl: s.resolved_poster_url ?? undefined,
+        });
+      } else if (s.media_type === 'image' && s.resolved_image_url) {
+        resolved.push({
+          mediaUrl: s.resolved_image_url,
+          mediaType: 'image',
+        });
+      } else if (s.media_type === 'embed' && s.resolved_embed_url) {
+        resolved.push({
+          mediaUrl: s.resolved_embed_url,
+          mediaType: 'video',
+        });
+      }
+    }
+    if (resolved.length > 0) return resolved;
+  }
+  // Fall back to legacy single source
+  const single = getHeroSingleSource(hero);
+  if (single.mediaUrl) return [single];
+  return [];
+}

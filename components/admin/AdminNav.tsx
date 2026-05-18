@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Image as ImageIcon,
-  Calendar,
+  ImagePlay,
+  CalendarDays,
   ShoppingBag,
-  Settings,
-  Layers,
+  Settings2,
+  Clapperboard,
   FileText,
   FolderOpen,
   Mail,
@@ -19,16 +19,16 @@ import {
 /** Admin nav by content intent (charter: no DB abstractions). */
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { label: 'Homepage', href: '/admin/hero', icon: Layers },
-  { label: 'Events', href: '/admin/events', icon: Calendar },
-  { label: 'Media Library', href: '/admin/media', icon: ImageIcon },
+  { label: 'Homepage', href: '/admin/hero', icon: Clapperboard },
+  { label: 'Events', href: '/admin/events', icon: CalendarDays },
+  { label: 'Media Library', href: '/admin/media', icon: ImagePlay },
   { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
   { label: 'Shop', href: '/admin/shop', icon: ShoppingBag },
   { label: 'Booking', href: '/admin/booking', icon: BookOpen },
   { label: 'Booking Inquiries', href: '/admin/booking-inquiries', icon: Mail },
   { label: 'Press Kit', href: '/admin/presskit', icon: FileText },
   { label: 'About', href: '/admin/about', icon: UserCircle },
-  { label: 'Site Settings', href: '/admin/settings', icon: Settings },
+  { label: 'Site Settings', href: '/admin/settings', icon: Settings2 },
 ] as const;
 
 interface AdminNavProps {
@@ -51,10 +51,18 @@ export function AdminNav({ collapsed }: AdminNavProps) {
             href={item.href}
             title={collapsed ? item.label : undefined}
             className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-w-0
+              flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors min-w-0
               ${collapsed ? 'justify-center' : ''}
-              ${isActive ? 'bg-slate-200/90 text-slate-900 ring-1 ring-slate-300/50' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'}
             `}
+            style={{
+              fontSize: '13px',
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase' as const,
+              color: isActive ? '#C6A75E' : 'rgba(255,255,255,0.5)',
+              background: isActive ? 'rgba(198,167,94,0.1)' : 'transparent',
+              borderLeft: isActive && !collapsed ? '3px solid #C6A75E' : '3px solid transparent',
+            }}
             aria-current={isActive ? 'page' : undefined}
           >
             <Icon className="w-4 h-4 shrink-0" aria-hidden />

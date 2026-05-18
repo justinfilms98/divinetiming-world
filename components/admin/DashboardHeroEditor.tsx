@@ -392,11 +392,10 @@ export function DashboardHeroEditor() {
         </div>
       )}
 
-      {/* Page selector — segmented control */}
+      {/* Page selector — pill tabs */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-700 mb-2">Page</label>
         <div
-          className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 gap-0.5"
+          className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit"
           role="group"
           aria-label="Select page"
         >
@@ -405,10 +404,10 @@ export function DashboardHeroEditor() {
               key={key}
               type="button"
               onClick={() => setSelectedPage(key)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 selectedPage === key
-                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-800 hover:bg-slate-200/50'
+                  ? 'bg-[#C6A75E] text-[#0a0a0a] font-semibold'
+                  : 'text-white/50 hover:text-white'
               }`}
             >
               {PAGE_LABELS[key]}
@@ -426,7 +425,7 @@ export function DashboardHeroEditor() {
             <h3 className="text-sm font-medium text-slate-700 mb-2">
               Hero media & copy
             </h3>
-            <div className="relative aspect-[21/9] rounded-xl overflow-hidden bg-slate-200 border border-slate-200 flex items-center justify-center">
+            <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center">
               {heroMediaDisplayUrl && hero.media_type !== 'default' ? (
                 <AdminHeroMediaPreview
                   url={heroMediaDisplayUrl}

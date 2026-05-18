@@ -557,3 +557,11 @@ body {
 .btn-lift:active {
   transform: translateY(0);
 }
+
+@keyframes lensFlare {
+  0%   { opacity: 0; transform: translateX(-40%); }
+  20%  { opacity: 0.55; }
+  60%  { opacity: 0.3; transform: translateX(0%); }
+  80%  { opacity: 0.15; transform: translateX(20%); }
+  100% { opacity: 0; transform: translateX(60%); }
+}

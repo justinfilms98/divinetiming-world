@@ -45,12 +45,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         className="grid min-h-screen transition-[grid-template-columns] duration-200 ease-out"
         style={{ gridTemplateColumns: sidebarCollapsed ? '56px 1fr' : `${SIDEBAR_WIDTH}px 1fr` }}
       >
-        <aside className="admin-sidebar shrink-0 flex flex-col border-r border-slate-200 min-w-0">
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-2">
+        <aside
+          className="admin-sidebar shrink-0 flex flex-col min-w-0"
+          style={{ background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <div
+            className="p-4 flex items-center justify-between gap-2"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+          >
             {!sidebarCollapsed && (
               <Link
                 href="/admin"
-                className="text-lg font-bold text-slate-800 tracking-tight"
+                style={{
+                  color: '#C6A75E',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '18px',
+                  letterSpacing: '0.08em',
+                  fontWeight: 700,
+                }}
               >
                 Admin
               </Link>
@@ -58,7 +70,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setSidebarCollapsed((c) => !c)}
-              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {sidebarCollapsed ? (
@@ -71,12 +86,21 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
             <AdminNav collapsed={sidebarCollapsed} />
           </div>
-          <div className="p-3 border-t border-slate-200 space-y-0.5">
+          <div className="p-3 space-y-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <Link
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 text-sm font-medium"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
               {!sidebarCollapsed && <span>View site</span>}
@@ -84,7 +108,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-800 text-sm font-medium"
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              style={{ color: 'rgba(255,255,255,0.5)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               <LogOut className="w-4 h-4 shrink-0" />
               {!sidebarCollapsed && <span>Logout</span>}
@@ -92,7 +125,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <div className="min-w-0 flex flex-col">
+        <div className="min-w-0 flex flex-col" style={{ background: '#0f0c10' }}>
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 py-8 md:py-10">
               <AdminToastProvider>{children}</AdminToastProvider>

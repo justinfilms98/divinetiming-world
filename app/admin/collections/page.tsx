@@ -100,7 +100,7 @@ export default function AdminCollectionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this collection and all its photos?')) return;
+    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
     const res = await fetch(`/api/admin/galleries?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',

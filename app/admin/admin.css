@@ -1,6 +1,5 @@
-/* Admin-only theme: neutral tooling UI, distinct from public site. */
+/* Admin-only theme: dark luxury tooling UI, distinct from public site. */
 /* Loaded only by AdminShell (app/admin/layout). Do not import on public pages. */
-/* Applied only when admin layout is mounted (html.admin-active). No public gradients. */
 
 html.admin-active,
 html.admin-active body {
@@ -8,92 +7,85 @@ html.admin-active body {
 }
 
 .admin-root {
-  --admin-bg: 248 250 252; /* slate-50 */
-  --admin-sidebar: 241 245 249; /* slate-100 */
-  --admin-card-border: 226 232 240; /* slate-200 */
-  --admin-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --admin-input-border: 203 213 225; /* slate-300 */
-  --admin-accent: 51 65 85; /* slate-700 */
-  --admin-accent-hover: 30 41 59; /* slate-800 */
-}
-
-.dark-admin .admin-root {
-  --admin-bg: 15 23 42; /* slate-900 */
-  --admin-sidebar: 30 41 59; /* slate-800 */
-  --admin-card-border: 51 65 85;
-  --admin-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --admin-input-border: 71 85 105;
-  --admin-accent: 148 163 184;
-  --admin-accent-hover: 203 213 225;
-}
-
-.admin-root {
-  background-color: rgb(var(--admin-bg));
-  color: rgb(15 23 42);
+  background: #0f0c10;
+  color: #f5f0e8;
 }
 
 .admin-sidebar {
-  background-color: rgb(var(--admin-sidebar));
-  border-right: 1px solid rgb(var(--admin-card-border));
-}
-
-.admin-card {
-  background: white;
-  border: 1px solid rgb(var(--admin-card-border));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  border-radius: 1rem;
-}
-
-.dark-admin .admin-card {
-  background: rgb(30 41 59);
-  border-color: rgb(var(--admin-card-border));
-  color: rgb(226 232 240);
+  background: #0a0a0a !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .admin-btn-primary {
-  background: rgb(var(--admin-accent));
-  color: white;
-  transition: background-color 0.2s ease-out, transform 0.2s ease-out;
+  background: #C6A75E;
+  color: #0a0a0a;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  transition: background 0.2s ease, transform 0.15s ease;
 }
-
 .admin-btn-primary:hover {
-  background: rgb(var(--admin-accent-hover));
+  background: #D4B76A;
+  transform: translateY(-1px);
 }
-
 .admin-btn-primary:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
-.dark-admin .admin-btn-primary {
-  background: rgb(51 65 85);
-  color: rgb(226 232 240);
+.admin-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.admin-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.dark-admin .admin-btn-primary:hover {
-  background: rgb(71 85 105);
+/* Form inputs */
+.admin-root input[type="text"],
+.admin-root input[type="url"],
+.admin-root input[type="email"],
+.admin-root input[type="number"],
+.admin-root input[type="datetime-local"],
+.admin-root textarea,
+.admin-root select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f0e8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+.admin-root input:focus,
+.admin-root textarea:focus,
+.admin-root select:focus {
+  outline: none;
+  border-color: #C6A75E;
+  box-shadow: 0 0 0 3px rgba(198, 167, 94, 0.15);
 }
 
-.admin-input {
-  border: 1px solid rgb(var(--admin-input-border));
-  border-radius: 0.5rem;
-  background: white;
+/* Labels */
+.admin-root label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
 }
 
-.dark-admin .admin-input {
-  background: rgb(30 41 59);
-  border-color: rgb(71 85 105);
-  color: rgb(226 232 240);
+/* Section dividers */
+.admin-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 24px 0;
 }
 
-/* Phase 25: admin page header typography in dark mode */
-.dark-admin .admin-page-title {
-  color: rgb(226 232 240);
-}
-.dark-admin .admin-page-desc {
-  color: rgb(148 163 184);
-}
-
-/* Section spacing: align with Phase 0 / 8px grid */
+/* Section spacing: align with 8px grid */
 .admin-section-gap {
   gap: 1.5rem; /* 24px */
 }
@@ -108,29 +100,27 @@ html.admin-active body {
 .admin-table td {
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid rgb(var(--admin-card-border));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   vertical-align: middle;
 }
 
 .admin-table th {
   font-weight: 600;
-  color: rgb(51 65 85);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .admin-table tbody tr:hover {
-  background: rgb(248 250 252);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.dark-admin .admin-table tbody tr:hover {
-  background: rgb(51 65 85 / 0.3);
-}
-
-/* Modal: consistent padding and button spacing */
+/* Modal */
 .admin-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15 23 42 / 0.5);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -140,30 +130,22 @@ html.admin-active body {
 }
 
 .admin-modal-panel {
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: #0f0c10;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
   max-width: 32rem;
   width: 100%;
   max-height: calc(100vh - 3rem);
   overflow-y: auto;
 }
 
-.dark-admin .admin-modal-panel {
-  background: rgb(30 41 59);
-  border: 1px solid rgb(51 65 85);
-}
-
 .admin-modal-header {
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgb(var(--admin-card-border));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-weight: 600;
   font-size: 1.125rem;
-  color: rgb(15 23 42);
-}
-
-.dark-admin .admin-modal-header {
-  color: rgb(226 232 240);
+  color: #f5f0e8;
 }
 
 .admin-modal-body {
@@ -172,9 +154,30 @@ html.admin-active body {
 
 .admin-modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgb(var(--admin-card-border));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: flex-end;
+}
+
+/* Page title / description */
+.admin-page-title {
+  color: #f5f0e8;
+}
+.admin-page-desc {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Input */
+.admin-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #f5f0e8;
+}
+.admin-input:focus {
+  outline: none;
+  border-color: #C6A75E;
+  box-shadow: 0 0 0 3px rgba(198, 167, 94, 0.15);
 }
