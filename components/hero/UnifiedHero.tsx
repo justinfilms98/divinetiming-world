@@ -54,41 +54,87 @@ export function UnifiedHero({
 
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [flare, setFlare] = useState(false);
-  const activeSlide = allSlides[activeIndex] ?? allSlides[0];
 
+  // Carousel auto-advance. We keep the previous slide mounted during the
+  // crossfade so there's no black flash between videos, and trigger the gold
+  // lens-flare overlay to mask the swap.
   useEffect(() => {
     if (allSlides.length <= 1) return;
-    const DURATION = 10000;
-    const timer = setTimeout(() => {
+    const HOLD_MS = 10_000;
+    const CROSSFADE_MS = 1_200;
+    const tick = setTimeout(() => {
       setFlare(true);
-      setTimeout(() => {
-        setActiveIndex((prev) => (prev + 1) % allSlides.length);
+      setPrevIndex(activeIndex);
+      setActiveIndex((prev) => (prev + 1) % allSlides.length);
+      const clean = setTimeout(() => {
+        setPrevIndex(null);
         setFlare(false);
-      }, 600);
-    }, DURATION);
-    return () => clearTimeout(timer);
+      }, CROSSFADE_MS);
+      return () => clearTimeout(clean);
+    }, HOLD_MS);
+    return () => clearTimeout(tick);
   }, [activeIndex, allSlides.length]);
 
-  const url = activeSlide?.mediaUrl ?? undefined;
-  const type = (activeSlide?.mediaType === 'image' || activeSlide?.mediaType === 'video' ? activeSlide.mediaType : null) ?? 'default';
-  const activePoster = activeSlide?.posterUrl ?? posterUrl ?? undefined;
+  const goToSlide = (target: number) => {
+    if (target === activeIndex) return;
+    setFlare(true);
+    setPrevIndex(activeIndex);
+    setActiveIndex(target);
+    setTimeout(() => {
+      setPrevIndex(null);
+      setFlare(false);
+    }, 1200);
+  };
+
+  const renderSlide = (slide: typeof allSlides[number] | undefined, keyHint: string) => {
+    if (!slide?.mediaUrl) return null;
+    const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
+    return (
+      <MediaAssetRenderer
+        key={keyHint}
+        url={slide.mediaUrl ?? null}
+        mediaType={t}
+        poster={slide.posterUrl ?? posterUrl ?? null}
+        fallback={HeroEclipseFallback}
+        priority
+        sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
+      />
+    );
+  };
 
   return (
     <section
       className={`relative w-full overflow-hidden rounded-b-2xl ${heightPreset === 'full' ? 'rounded-b-none' : ''}`}
     >
-      {/* Fixed aspect/min-height to avoid CLS */}
       <div className={`relative ${heightClasses[heightPreset]}`}>
-        <div className="absolute inset-0">
-          <MediaAssetRenderer
-            url={url || null}
-            mediaType={type}
-            poster={activePoster ?? null}
-            fallback={HeroEclipseFallback}
-            priority={true}
-            sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
-          />
+        <div className="absolute inset-0 bg-black">
+          {/* Outgoing slide — fades down while the new one rises in. */}
+          {prevIndex !== null && (
+            <div
+              className="absolute inset-0"
+              style={{
+                opacity: 0,
+                transition: 'opacity 1200ms cubic-bezier(0.4, 0, 0.2, 1)',
+                animation: 'heroSlideFadeOut 1200ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              }}
+            >
+              {renderSlide(allSlides[prevIndex], `slide-${prevIndex}-out-${allSlides[prevIndex]?.mediaUrl ?? ''}`)}
+            </div>
+          )}
+
+          {/* Incoming / active slide. */}
+          <div
+            className="absolute inset-0"
+            style={{
+              animation: prevIndex !== null
+                ? 'heroSlideFadeIn 1200ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                : undefined,
+            }}
+          >
+            {renderSlide(allSlides[activeIndex], `slide-${activeIndex}-${allSlides[activeIndex]?.mediaUrl ?? ''}`)}
+          </div>
 
           {/* Phase D: single balanced overlay — bottom vignette + light center gradient for readability */}
           <div
@@ -102,10 +148,11 @@ export function UnifiedHero({
           <div className="hero-grain" aria-hidden="true" />
           {flare && (
             <div
-              className="absolute inset-0 pointer-events-none z-20"
+              className="absolute inset-0 pointer-events-none z-20 mix-blend-screen"
               style={{
-                background: 'linear-gradient(105deg, transparent 20%, rgba(198,167,94,0.3) 50%, transparent 80%)',
-                animation: 'lensFlare 1.1s cubic-bezier(0.4,0,0.2,1) both',
+                background:
+                  'radial-gradient(ellipse 50% 70% at 30% 50%, rgba(255,235,170,0.55) 0%, rgba(198,167,94,0.35) 25%, transparent 65%), linear-gradient(115deg, transparent 25%, rgba(255,225,160,0.4) 50%, transparent 75%)',
+                animation: 'lensFlareSweep 1200ms cubic-bezier(0.4,0,0.2,1) both',
               }}
             />
           )}
@@ -173,10 +220,7 @@ export function UnifiedHero({
               {allSlides.map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => {
-                    setFlare(true);
-                    setTimeout(() => { setActiveIndex(i); setFlare(false); }, 600);
-                  }}
+                  onClick={() => goToSlide(i)}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     i === activeIndex ? 'bg-[#C6A75E] w-4' : 'bg-white/40 w-1.5'
                   }`}
