@@ -24,7 +24,7 @@ export function MediaThumb({ src, isImage, alt = '', posterUrl, className = '' }
   const showImg = displayUrl && (isImage || posterUrl) && !error;
 
   return (
-    <div className={`aspect-square relative bg-slate-100 rounded-lg overflow-hidden ${className}`}>
+    <div className={`aspect-square relative bg-white/[0.06] rounded-lg overflow-hidden ${className}`}>
       {showImg ? (
         <>
           <img
@@ -40,11 +40,11 @@ export function MediaThumb({ src, isImage, alt = '', posterUrl, className = '' }
           )}
         </>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/[0.06]">
           {isImage ? (
-            <ImageIcon className="w-10 h-10 text-slate-400" aria-hidden />
+            <ImageIcon className="w-10 h-10 text-white/30" aria-hidden />
           ) : (
-            <Video className="w-10 h-10 text-slate-400" aria-hidden />
+            <Video className="w-10 h-10 text-white/30" aria-hidden />
           )}
         </div>
       )}

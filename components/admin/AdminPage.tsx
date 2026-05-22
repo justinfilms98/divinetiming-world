@@ -21,7 +21,7 @@ export function AdminPage({
 }: AdminPageProps) {
   return (
     <div className={cn('space-y-8', className)}>
-      <header className="flex items-center justify-between mb-8 gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-4">
         <div>
           <h1
             className="text-3xl font-semibold text-white tracking-tight"

@@ -25,11 +25,14 @@ export function AdminPageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold text-slate-800 tracking-tight admin-page-title">
+        <h1
+          className="text-2xl font-semibold text-white tracking-tight admin-page-title"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           {title}
         </h1>
         {description && (
-          <p className="mt-1.5 text-sm text-slate-600 leading-relaxed admin-page-desc">
+          <p className="mt-1.5 text-sm text-white/50 leading-relaxed admin-page-desc">
             {description}
           </p>
         )}

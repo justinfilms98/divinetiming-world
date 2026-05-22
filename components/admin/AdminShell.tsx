@@ -12,10 +12,12 @@ import '@/app/admin/admin.css';
 
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_KEY = 'admin-sidebar-collapsed';
+const MOBILE_BREAKPOINT = 768;
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add('admin-active');
@@ -27,8 +29,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? '1' : '0');
-  }, [sidebarCollapsed]);
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? '1' : '0');
+    }
+  }, [sidebarCollapsed, isMobile]);
+
+  const effectiveCollapsed = isMobile || sidebarCollapsed;
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -43,7 +57,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </Suspense>
       <div
         className="grid min-h-screen transition-[grid-template-columns] duration-200 ease-out"
-        style={{ gridTemplateColumns: sidebarCollapsed ? '56px 1fr' : `${SIDEBAR_WIDTH}px 1fr` }}
+        style={{ gridTemplateColumns: effectiveCollapsed ? '56px 1fr' : `${SIDEBAR_WIDTH}px 1fr` }}
       >
         <aside
           className="admin-sidebar shrink-0 flex flex-col min-w-0"
@@ -53,7 +67,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="p-4 flex items-center justify-between gap-2"
             style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
           >
-            {!sidebarCollapsed && (
+            {!effectiveCollapsed && (
               <Link
                 href="/admin"
                 style={{
@@ -74,9 +88,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               style={{ color: 'rgba(255,255,255,0.4)' }}
               onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={effectiveCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {sidebarCollapsed ? (
+              {effectiveCollapsed ? (
                 <PanelLeft className="w-5 h-5" />
               ) : (
                 <PanelLeftClose className="w-5 h-5" />
@@ -84,7 +98,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
-            <AdminNav collapsed={sidebarCollapsed} />
+            <AdminNav collapsed={effectiveCollapsed} />
           </div>
           <div className="p-3 space-y-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <Link
@@ -103,7 +117,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               }}
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>View site</span>}
+              {!effectiveCollapsed && <span>View site</span>}
             </Link>
             <button
               type="button"
@@ -120,14 +134,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               }}
             >
               <LogOut className="w-4 h-4 shrink-0" />
-              {!sidebarCollapsed && <span>Logout</span>}
+              {!effectiveCollapsed && <span>Logout</span>}
             </button>
           </div>
         </aside>
 
         <div className="min-w-0 flex flex-col" style={{ background: '#0f0c10' }}>
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+            <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
               <AdminToastProvider>{children}</AdminToastProvider>
             </div>
           </main>
