@@ -54,24 +54,21 @@ export function UnifiedHero({
 
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [flare, setFlare] = useState(false);
 
-  // Carousel auto-advance. We keep the previous slide mounted during the
-  // crossfade so there's no black flash between videos, and trigger the gold
-  // lens-flare overlay to mask the swap.
+  // Crossfade tuning — long enough that two slides genuinely blend rather than swap.
+  const HOLD_MS = 10_000;
+  const CROSSFADE_MS = 2_400;
+
+  // Carousel auto-advance. All slides are mounted simultaneously below and
+  // only their opacity is toggled, so each video is already playing in the
+  // background when its layer becomes active — no black flash possible.
   useEffect(() => {
     if (allSlides.length <= 1) return;
-    const HOLD_MS = 10_000;
-    const CROSSFADE_MS = 1_200;
     const tick = setTimeout(() => {
       setFlare(true);
-      setPrevIndex(activeIndex);
       setActiveIndex((prev) => (prev + 1) % allSlides.length);
-      const clean = setTimeout(() => {
-        setPrevIndex(null);
-        setFlare(false);
-      }, CROSSFADE_MS);
+      const clean = setTimeout(() => setFlare(false), CROSSFADE_MS);
       return () => clearTimeout(clean);
     }, HOLD_MS);
     return () => clearTimeout(tick);
@@ -80,20 +77,15 @@ export function UnifiedHero({
   const goToSlide = (target: number) => {
     if (target === activeIndex) return;
     setFlare(true);
-    setPrevIndex(activeIndex);
     setActiveIndex(target);
-    setTimeout(() => {
-      setPrevIndex(null);
-      setFlare(false);
-    }, 1200);
+    setTimeout(() => setFlare(false), CROSSFADE_MS);
   };
 
-  const renderSlide = (slide: typeof allSlides[number] | undefined, keyHint: string) => {
+  const renderSlide = (slide: typeof allSlides[number] | undefined) => {
     if (!slide?.mediaUrl) return null;
     const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
     return (
       <MediaAssetRenderer
-        key={keyHint}
         url={slide.mediaUrl ?? null}
         mediaType={t}
         poster={slide.posterUrl ?? posterUrl ?? null}
@@ -110,39 +102,38 @@ export function UnifiedHero({
     >
       <div className={`relative ${heightClasses[heightPreset]}`}>
         <div className="absolute inset-0 bg-black">
-          {/* Outgoing slide — fades down while the new one rises in. */}
-          {prevIndex !== null && (
-            <div
-              className="absolute inset-0"
-              style={{
-                opacity: 0,
-                transition: 'opacity 1200ms cubic-bezier(0.4, 0, 0.2, 1)',
-                animation: 'heroSlideFadeOut 1200ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              }}
-            >
-              {renderSlide(allSlides[prevIndex], `slide-${prevIndex}-out-${allSlides[prevIndex]?.mediaUrl ?? ''}`)}
-            </div>
-          )}
-
-          {/* Incoming / active slide. */}
-          <div
-            className="absolute inset-0"
-            style={{
-              animation: prevIndex !== null
-                ? 'heroSlideFadeIn 1200ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
-                : undefined,
-            }}
-          >
-            {renderSlide(allSlides[activeIndex], `slide-${activeIndex}-${allSlides[activeIndex]?.mediaUrl ?? ''}`)}
-          </div>
+          {/*
+            Mount every slide as its own absolute-positioned layer and only
+            toggle opacity. The videos preload + autoplay independently, so
+            by the time a layer's opacity rises to 1 it's already running —
+            we never see a frozen first frame or black flash.
+          */}
+          {allSlides.map((slide, idx) => {
+            const isActive = idx === activeIndex;
+            return (
+              <div
+                key={`hero-slide-${idx}-${slide?.mediaUrl ?? ''}`}
+                aria-hidden={!isActive}
+                className="absolute inset-0"
+                style={{
+                  opacity: isActive ? 1 : 0,
+                  transition: `opacity ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                  zIndex: isActive ? 2 : 1,
+                  willChange: 'opacity',
+                }}
+              >
+                {renderSlide(slide)}
+              </div>
+            );
+          })}
 
           {/* Phase D: single balanced overlay — bottom vignette + light center gradient for readability */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50"
+            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50 z-[5]"
             style={{ opacity: Math.min(1, opacity * 1.1) }}
           />
           <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_40%,transparent_40%,rgba(0,0,0,0.2)_100%)]"
+            className="absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_40%,transparent_40%,rgba(0,0,0,0.2)_100%)] z-[5]"
             style={{ opacity: opacity * 0.9 }}
           />
           <div className="hero-grain" aria-hidden="true" />
@@ -151,8 +142,8 @@ export function UnifiedHero({
               className="absolute inset-0 pointer-events-none z-20 mix-blend-screen"
               style={{
                 background:
-                  'radial-gradient(ellipse 50% 70% at 30% 50%, rgba(255,235,170,0.55) 0%, rgba(198,167,94,0.35) 25%, transparent 65%), linear-gradient(115deg, transparent 25%, rgba(255,225,160,0.4) 50%, transparent 75%)',
-                animation: 'lensFlareSweep 1200ms cubic-bezier(0.4,0,0.2,1) both',
+                  'radial-gradient(ellipse 55% 80% at 30% 50%, rgba(255,235,170,0.6) 0%, rgba(198,167,94,0.4) 25%, transparent 65%), linear-gradient(115deg, transparent 20%, rgba(255,225,160,0.45) 50%, transparent 80%)',
+                animation: `lensFlareSweep ${CROSSFADE_MS}ms cubic-bezier(0.4,0,0.2,1) both`,
               }}
             />
           )}
