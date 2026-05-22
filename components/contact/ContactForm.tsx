@@ -13,7 +13,11 @@ const BUDGET_OPTIONS = [
   'To be discussed',
 ];
 
-export function BookingForm() {
+/**
+ * Contact / booking inquiry form. Posts to the existing /api/booking endpoint
+ * which writes into booking_inquiries.
+ */
+export function ContactForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [formData, setFormData] = useState({
     name: '',
@@ -46,7 +50,7 @@ export function BookingForm() {
         throw new Error(data.error || 'Failed to submit');
       }
 
-      track({ event_name: 'booking_submit' });
+      track({ event_name: 'contact_submit' });
       setStatus('success');
       setFormData({
         name: '',
@@ -58,7 +62,7 @@ export function BookingForm() {
         budgetRange: '',
         message: '',
       });
-    } catch (err) {
+    } catch {
       setStatus('error');
     }
   };
@@ -67,17 +71,18 @@ export function BookingForm() {
     <div className="min-w-0">
       {status === 'success' && (
         <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--text)] text-center type-body">
-          Thank you. Your inquiry has been sent and we&apos;ll get back to you soon.
+          Thank you. Your message has been sent and we&apos;ll get back to you soon.
         </div>
       )}
 
       {status === 'error' && (
         <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--text-muted)]/30 bg-white/5 text-[var(--text-muted)] text-center type-body">
-          Something went wrong. Please try again or contact us directly.
+          Something went wrong. Please try again or reach us by email or phone.
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label htmlFor="name" className="block type-small text-[var(--text-muted)] font-medium mb-2">
               Name *
@@ -110,7 +115,7 @@ export function BookingForm() {
 
           <div>
             <label htmlFor="company" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Company
+              Company / Venue
             </label>
             <input
               id="company"
@@ -118,13 +123,13 @@ export function BookingForm() {
               value={formData.company}
               onChange={(e) => setFormData((p) => ({ ...p, company: e.target.value }))}
               className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
-              placeholder="Venue, festival, or company"
+              placeholder="Optional"
             />
           </div>
 
           <div>
             <label htmlFor="eventType" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Event type
+              Type of inquiry
             </label>
             <select
               id="eventType"
@@ -133,17 +138,17 @@ export function BookingForm() {
               className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
             >
               <option value="">Select type</option>
-              <option value="Festival">Festival</option>
-              <option value="Club night">Club night</option>
-              <option value="Private event">Private event</option>
+              <option value="Booking">Booking</option>
+              <option value="Press / Media">Press / Media</option>
               <option value="Collaboration">Collaboration</option>
-              <option value="Other">Other</option>
+              <option value="Merch / Shop">Merch / Shop</option>
+              <option value="General">General</option>
             </select>
           </div>
 
           <div>
             <label htmlFor="eventDate" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Event date
+              Date (if booking)
             </label>
             <input
               id="eventDate"
@@ -151,7 +156,7 @@ export function BookingForm() {
               value={formData.eventDate}
               onChange={(e) => setFormData((p) => ({ ...p, eventDate: e.target.value }))}
               className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
-              placeholder="e.g. June 15, 2025"
+              placeholder="e.g. June 15, 2026"
             />
           </div>
 
@@ -168,49 +173,50 @@ export function BookingForm() {
               placeholder="City, country"
             />
           </div>
+        </div>
 
-          <div>
-            <label htmlFor="budgetRange" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Budget Range
-            </label>
-            <select
-              id="budgetRange"
-              value={formData.budgetRange}
-              onChange={(e) => setFormData((p) => ({ ...p, budgetRange: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
-            >
-              <option value="">Select range</option>
-              {BUDGET_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="message" className="block type-small text-[var(--text-muted)] font-medium mb-2">
-              Message *
-            </label>
-            <textarea
-              id="message"
-              required
-              rows={5}
-              value={formData.message}
-              onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-              className="w-full min-h-[120px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 resize-none transition-colors duration-200"
-              placeholder="Tell us about your event..."
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={status === 'loading'}
-            className="w-full min-h-[48px] py-4 hero-cta-primary disabled:opacity-50 disabled:cursor-not-allowed transition-[opacity,transform] duration-200 active:scale-[0.98]"
+        <div>
+          <label htmlFor="budgetRange" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+            Budget Range (if booking)
+          </label>
+          <select
+            id="budgetRange"
+            value={formData.budgetRange}
+            onChange={(e) => setFormData((p) => ({ ...p, budgetRange: e.target.value }))}
+            className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
           >
-            {status === 'loading' ? 'Sending...' : 'Submit Inquiry'}
-          </button>
-        </form>
+            <option value="">Select range</option>
+            {BUDGET_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="message" className="block type-small text-[var(--text-muted)] font-medium mb-2">
+            Message *
+          </label>
+          <textarea
+            id="message"
+            required
+            rows={6}
+            value={formData.message}
+            onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+            className="w-full min-h-[140px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 resize-none transition-colors duration-200"
+            placeholder="Tell us what you have in mind..."
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={status === 'loading'}
+          className="w-full min-h-[48px] py-4 hero-cta-primary disabled:opacity-50 disabled:cursor-not-allowed transition-[opacity,transform] duration-200 active:scale-[0.98]"
+        >
+          {status === 'loading' ? 'Sending...' : 'Send Message'}
+        </button>
+      </form>
     </div>
   );
 }

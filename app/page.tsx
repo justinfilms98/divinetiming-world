@@ -6,7 +6,6 @@ import { HeroPlatformRow } from '@/components/home/HeroPlatformRow';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content/server';
 import { getHeroSingleSource, getHeroAllSlots } from '@/lib/content/heroSingleSource';
-import { getPlatformLinks } from '@/lib/platformLinks';
 import { DEFAULT_OG_IMAGE } from '@/lib/site';
 import type { Metadata } from 'next';
 
@@ -38,9 +37,9 @@ export default async function HomePage() {
     getSiteSettings(),
     getPageSettings('home'),
   ]);
-  const platformLinks = getPlatformLinks(siteSettings ?? undefined);
-  const defaultListenUrl = platformLinks[0]?.href ?? '#';
-  const listenUrl = heroSection?.cta_url || defaultListenUrl;
+  // Primary CTA defaults to Shop; admins can still override via hero_sections.cta_text/cta_url.
+  const primaryCtaText = heroSection?.cta_text?.trim() || 'Shop the collection';
+  const primaryCtaUrl = heroSection?.cta_url?.trim() || '/shop';
 
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.4;
   const artistName = heroSection?.headline ?? siteSettings?.artist_name ?? pageSettings?.seo_title ?? 'DIVINE:TIMING';
@@ -79,10 +78,10 @@ export default async function HomePage() {
       )}
       <HeroContent
         subtext={heroSection?.subtext ?? undefined}
-        ctaText={heroSection?.cta_text ?? 'Listen Now'}
-        ctaUrl={heroSection?.cta_url || listenUrl}
-        secondaryCtaText="Booking"
-        secondaryCtaUrl="/booking"
+        ctaText={primaryCtaText}
+        ctaUrl={primaryCtaUrl}
+        secondaryCtaText="Watch & Listen"
+        secondaryCtaUrl="/media"
       />
       <HeroPlatformRow overrides={siteSettings ?? undefined} delay={0.5} />
     </div>

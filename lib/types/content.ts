@@ -118,6 +118,21 @@ export interface Event {
   resolved_thumbnail_url?: string | null;
 }
 
+export interface EventMedia {
+  id: string;
+  event_id: string;
+  external_media_asset_id?: string | null;
+  url: string | null;
+  thumbnail_url: string | null;
+  media_type: 'image' | 'video';
+  caption: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  /** Resolved preview URL set by the content layer. */
+  resolved_url?: string | null;
+}
+
 export interface Gallery {
   id: string;
   name: string;

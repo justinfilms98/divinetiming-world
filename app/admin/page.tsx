@@ -59,10 +59,10 @@ export default async function AdminDashboard() {
       color: 'text-green-600',
     },
     {
-      label: 'Booking',
+      label: 'Journey',
       value: '—',
       icon: BookOpen,
-      href: '/admin/booking',
+      href: '/admin/journey',
       color: 'text-slate-600',
     },
     {

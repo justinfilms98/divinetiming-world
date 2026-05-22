@@ -13,6 +13,7 @@ interface EventsListClientProps {
 export function EventsListClient({ upcomingEvents, pastEvents }: EventsListClientProps) {
   const [active, setActive] = useState<'upcoming' | 'past'>('upcoming');
   const events = active === 'upcoming' ? upcomingEvents : pastEvents;
+  const isPast = active === 'past';
 
   const tabs = [
     { id: 'upcoming', label: 'Upcoming' },
@@ -31,9 +32,9 @@ export function EventsListClient({ upcomingEvents, pastEvents }: EventsListClien
         </div>
       )}
       {events.length > 0 ? (
-        <div className="space-y-8 w-full max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full max-w-6xl mx-auto">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} isPast={isPast} />
           ))}
         </div>
       ) : (

@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     return [
       { source: '/tour', destination: '/events', permanent: true },
       { source: '/epk', destination: '/presskit', permanent: true },
+      { source: '/booking', destination: '/contact', permanent: true },
+      { source: '/admin/booking', destination: '/admin/journey', permanent: false },
     ];
   },
   // Direct CDN only. No /image proxy. Uploadcare + Drive for legacy; Supabase Storage for hero media.

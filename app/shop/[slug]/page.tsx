@@ -70,46 +70,49 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             >
               ← Back to Shop
             </Link>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start max-w-5xl mx-auto w-full">
-              <div className="w-full max-w-lg mx-auto md:mx-0 md:sticky md:top-28">
+            <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-10 md:gap-16 items-start max-w-6xl mx-auto w-full">
+              <div className="w-full">
                 <ProductImageGallery images={images} productName={product.name} />
               </div>
 
-              <div className="min-w-0 flex flex-col">
-                <div className="flex flex-wrap gap-2 mb-4">
+              <div className="min-w-0 flex flex-col md:sticky md:top-28">
+                <div className="flex flex-wrap gap-2 mb-5">
                   {(product as { is_featured?: boolean }).is_featured && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--accent)]/20 text-[var(--accent)]">Featured</span>
+                    <span className="px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.2em] font-medium bg-[var(--accent)]/15 text-[var(--accent)]">Featured</span>
                   )}
                   {(product as { badge?: string | null }).badge && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium border border-[var(--accent)]/40 text-[var(--accent)]">{(product as { badge: string }).badge}</span>
+                    <span className="px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.2em] font-medium border border-[var(--accent)]/40 text-[var(--accent)]">{(product as { badge: string }).badge}</span>
                   )}
                   {(() => {
                     const variants = (product as { product_variants?: { inventory_count?: number }[] }).product_variants ?? [];
                     const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);
                     return soldOut ? (
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--text-muted)]/20 text-[var(--text-muted)]">Sold out</span>
+                      <span className="px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.2em] font-medium bg-[var(--text-muted)]/15 text-[var(--text-muted)]">Sold out</span>
                     ) : null;
                   })()}
                 </div>
-                <h1 className="type-h1 text-[var(--text)] mb-2 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                <h1 className="type-h1 text-[var(--text)] mb-3 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
                   {product.name}
                 </h1>
                 {(product as { subtitle?: string | null }).subtitle && (
-                  <p className="type-subtitle text-[var(--text-muted)] mb-4">{(product as { subtitle: string }).subtitle}</p>
+                  <p className="type-subtitle text-[var(--text-muted)] mb-5 tracking-wide">{(product as { subtitle: string }).subtitle}</p>
                 )}
-                <p className="text-[var(--accent)] type-h3 font-semibold mb-8">{formatPrice(product.price_cents)}</p>
+                <p className="text-[var(--text)] text-2xl font-medium tabular-nums mb-8">{formatPrice(product.price_cents)}</p>
 
-                {product.description && (
-                  <div className="text-[var(--text-muted)] type-body mb-12 flex-1 prose-readability space-y-5 leading-relaxed max-w-[65ch]">
-                    {product.description.trim().split(/\n\n+/).filter(Boolean).map((para: string, i: number) => (
-                      <p key={i}>{para.replace(/\n/g, ' ').trim()}</p>
-                    ))}
-                  </div>
-                )}
-
-                <div className="pt-6 mt-2 border-t border-[var(--accent)]/10">
+                <div className="pt-6 border-t border-[var(--accent)]/10">
                   <ProductDetailClient product={product} />
                 </div>
+
+                {product.description && (
+                  <div className="mt-10 pt-8 border-t border-[var(--accent)]/10">
+                    <h2 className="type-label text-[var(--accent)] tracking-[0.25em] mb-4">DETAILS</h2>
+                    <div className="text-[var(--text-muted)] type-body space-y-4 leading-relaxed">
+                      {product.description.trim().split(/\n\n+/).filter(Boolean).map((para: string, i: number) => (
+                        <p key={i}>{para.replace(/\n/g, ' ').trim()}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             </div>

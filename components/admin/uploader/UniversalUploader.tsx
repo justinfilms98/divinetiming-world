@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 
 export type UploadedFile = {
@@ -113,44 +114,81 @@ export function UniversalUploader({
       setUploading(true);
       onUploadingChange?.(true);
       const total = list.length;
+      const uploaded: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       try {
+        const supabase = createClient();
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
-          setProgress(((i + 0.5) / total) * 100);
+          setProgress((i / total) * 100);
 
-          const fd = new FormData();
-          fd.append('file', file);
-
-          const res = await fetch('/api/admin/media/upload', {
+          const pathRes = await fetch('/api/admin/media/upload-path', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: fd,
+            body: JSON.stringify({ filename: file.name }),
           });
+          const pathData = await pathRes.json().catch(() => ({}));
+          if (!pathRes.ok || !pathData?.path) {
+            setError(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload path.');
+            return;
+          }
+          const { path, publicUrl } = pathData as { path: string; publicUrl: string };
 
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            setError(data?.error || 'Upload failed — try again.');
+          const { error: uploadErr } = await supabase.storage
+            .from('media')
+            .upload(path, file, {
+              contentType: file.type || 'application/octet-stream',
+              upsert: true,
+            });
+          if (uploadErr) {
+            setError(uploadErr.message || 'Storage upload failed. Make sure you are signed in.');
             return;
           }
 
-          type AssetItem = { id: string; preview_url: string; provider?: string; name?: string | null; size_bytes?: number | null; mime_type?: string | null };
-          const assets: AssetItem[] = Array.isArray(data?.assets) ? data.assets : [];
-          const normalized: UploadedFile[] = assets.map((a) => ({
-            url: a.preview_url,
-            id: a.id,
-            provider: a.provider || 'supabase',
-            name: a.name ?? undefined,
-            size: a.size_bytes ?? undefined,
-            mimeType: a.mime_type ?? undefined,
-          }));
+          setProgress(((i + 0.75) / total) * 100);
+          uploaded.push({
+            storage_path: path,
+            public_url: publicUrl || path,
+            name: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size ?? 0,
+          });
+        }
 
-          if (normalized.length) {
-            onSelected(multiple ? normalized : normalized.slice(0, 1));
-            setSuccess(true);
-            setTimeout(() => setSuccess(false), 2500);
-          }
+        if (uploaded.length === 0) {
+          setError('Upload produced no files to register.');
+          return;
         }
         setProgress(100);
+
+        const regRes = await fetch('/api/admin/media/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ provider: 'supabase', files: uploaded }),
+        });
+        const regData = await regRes.json().catch(() => ({}));
+        if (!regRes.ok) {
+          setError((regData?.error as string) || 'Failed to save to library.');
+          return;
+        }
+
+        type AssetItem = { id: string; preview_url: string; provider?: string; name?: string | null; size_bytes?: number | null; mime_type?: string | null };
+        const assets: AssetItem[] = Array.isArray(regData?.assets) ? regData.assets : [];
+        const normalized: UploadedFile[] = assets.map((a) => ({
+          url: a.preview_url,
+          id: a.id,
+          provider: a.provider || 'supabase',
+          name: a.name ?? undefined,
+          size: a.size_bytes ?? undefined,
+          mimeType: a.mime_type ?? undefined,
+        }));
+
+        if (normalized.length) {
+          onSelected(multiple ? normalized : normalized.slice(0, 1));
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 2500);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {

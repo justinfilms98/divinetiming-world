@@ -21,6 +21,7 @@ import type {
   HeroSlotResolved,
   HeroSlotIndex,
   Event,
+  EventMedia,
   Gallery,
   GalleryMedia,
   Product,
@@ -156,6 +157,24 @@ export async function getEventBySlug(slugOrId: string): Promise<Event | null> {
   return event;
 }
 
+/** Public: per-event media library. Returns [] gracefully if the table is missing. */
+export async function getEventMedia(eventId: string): Promise<EventMedia[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('event_media')
+    .select('*, external_media_asset:external_media_assets(id, preview_url, thumbnail_url, mime_type)')
+    .eq('event_id', eventId)
+    .order('display_order', { ascending: true });
+  if (error || !data) return [];
+  type Row = EventMedia & {
+    external_media_asset?: { id: string; preview_url: string | null; thumbnail_url: string | null; mime_type: string | null } | null;
+  };
+  return (data as Row[]).map((row) => {
+    const resolved = row.external_media_asset?.preview_url ?? row.external_media_asset?.thumbnail_url ?? row.url ?? row.thumbnail_url ?? null;
+    return { ...row, resolved_url: resolved };
+  });
+}
+
 /** Public list: only published events (or all if status column not yet present). */
 export async function getEvents(options?: { upcomingOnly?: boolean }): Promise<Event[]> {
   const supabase = await createClient();
@@ -198,6 +217,62 @@ export async function getGalleryMedia(galleryId: string): Promise<GalleryMedia[]
 
   if (error) return [];
   return (data || []) as GalleryMedia[];
+}
+
+/** Public: ordered journey blocks for the /journey page. Returns [] gracefully if the table is missing. */
+export async function getJourneyBlocks(): Promise<
+  Array<{
+    id: string;
+    title: string | null;
+    body: string | null;
+    image_url: string | null;
+    resolved_image_url: string | null;
+    align: 'left' | 'right' | 'center';
+    display_order: number;
+  }>
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('journey_blocks')
+    .select('*, external_image_asset:external_media_assets(id, preview_url)')
+    .order('display_order', { ascending: true });
+  if (error || !data) return [];
+  type Row = {
+    id: string;
+    title: string | null;
+    body: string | null;
+    image_url: string | null;
+    external_image_asset_id?: string | null;
+    align: 'left' | 'right' | 'center';
+    display_order: number;
+    external_image_asset?: { id: string; preview_url: string | null } | null;
+  };
+  return (data as Row[]).map((row) => ({
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    image_url: row.image_url,
+    resolved_image_url: row.external_image_asset?.preview_url ?? row.image_url ?? null,
+    align: row.align ?? 'left',
+    display_order: row.display_order ?? 0,
+  }));
+}
+
+/** Public: a single legal policy by slug. */
+export async function getLegalPolicy(slug: 'privacy' | 'terms' | 'refund' | 'shipping'): Promise<{
+  slug: string;
+  title: string;
+  body_md: string;
+  updated_at: string;
+} | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('legal_policies')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as { slug: string; title: string; body_md: string; updated_at: string };
 }
 
 export async function getMediaCarouselSlides(): Promise<

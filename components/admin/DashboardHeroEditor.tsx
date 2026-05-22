@@ -308,7 +308,9 @@ export function DashboardHeroEditor() {
       setCtaError('CTA label is required when CTA URL is set.');
       return;
     }
-    const normalizedSlots = buildSingleHeroSlots(current);
+    const normalizedSlots = selectedPage === 'home'
+      ? (Array.isArray(current.hero_slots) ? current.hero_slots : [])
+      : buildSingleHeroSlots(current);
     setSaving(true);
     setSaved(false);
     try {
@@ -420,50 +422,53 @@ export function DashboardHeroEditor() {
         <p className="text-slate-500 text-sm">Loading…</p>
       ) : (
         <div className="space-y-6">
-          {/* Hero (single surface): media, poster, overlay, label, CTAs */}
-          <div>
-            <h3 className="text-sm font-medium text-slate-700 mb-2">
-              Hero media & copy
-            </h3>
-            <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center">
-              {heroMediaDisplayUrl && hero.media_type !== 'default' ? (
-                <AdminHeroMediaPreview
-                  url={heroMediaDisplayUrl}
-                  mediaType={hero.media_type}
-                  className="object-cover w-full h-full min-h-full min-w-0"
+          {/* Single hero media — non-home pages only.
+              Home uses the Carousel Slots section below as the canonical media source. */}
+          {selectedPage !== 'home' && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-700 mb-2">
+                Hero media & copy
+              </h3>
+              <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center">
+                {heroMediaDisplayUrl && hero.media_type !== 'default' ? (
+                  <AdminHeroMediaPreview
+                    url={heroMediaDisplayUrl}
+                    mediaType={hero.media_type}
+                    className="object-cover w-full h-full min-h-full min-w-0"
+                  />
+                ) : (
+                  <div className="absolute inset-0">
+                    <HeroEclipseFallback />
+                  </div>
+                )}
+              </div>
+              {heroMediaDisplayUrl && hero.media_type !== 'default' && (
+                <p className="mt-1.5 text-xs text-slate-500 truncate" title={heroMediaDisplayUrl}>
+                  Source: {hero.media_storage_path ? `Storage: ${hero.media_storage_path}` : hero.media_url}
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <UniversalUploader
+                  acceptedTypes={['image', 'video']}
+                  multiple={false}
+                  onSelected={handleReplaceMedia}
+                  onUploadingChange={setUploadInProgress}
+                  buttonLabel="Upload image or video"
+                  hideStorageTip
                 />
-              ) : (
-                <div className="absolute inset-0">
-                  <HeroEclipseFallback />
-                </div>
-              )}
+                {(heroMediaDisplayUrl || hero.media_url) && hero.media_type !== 'default' && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveMedia}
+                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200"
+                    title="Remove hero media and use default"
+                  >
+                    Remove hero media
+                  </button>
+                )}
+              </div>
             </div>
-            {heroMediaDisplayUrl && hero.media_type !== 'default' && (
-              <p className="mt-1.5 text-xs text-slate-500 truncate" title={heroMediaDisplayUrl}>
-                Source: {hero.media_storage_path ? `Storage: ${hero.media_storage_path}` : hero.media_url}
-              </p>
-            )}
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <UniversalUploader
-                acceptedTypes={['image', 'video']}
-                multiple={false}
-                onSelected={handleReplaceMedia}
-                onUploadingChange={setUploadInProgress}
-                buttonLabel="Upload image or video"
-                hideStorageTip
-              />
-              {(heroMediaDisplayUrl || hero.media_url) && hero.media_type !== 'default' && (
-                <button
-                  type="button"
-                  onClick={handleRemoveMedia}
-                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200"
-                  title="Remove hero media and use default"
-                >
-                  Remove hero media
-                </button>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Logo (PNG) — home page only */}
           {selectedPage === 'home' && (
@@ -671,8 +676,8 @@ export function DashboardHeroEditor() {
             />
           </div>
 
-          {/* Poster image (for video) */}
-          {hero.media_type === 'video' && (
+          {/* Poster image (for video) — non-home only; home posters live in each carousel slot. */}
+          {selectedPage !== 'home' && hero.media_type === 'video' && (
             <div>
               <h3 className="text-sm font-medium text-slate-700 mb-1">Poster image (for video)</h3>
               <p className="text-xs text-slate-500 mb-2">Shown before the video plays. Recommended: same aspect as hero (e.g. 21:9).</p>

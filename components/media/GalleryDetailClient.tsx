@@ -1,15 +1,8 @@
 'use client';
 
-import { useState, useCallback, lazy, Suspense } from 'react';
 import Link from 'next/link';
-import { GalleryGrid } from '@/components/media/GalleryGrid';
-import type { ViewerItem } from '@/components/media/ViewerModal';
+import { MediaMasonry, type MasonryItem } from '@/components/media/MediaMasonry';
 import type { GalleryGridItem } from '@/components/media/GalleryGrid';
-import { track } from '@/lib/analytics/track';
-
-const ViewerModalLazy = lazy(() =>
-  import('@/components/media/ViewerModal').then((m) => ({ default: m.ViewerModal }))
-);
 
 interface GalleryDetailClientProps {
   galleryName: string;
@@ -22,24 +15,13 @@ export function GalleryDetailClient({
   galleryDescription,
   media,
 }: GalleryDetailClientProps) {
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-
-  const items: ViewerItem[] = media.map((m) => ({
+  const items: MasonryItem[] = media.map((m) => ({
     id: m.id,
     url: m.url,
-    type: m.media_type,
-    caption: m.caption,
+    mediaType: m.media_type,
+    caption: m.caption ?? null,
+    posterUrl: m.thumbnail_url ?? null,
   }));
-
-  const handleItemClick = useCallback((index: number) => {
-    const item = media[index];
-    if (item) track({ event_name: 'viewer_open', entity_type: 'gallery_media', entity_id: item.id });
-    setViewerIndex(index);
-  }, [media]);
-
-  const handleClose = useCallback(() => {
-    setViewerIndex(null);
-  }, []);
 
   return (
     <>
@@ -50,7 +32,10 @@ export function GalleryDetailClient({
         ← Back to Media
       </Link>
       <header className="mb-12 md:mb-16">
-        <h1 className="type-h1 text-[var(--text)] mb-4 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+        <h1
+          className="type-h1 text-[var(--text)] mb-4 tracking-tight"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           {galleryName}
         </h1>
         {galleryDescription ? (
@@ -58,7 +43,9 @@ export function GalleryDetailClient({
             {galleryDescription}
           </p>
         ) : (
-          <p className="type-body text-[var(--text-muted)] max-w-[45ch]">Photos and media from this collection.</p>
+          <p className="type-body text-[var(--text-muted)] max-w-[45ch]">
+            Photos and media from this collection.
+          </p>
         )}
       </header>
       {media.length === 0 ? (
@@ -68,24 +55,7 @@ export function GalleryDetailClient({
           </p>
         </div>
       ) : (
-        <GalleryGrid items={media} onItemClick={handleItemClick} className="mt-4 gap-6 md:gap-8" />
-      )}
-
-      {viewerIndex !== null && (
-        <Suspense
-          fallback={
-            <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
-              <div className="w-12 h-12 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
-          }
-        >
-          <ViewerModalLazy
-            items={items}
-            currentIndex={viewerIndex}
-            onClose={handleClose}
-            onIndexChange={setViewerIndex}
-          />
-        </Suspense>
+        <MediaMasonry items={items} columns={4} />
       )}
     </>
   );

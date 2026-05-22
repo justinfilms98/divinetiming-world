@@ -10,6 +10,7 @@ import { useAdminToast } from '@/components/admin/AdminToast';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
+import { EventMediaManager } from '@/components/admin/events/EventMediaManager';
 
 type EventStatus = 'draft' | 'published' | 'archived';
 
@@ -618,6 +619,12 @@ export default function AdminEventsPage() {
                   Feature on homepage
                 </label>
               </div>
+
+              {editingEvent?.id && (
+                <div className="pt-4 border-t border-white/10">
+                  <EventMediaManager eventId={editingEvent.id} />
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
