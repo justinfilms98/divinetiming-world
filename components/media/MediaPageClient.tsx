@@ -101,7 +101,7 @@ export function MediaPageClient({
 function CollectionsMasonry({ galleries }: { galleries: GalleryForHub[] }) {
   return (
     <motion.div
-      className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 md:gap-5"
+      className="columns-1 sm:columns-2 lg:columns-3 gap-5 md:gap-6"
       initial="hidden"
       animate="visible"
       variants={{

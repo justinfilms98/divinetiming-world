@@ -2,7 +2,6 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 
 
 export type UploadedFile = {
@@ -116,7 +115,6 @@ export function UniversalUploader({
       const total = list.length;
       const uploaded: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       try {
-        const supabase = createClient();
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
           setProgress((i / total) * 100);
@@ -128,20 +126,30 @@ export function UniversalUploader({
             body: JSON.stringify({ filename: file.name }),
           });
           const pathData = await pathRes.json().catch(() => ({}));
-          if (!pathRes.ok || !pathData?.path) {
-            setError(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload path.');
+          if (!pathRes.ok || !pathData?.path || !pathData?.signedUrl) {
+            setError(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload URL.');
             return;
           }
-          const { path, publicUrl } = pathData as { path: string; publicUrl: string };
+          const { path, publicUrl, signedUrl } = pathData as {
+            path: string;
+            publicUrl: string;
+            signedUrl: string;
+            token: string;
+          };
 
-          const { error: uploadErr } = await supabase.storage
-            .from('media')
-            .upload(path, file, {
-              contentType: file.type || 'application/octet-stream',
-              upsert: true,
-            });
-          if (uploadErr) {
-            setError(uploadErr.message || 'Storage upload failed. Make sure you are signed in.');
+          // PUT directly to the signed URL — no browser auth needed because the
+          // URL itself is the credential (issued server-side with the service role).
+          const putRes = await fetch(signedUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+              'x-upsert': 'true',
+            },
+            body: file,
+          });
+          if (!putRes.ok) {
+            const text = await putRes.text().catch(() => '');
+            setError(`Storage upload failed (${putRes.status}). ${text.slice(0, 140)}`);
             return;
           }
 

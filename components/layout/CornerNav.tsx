@@ -13,7 +13,7 @@ const navItems = [
   { label: 'EVENTS', href: '/events' },
   { label: 'MEDIA', href: '/media' },
   { label: 'SHOP', href: '/shop' },
-  { label: 'BOOKING', href: '/booking' },
+  { label: 'JOURNEY', href: '/journey' },
 ];
 
 const SCROLL_THRESHOLD = 80;

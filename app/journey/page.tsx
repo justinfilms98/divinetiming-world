@@ -1,4 +1,4 @@
-import { getJourneyBlocks, getHeroSection, getPageSettings } from '@/lib/content/server';
+import { getJourneyBlocks, getHeroSection } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { JourneyScroll } from '@/components/journey/JourneyScroll';
@@ -25,15 +25,16 @@ export const metadata: Metadata = {
 };
 
 export default async function JourneyPage() {
-  // Reuse the booking hero settings until /admin/journey hero is added.
-  const [blocks, heroSection, pageSettings] = await Promise.all([
+  // Reuse the booking hero media (video/image + overlay) but never inherit the
+  // headline / subtext / label — those are fixed to the journey story until a
+  // dedicated `journey` hero is added in admin.
+  const [blocks, heroSection] = await Promise.all([
     getJourneyBlocks(),
     getHeroSection('booking'),
-    getPageSettings('booking'),
   ]);
 
-  const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Our Journey';
-  const subtext = heroSection?.subtext ?? 'The story behind the music.';
+  const headline = 'Our Journey';
+  const subtext = 'The story behind the music — in our own words.';
   const mediaType = heroSection?.media_type ?? null;
   const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.55;
@@ -44,7 +45,7 @@ export default async function JourneyPage() {
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}
         overlayOpacity={Number(overlayOpacity)}
-        badge={heroSection?.label_text?.trim() || 'OUR STORY'}
+        badge="OUR STORY"
         headline={headline}
         subtext={subtext}
         heightPreset="standard"

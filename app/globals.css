@@ -19,10 +19,22 @@
   --white-soft: rgba(255, 255, 255, 0.96);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/*
+ * Reset must live in @layer base so Tailwind v4 utilities (in @layer utilities)
+ * still win — otherwise an un-layered `* { margin: 0 }` rule overrides .mx-auto,
+ * .gap-*, etc. and breaks every centered/spaced layout on the site.
+ */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body, h1, h2, h3, h4, h5, h6, p, ul, ol, li, figure, blockquote, pre, form, fieldset, dl, dd {
+    margin: 0;
+    padding: 0;
+  }
+  ul, ol {
+    list-style: none;
+  }
 }
 
 html {

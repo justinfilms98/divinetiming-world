@@ -1,4 +1,4 @@
-import { getSiteSettings, getHeroSection, getPageSettings } from '@/lib/content/server';
+import { getSiteSettings, getHeroSection } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { ContactForm } from '@/components/contact/ContactForm';
 import { Mail, Phone } from 'lucide-react';
@@ -24,15 +24,15 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  // Reuse the booking hero (until /admin gets a dedicated contact hero).
-  const [siteSettings, heroSection, pageSettings] = await Promise.all([
+  // Inherit the booking hero's media only (overlayed video/image). Headline and
+  // subtext are fixed to the contact context.
+  const [siteSettings, heroSection] = await Promise.all([
     getSiteSettings(),
     getHeroSection('booking'),
-    getPageSettings('booking'),
   ]);
 
-  const headline = heroSection?.headline ?? pageSettings?.seo_title ?? 'Contact';
-  const subtext = heroSection?.subtext ?? 'We read every message.';
+  const headline = 'Contact';
+  const subtext = 'For bookings, press, collaborations — or just to say hello.';
   const mediaType = heroSection?.media_type ?? null;
   const mediaUrl = heroSection?.mediaFinalUrl ?? null;
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.55;
