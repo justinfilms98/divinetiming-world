@@ -55,13 +55,13 @@ export function CartSlideOut() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={slideTransition}
-            className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--bg)] border-l border-white/10 z-50 flex flex-col shadow-[0_-4px_24px_rgba(0,0,0,0.35)]"
+            className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--bg)] border-l border-[var(--text)]/10 z-50 flex flex-col shadow-[0_-4px_24px_rgba(0,0,0,0.12)]"
           >
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-white tracking-tight">Cart</h2>
+            <div className="p-6 border-b border-[var(--text)]/10 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Cart</h2>
               <button
                 onClick={closeCart}
-                className="text-white/60 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-white/5"
+                className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 p-2 rounded-lg hover:bg-[var(--bg-secondary)]/80"
                 aria-label="Close cart"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,13 +72,13 @@ export function CartSlideOut() {
 
             <div className="flex-1 overflow-y-auto p-6">
               {items.length === 0 ? (
-                <p className="text-white/50 text-center py-12">Your cart is empty</p>
+                <p className="text-[var(--text-muted)] text-center py-12">Your cart is empty</p>
               ) : (
                 <>
                   <Link
                     href="/cart"
                     onClick={closeCart}
-                    className="text-sm text-[var(--accent)] hover:underline mb-4 block"
+                    className="text-sm font-medium text-[var(--accent)] hover:underline mb-4 block"
                   >
                     View full cart →
                   </Link>
@@ -86,9 +86,9 @@ export function CartSlideOut() {
                   {items.map((item) => (
                     <li
                       key={`${item.productId}-${item.variantId}`}
-                      className="flex gap-4 pb-6 border-b border-white/10 last:border-0"
+                      className="flex gap-4 pb-6 border-b border-[var(--text)]/10 last:border-0"
                     >
-                      <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-white/5">
+                      <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-[var(--bg-secondary)]">
                         {item.imageUrl ? (
                           <Image
                             src={item.imageUrl}
@@ -97,17 +97,17 @@ export function CartSlideOut() {
                             className="object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">
+                          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-xs">
                             —
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium truncate">{item.productName}</p>
+                        <p className="text-[var(--text)] font-semibold truncate">{item.productName}</p>
                         {item.variantName && (
-                          <p className="text-white/60 text-sm">{item.variantName}</p>
+                          <p className="text-[var(--text-muted)] text-sm">{item.variantName}</p>
                         )}
-                        <p className="text-[var(--accent)] font-medium mt-1">
+                        <p className="text-[var(--accent)] font-semibold mt-1">
                           ${((item.priceCents * item.quantity) / 100).toFixed(2)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
@@ -115,22 +115,22 @@ export function CartSlideOut() {
                             onClick={() =>
                               updateQuantity(item.productId, item.variantId, item.quantity - 1)
                             }
-                            className="w-7 h-7 rounded bg-white/10 text-white text-sm hover:bg-white/20"
+                            className="w-8 h-8 rounded-lg bg-[var(--bg-secondary)] text-[var(--text)] text-sm font-medium hover:bg-[var(--accent)]/15 border border-[var(--text)]/10"
                           >
                             −
                           </button>
-                          <span className="text-white w-6 text-center text-sm">{item.quantity}</span>
+                          <span className="text-[var(--text)] w-6 text-center text-sm font-medium">{item.quantity}</span>
                           <button
                             onClick={() =>
                               updateQuantity(item.productId, item.variantId, item.quantity + 1)
                             }
-                            className="w-7 h-7 rounded bg-white/10 text-white text-sm hover:bg-white/20"
+                            className="w-8 h-8 rounded-lg bg-[var(--bg-secondary)] text-[var(--text)] text-sm font-medium hover:bg-[var(--accent)]/15 border border-[var(--text)]/10"
                           >
                             +
                           </button>
                           <button
                             onClick={() => removeItem(item.productId, item.variantId)}
-                            className="text-white/50 hover:text-red-400 text-xs ml-2"
+                            className="text-[var(--text-muted)] hover:text-red-600 text-sm ml-2"
                           >
                             Remove
                           </button>
@@ -144,16 +144,16 @@ export function CartSlideOut() {
             </div>
 
             {items.length > 0 && (
-              <div className="p-6 border-t border-white/10 space-y-4">
+              <div className="p-6 border-t border-[var(--text)]/10 space-y-4">
                 <div className="flex justify-between text-lg">
-                  <span className="text-white/70">Total</span>
-                  <span className="text-white font-semibold">
+                  <span className="text-[var(--text-muted)] font-medium">Total</span>
+                  <span className="text-[var(--text)] font-bold">
                     ${(totalCents / 100).toFixed(2)}
                   </span>
                 </div>
                 <button
                   onClick={handleCheckout}
-                  className="w-full py-4 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] transition-colors font-semibold glow"
+                  className="w-full py-4 bg-[var(--accent)] text-[var(--text)] rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-bold"
                 >
                   Checkout
                 </button>

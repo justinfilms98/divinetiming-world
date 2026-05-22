@@ -160,7 +160,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
         {!isHomePage && (
           <Link
             href="/"
-            className="text-[var(--text)] font-bold text-base md:text-lg hover:text-[var(--accent)] truncate block"
+            className="inline-block max-w-full truncate rounded-full bg-black/55 backdrop-blur-md px-4 py-2 text-white font-bold text-base hover:bg-black/70 border border-white/25 shadow-lg"
             style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
           >
             DIVINE:TIMING
@@ -172,12 +172,12 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
         <button
           ref={hamburgerRef}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-3 -m-3 text-[var(--text)]/80 hover:text-[var(--text)] min-w-[48px] min-h-[48px] flex items-center justify-center rounded-lg focus-ring"
+          className="min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full bg-black/55 backdrop-blur-md text-white border border-white/25 shadow-lg hover:bg-black/70 focus-ring"
           style={{ transition: NAV_TRANSITION }}
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={isMobileMenuOpen}
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.25}>
             {isMobileMenuOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             ) : (
@@ -222,7 +222,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
               <div className="flex flex-col flex-1 pt-6 pb-8 px-6 min-w-0">
                 <div className="flex items-center justify-between mb-8">
                   <span
-                    className="text-xs font-semibold tracking-[var(--letter-spacing-caps)] uppercase text-[var(--text-muted)]"
+                    className="text-sm font-semibold tracking-[var(--letter-spacing-caps)] uppercase text-[var(--text-muted)]"
                     style={{ fontFamily: 'var(--font-ui)' }}
                   >
                     Menu
@@ -230,7 +230,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                   <button
                     type="button"
                     onClick={closeMenu}
-                    className="p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text)]/70 hover:text-[var(--text)] rounded-lg focus-ring"
+                    className="p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text)] hover:text-[var(--accent)] rounded-lg focus-ring"
                     aria-label="Close menu"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                   <Link
                     href="/"
                     onClick={closeMenu}
-                    className={`py-3 px-2 rounded-lg text-sm font-medium tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${pathname === '/' ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)]/80 hover:text-[var(--text)] hover:bg-[var(--bg-secondary)]/50'}`}
+                    className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${pathname === '/' ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
                     style={{ fontFamily: 'var(--font-ui)' }}
                   >
                     Home
@@ -255,7 +255,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                         key={item.href}
                         href={item.href}
                         onClick={closeMenu}
-                        className={`py-3 px-2 rounded-lg text-sm font-medium tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${isActive ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)]/80 hover:text-[var(--text)] hover:bg-[var(--bg-secondary)]/50'}`}
+                        className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${isActive ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
                         style={{ fontFamily: 'var(--font-ui)' }}
                       >
                         {item.label}
@@ -267,7 +267,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                 {platformLinks.length > 0 && (
                   <>
                     <div className="my-6 border-t border-[var(--accent)]/20" />
-                    <p className="text-[var(--text-muted)] text-xs font-semibold tracking-[var(--letter-spacing-caps)] uppercase mb-3 type-label">
+                    <p className="text-[var(--text-muted)] text-sm font-semibold tracking-[var(--letter-spacing-caps)] uppercase mb-3 type-label">
                       Listen
                     </p>
                     <div className="flex flex-wrap gap-3">
