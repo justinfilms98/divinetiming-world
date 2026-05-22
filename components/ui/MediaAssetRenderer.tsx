@@ -150,7 +150,6 @@ export function MediaAssetRenderer({
         autoPlay
         loop
         muted
-        defaultMuted
         playsInline
         // @ts-expect-error legacy iOS attribute, still required on older Safari
         webkit-playsinline=""
