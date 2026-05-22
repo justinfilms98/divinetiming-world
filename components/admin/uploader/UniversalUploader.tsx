@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 
 export type UploadedFile = {
@@ -115,9 +116,15 @@ export function UniversalUploader({
       const total = list.length;
       const uploaded: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       try {
+        const supabase = createClient();
         for (let i = 0; i < list.length; i++) {
           const file = list[i]!;
           setProgress((i / total) * 100);
+
+          if (!file.size || file.size <= 0) {
+            setError(`"${file.name}" is empty (0 bytes). Please re-select the file.`);
+            return;
+          }
 
           const pathRes = await fetch('/api/admin/media/upload-path', {
             method: 'POST',
@@ -126,30 +133,30 @@ export function UniversalUploader({
             body: JSON.stringify({ filename: file.name }),
           });
           const pathData = await pathRes.json().catch(() => ({}));
-          if (!pathRes.ok || !pathData?.path || !pathData?.signedUrl) {
+          if (!pathRes.ok || !pathData?.path || !pathData?.token) {
             setError(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload URL.');
             return;
           }
-          const { path, publicUrl, signedUrl } = pathData as {
+          const { path, publicUrl, token } = pathData as {
             path: string;
             publicUrl: string;
             signedUrl: string;
             token: string;
           };
 
-          // PUT directly to the signed URL — no browser auth needed because the
-          // URL itself is the credential (issued server-side with the service role).
-          const putRes = await fetch(signedUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': file.type || 'application/octet-stream',
-              'x-upsert': 'true',
-            },
-            body: file,
-          });
-          if (!putRes.ok) {
-            const text = await putRes.text().catch(() => '');
-            setError(`Storage upload failed (${putRes.status}). ${text.slice(0, 140)}`);
+          // Use Supabase's purpose-built uploadToSignedUrl. The token alone
+          // authenticates the upload — no logged-in browser session required —
+          // and the client library guarantees the file body is streamed
+          // correctly (a raw fetch PUT can silently send 0 bytes in some
+          // browsers).
+          const { error: uploadErr } = await supabase.storage
+            .from('media')
+            .uploadToSignedUrl(path, token, file, {
+              contentType: file.type || 'application/octet-stream',
+              upsert: true,
+            });
+          if (uploadErr) {
+            setError(uploadErr.message || 'Storage upload failed.');
             return;
           }
 

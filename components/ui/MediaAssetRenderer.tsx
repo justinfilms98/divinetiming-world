@@ -63,6 +63,15 @@ export function MediaAssetRenderer({
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
   const [driveInaccessible, setDriveInaccessible] = useState(false);
 
+  // Reset error state when the source changes (e.g. carousel advances to a
+  // different slot). Without this, one broken slide kills every subsequent
+  // slide in the carousel.
+  useEffect(() => {
+    setHasError(false);
+    setDriveHealthChecked(false);
+    setDriveInaccessible(false);
+  }, [url]);
+
   const handleError = () => {
     setHasError(true);
     onError?.();
