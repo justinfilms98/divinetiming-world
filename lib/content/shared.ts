@@ -80,6 +80,7 @@ export function normalizeHeroSlots(raw: unknown): HeroSlot[] | { error: string }
         image_storage_path: (obj.image_storage_path as string) ?? null,
         image_url: (obj.image_url as string) ?? null,
         video_storage_path: (obj.video_storage_path as string) ?? null,
+        video_url: (obj.video_url as string) ?? null,
         poster_storage_path: (obj.poster_storage_path as string) ?? null,
         embed_provider: null,
         embed_id: null,

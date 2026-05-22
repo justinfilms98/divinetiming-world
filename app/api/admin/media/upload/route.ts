@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
 import { getServiceClient } from '@/lib/supabase/service';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file';
 }

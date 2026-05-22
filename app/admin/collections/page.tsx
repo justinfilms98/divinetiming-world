@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
+import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaThumb } from '@/components/admin/MediaThumb';
 import { createClient } from '@/lib/supabase/client';
 import { X, ImageIcon, Trash2 } from 'lucide-react';
@@ -129,56 +130,56 @@ export default function AdminCollectionsPage() {
     setGalleryMediaDetail([]);
   };
 
+  const loadGalleryMediaDetail = useCallback(async (galleryId: string) => {
+    setLoadingMediaDetail(true);
+    try {
+      const { data: mediaRows } = await supabase
+        .from('gallery_media')
+        .select('id, url, thumbnail_url, external_media_asset_id, media_type')
+        .eq('gallery_id', galleryId)
+        .order('display_order', { ascending: true });
+      if (!mediaRows?.length) {
+        setGalleryMediaDetail(mediaRows ? mediaRows.map((m: { id: string; url?: string | null; thumbnail_url?: string | null; media_type?: string }) => ({
+          id: m.id,
+          preview_url: (m.url || m.thumbnail_url) ?? null,
+          media_type: m.media_type || 'image',
+        })) : []);
+        return;
+      }
+      const assetIds = (mediaRows as { external_media_asset_id?: string | null }[])
+        .map((m) => m.external_media_asset_id)
+        .filter((id): id is string => !!id);
+      let previewByAssetId: Record<string, string> = {};
+      if (assetIds.length > 0) {
+        const { data: assets } = await supabase
+          .from('external_media_assets')
+          .select('id, preview_url')
+          .in('id', assetIds);
+        if (assets) {
+          for (const a of assets as { id: string; preview_url: string }[]) {
+            previewByAssetId[a.id] = a.preview_url || '';
+          }
+        }
+      }
+      const items: GalleryMediaItem[] = (mediaRows as { id: string; url?: string | null; thumbnail_url?: string | null; external_media_asset_id?: string | null; media_type?: string }[]).map((m) => ({
+        id: m.id,
+        preview_url: previewByAssetId[m.external_media_asset_id!] ?? m.url ?? m.thumbnail_url ?? null,
+        media_type: m.media_type || 'image',
+      }));
+      setGalleryMediaDetail(items);
+    } finally {
+      setLoadingMediaDetail(false);
+    }
+  }, [supabase]);
+
   // Load full gallery_media with preview URLs when editing
   useEffect(() => {
     if (!editingGallery?.id) {
       setGalleryMediaDetail([]);
       return;
     }
-    let cancelled = false;
-    setLoadingMediaDetail(true);
-    (async () => {
-      try {
-        const { data: mediaRows } = await supabase
-          .from('gallery_media')
-          .select('id, url, thumbnail_url, external_media_asset_id, media_type')
-          .eq('gallery_id', editingGallery.id)
-          .order('display_order', { ascending: true });
-        if (cancelled || !mediaRows?.length) {
-          if (!cancelled) setGalleryMediaDetail(mediaRows ? mediaRows.map((m: { id: string; url?: string | null; thumbnail_url?: string | null; media_type?: string }) => ({
-            id: m.id,
-            preview_url: (m.url || m.thumbnail_url) ?? null,
-            media_type: m.media_type || 'image',
-          })) : []);
-          return;
-        }
-        const assetIds = (mediaRows as { external_media_asset_id?: string | null }[])
-          .map((m) => m.external_media_asset_id)
-          .filter((id): id is string => !!id);
-        let previewByAssetId: Record<string, string> = {};
-        if (assetIds.length > 0) {
-          const { data: assets } = await supabase
-            .from('external_media_assets')
-            .select('id, preview_url')
-            .in('id', assetIds);
-          if (assets) {
-            for (const a of assets as { id: string; preview_url: string }[]) {
-              previewByAssetId[a.id] = a.preview_url || '';
-            }
-          }
-        }
-        const items: GalleryMediaItem[] = (mediaRows as { id: string; url?: string | null; thumbnail_url?: string | null; external_media_asset_id?: string | null; media_type?: string }[]).map((m) => ({
-          id: m.id,
-          preview_url: previewByAssetId[m.external_media_asset_id!] ?? m.url ?? m.thumbnail_url ?? null,
-          media_type: m.media_type || 'image',
-        }));
-        if (!cancelled) setGalleryMediaDetail(items);
-      } finally {
-        if (!cancelled) setLoadingMediaDetail(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [editingGallery?.id, supabase]);
+    loadGalleryMediaDetail(editingGallery.id);
+  }, [editingGallery?.id, loadGalleryMediaDetail]);
 
   const handleRemoveMediaFromCollection = useCallback(async (galleryMediaId: string) => {
     if (!editingGallery) return;
@@ -527,6 +528,56 @@ export default function AdminCollectionsPage() {
                       ))}
                     </div>
                     {!addMediaPickerOpen && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAddMediaPickerOpen(true)}
+                          disabled={addingMedia}
+                          className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
+                        >
+                          {addingMedia ? 'Adding…' : 'Add from library'}
+                        </button>
+                        <UniversalUploader
+                          multiple
+                          acceptedTypes={['image', 'video']}
+                          onSelected={async (files: UploadedFile[]) => {
+                            if (!editingGallery || files.length === 0) return;
+                            setAddingMedia(true);
+                            try {
+                              for (const file of files) {
+                                const mediaType = (file.mimeType || '').startsWith('video/') ? 'video' : 'image';
+                                const res = await fetch('/api/admin/gallery-media', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({
+                                    gallery_id: editingGallery.id,
+                                    media_type: mediaType,
+                                    url: file.url,
+                                    external_media_asset_id: file.id,
+                                  }),
+                                });
+                                if (!res.ok) {
+                                  const d = await res.json().catch(() => ({}));
+                                  showToast('error', (d.error as string) || 'Failed to add media');
+                                }
+                              }
+                              await loadGalleryMediaDetail(editingGallery.id);
+                              await load();
+                              showToast('success', `Added ${files.length} item${files.length > 1 ? 's' : ''}`);
+                            } finally {
+                              setAddingMedia(false);
+                            }
+                          }}
+                          buttonLabel="Upload directly"
+                          className="mt-0"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  !addMediaPickerOpen && (
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => setAddMediaPickerOpen(true)}
@@ -535,18 +586,42 @@ export default function AdminCollectionsPage() {
                       >
                         {addingMedia ? 'Adding…' : 'Add from library'}
                       </button>
-                    )}
-                  </div>
-                ) : (
-                  !addMediaPickerOpen && (
-                    <button
-                      type="button"
-                      onClick={() => setAddMediaPickerOpen(true)}
-                      disabled={addingMedia}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
-                    >
-                      {addingMedia ? 'Adding…' : 'Add from library'}
-                    </button>
+                      <UniversalUploader
+                        multiple
+                        acceptedTypes={['image', 'video']}
+                        onSelected={async (files: UploadedFile[]) => {
+                          if (!editingGallery || files.length === 0) return;
+                          setAddingMedia(true);
+                          try {
+                            for (const file of files) {
+                              const mediaType = (file.mimeType || '').startsWith('video/') ? 'video' : 'image';
+                              const res = await fetch('/api/admin/gallery-media', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({
+                                  gallery_id: editingGallery.id,
+                                  media_type: mediaType,
+                                  url: file.url,
+                                  external_media_asset_id: file.id,
+                                }),
+                              });
+                              if (!res.ok) {
+                                const d = await res.json().catch(() => ({}));
+                                showToast('error', (d.error as string) || 'Failed to add media');
+                              }
+                            }
+                            await loadGalleryMediaDetail(editingGallery.id);
+                            await load();
+                            showToast('success', `Added ${files.length} item${files.length > 1 ? 's' : ''}`);
+                          } finally {
+                            setAddingMedia(false);
+                          }
+                        }}
+                        buttonLabel="Upload directly"
+                        className="mt-0"
+                      />
+                    </div>
                   )
                 )}
                 {addMediaPickerOpen && (

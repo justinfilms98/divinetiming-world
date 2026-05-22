@@ -62,6 +62,8 @@ export interface HeroSlot {
   /** Fallback URL when image from library (no storage path). */
   image_url?: string | null;
   video_storage_path?: string | null;
+  /** Fallback URL when video from library (no storage path). */
+  video_url?: string | null;
   poster_storage_path?: string | null;
   embed_provider?: 'youtube' | 'vimeo' | null;
   embed_id?: string | null;

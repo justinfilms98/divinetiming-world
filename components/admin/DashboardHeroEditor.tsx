@@ -8,7 +8,7 @@ import {
   type UploadedFile,
 } from '@/components/admin/uploader/UniversalUploader';
 import { revalidatePaths } from '@/lib/revalidate';
-import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
+import { resolveHeroMediaUrl, resolveHeroLogoUrl, resolveHeroSlotVideoUrl, resolveHeroSlotImageUrl } from '@/lib/storageUrls';
 import { Save, Check, Copy, ImageIcon, Video, Upload, HelpCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/ui/cn';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
@@ -518,6 +518,137 @@ export function DashboardHeroEditor() {
                   hideStorageTip
                 />
               )}
+            </div>
+          )}
+
+          {/* Carousel Slots (home only) */}
+          {selectedPage === 'home' && (
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-white font-semibold text-sm">Carousel Slots</h3>
+                  <p className="text-white/50 text-xs mt-0.5">
+                    Upload 2–3 videos to enable cycling. Videos advance every 10 seconds with a cinematic transition.
+                  </p>
+                </div>
+                {(hero?.hero_slots?.filter((s) => s.enabled).length ?? 0) >= 2 && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#C6A75E]/20 text-[#C6A75E] border border-[#C6A75E]/30">
+                    Carousel active
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((slotNum) => {
+                  const slotIndex = slotNum - 1;
+                  const existingSlot = hero?.hero_slots?.[slotIndex];
+                  const slotUrl = existingSlot?.media_type === 'video'
+                    ? (existingSlot.video_url ?? resolveHeroSlotVideoUrl(existingSlot.video_storage_path))
+                    : existingSlot?.media_type === 'image'
+                    ? (existingSlot.image_url ?? resolveHeroSlotImageUrl(existingSlot.image_storage_path))
+                    : null;
+
+                  return (
+                    <div key={slotNum} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                      <div className="aspect-video relative bg-black/40">
+                        {slotUrl ? (
+                          existingSlot?.media_type === 'video' ? (
+                            <video
+                              src={slotUrl}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                          ) : (
+                            <img
+                              src={slotUrl}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              alt={`Slot ${slotNum}`}
+                            />
+                          )
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/30">
+                            <Video className="w-8 h-8" />
+                            <span className="text-xs">Slot {slotNum} empty</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3 space-y-2">
+                        <p className="text-white/60 text-xs font-medium uppercase tracking-wider">Slot {slotNum}</p>
+                        <UniversalUploader
+                          acceptedTypes={['video', 'image']}
+                          onSelected={async (files) => {
+                            const file = files[0];
+                            if (!file || !hero?.id) return;
+                            const existing = hero?.hero_slots ? [...hero.hero_slots] : [];
+                            const isVideo = (file.mimeType || '').startsWith('video/');
+                            const newSlot: HeroSlot = isVideo
+                              ? {
+                                  slot_index: slotNum as HeroSlotIndex,
+                                  enabled: true,
+                                  media_type: 'video',
+                                  video_url: file.url,
+                                  video_storage_path: null,
+                                  poster_storage_path: null,
+                                  overlay_opacity: null,
+                                }
+                              : {
+                                  slot_index: slotNum as HeroSlotIndex,
+                                  enabled: true,
+                                  media_type: 'image',
+                                  image_url: file.url,
+                                  image_storage_path: null,
+                                  overlay_opacity: null,
+                                };
+                            while (existing.length < slotNum) existing.push(null as unknown as HeroSlot);
+                            existing[slotIndex] = newSlot;
+                            const validSlots = existing.filter(Boolean);
+                            const res = await fetch('/api/admin/hero', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'same-origin',
+                              body: JSON.stringify({
+                                page_slug: 'home',
+                                hero_slots: validSlots,
+                              }),
+                            });
+                            if (res.ok) {
+                              await loadHeroes();
+                              setSaved(true);
+                              setTimeout(() => setSaved(false), 3000);
+                            } else {
+                              alert('Failed to save slot');
+                            }
+                          }}
+                          buttonLabel={slotUrl ? 'Replace' : 'Upload'}
+                          hideStorageTip
+                        />
+                        {slotUrl && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!hero?.id) return;
+                              const existing = hero?.hero_slots ? [...hero.hero_slots] : [];
+                              existing[slotIndex] = { ...existing[slotIndex], enabled: false } as HeroSlot;
+                              await fetch('/api/admin/hero', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ page_slug: 'home', hero_slots: existing }),
+                              });
+                              await loadHeroes();
+                            }}
+                            className="text-red-400/70 hover:text-red-400 text-xs"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

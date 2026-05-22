@@ -37,6 +37,8 @@ export default function AdminEventsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
+  const [pendingThumbUrl, setPendingThumbUrl] = useState<string | null>(null);
+  const [pendingThumbExtId, setPendingThumbExtId] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
   const { showToast } = useAdminToast();
@@ -76,10 +78,8 @@ export default function AdminEventsPage() {
   const handleThumbnailSelected = (files: UploadedFile[]) => {
     const file = files[0];
     if (!file) return;
-    const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
-    const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
-    if (input) input.value = file.url;
-    if (extInput) extInput.value = file.id || '';
+    setPendingThumbUrl(file.url);
+    setPendingThumbExtId(file.id ?? null);
     setPreviewThumbnail(file.url);
     if (editingEvent) {
       setEditingEvent({
@@ -91,10 +91,8 @@ export default function AdminEventsPage() {
   };
 
   const handleLibraryThumbnailSelect = (asset: { id: string; preview_url: string }) => {
-    const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
-    const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
-    if (input) input.value = asset.preview_url;
-    if (extInput) extInput.value = asset.id;
+    setPendingThumbUrl(asset.preview_url);
+    setPendingThumbExtId(asset.id);
     setPreviewThumbnail(asset.preview_url);
     if (editingEvent) {
       setEditingEvent({
@@ -109,6 +107,8 @@ export default function AdminEventsPage() {
     setModalOpen(false);
     setEditingEvent(null);
     setPreviewThumbnail(null);
+    setPendingThumbUrl(null);
+    setPendingThumbExtId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,10 +116,8 @@ export default function AdminEventsPage() {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
-    const rawThumb = formData.get('thumbnail_url');
-    const rawExt = formData.get('external_thumbnail_asset_id');
-    const thumbnailUrl = typeof rawThumb === 'string' ? rawThumb.trim() || null : null;
-    const externalThumbId = typeof rawExt === 'string' ? rawExt.trim() || null : null;
+    const thumbnailUrl = pendingThumbUrl ?? (editingEvent?.thumbnail_url ?? null);
+    const externalThumbId = pendingThumbExtId ?? (editingEvent?.external_thumbnail_asset_id ?? null);
     const slugValue = (formData.get('slug') as string)?.trim() || null;
     const payload: Record<string, unknown> = {
       date: formData.get('date') as string,
@@ -400,8 +398,6 @@ export default function AdminEventsPage() {
             </div>
 
             <form key={editingEvent?.id ?? 'new'} onSubmit={handleSubmit} className="p-4 space-y-4">
-              <input type="hidden" name="thumbnail_url" defaultValue={editingEvent?.thumbnail_url ?? ''} />
-              <input type="hidden" name="external_thumbnail_asset_id" defaultValue={editingEvent?.external_thumbnail_asset_id ?? ''} />
 
               {/* Live thumbnail preview */}
               {(() => {
@@ -501,10 +497,8 @@ export default function AdminEventsPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const input = document.querySelector('input[name="thumbnail_url"]') as HTMLInputElement;
-                          const extInput = document.querySelector('input[name="external_thumbnail_asset_id"]') as HTMLInputElement;
-                          if (input) input.value = '';
-                          if (extInput) extInput.value = '';
+                          setPendingThumbUrl(null);
+                          setPendingThumbExtId(null);
                           setPreviewThumbnail(null);
                           if (editingEvent) setEditingEvent({ ...editingEvent, thumbnail_url: null, external_thumbnail_asset_id: null });
                         }}
