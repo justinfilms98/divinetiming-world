@@ -607,3 +607,18 @@ body {
   55%  { opacity: 0.65; transform: translateX(15%)  scale(1.0);  }
   100% { opacity: 0;    transform: translateX(45%)  scale(0.98); }
 }
+
+/* Hero autoplay video: hide native mobile play glyph, rely on poster + programmatic play */
+.hero-autoplay-video {
+  pointer-events: none;
+}
+.hero-autoplay-video::-webkit-media-controls {
+  display: none !important;
+}
+.hero-autoplay-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+.hero-autoplay-video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}

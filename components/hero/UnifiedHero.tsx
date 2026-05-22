@@ -159,11 +159,11 @@ export function UnifiedHero({
 
           {/* Phase D: single balanced overlay — bottom vignette + light center gradient for readability */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50 z-[5]"
+            className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/50 z-[5]"
             style={{ opacity: Math.min(1, opacity * 1.1) }}
           />
           <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_40%,transparent_40%,rgba(0,0,0,0.2)_100%)] z-[5]"
+            className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_70%_at_50%_40%,transparent_40%,rgba(0,0,0,0.2)_100%)] z-[5]"
             style={{ opacity: opacity * 0.9 }}
           />
           <div className="hero-grain" aria-hidden="true" />
@@ -179,9 +179,9 @@ export function UnifiedHero({
           )}
         </div>
 
-        {/* Content */}
+        {/* Content — pointer-events-none so taps reach the video play layer; re-enable on interactive children */}
         <div
-          className={`absolute inset-0 flex flex-col justify-center px-6 md:px-12 ${
+          className={`absolute inset-0 z-10 flex flex-col justify-center px-6 md:px-12 pointer-events-none ${
             align === 'center' ? 'items-center text-center' : 'items-start text-left'
           }`}
         >
@@ -215,11 +215,11 @@ export function UnifiedHero({
               {subtext}
             </motion.p>
           )}
-          {children}
+          {children && <div className="pointer-events-auto w-full">{children}</div>}
 
           {showScrollCue && !reducedMotion && (
             <motion.div
-              className="absolute bottom-6 left-1/2 -translate-x-1/2"
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1, duration: 0.5 }}
@@ -237,7 +237,7 @@ export function UnifiedHero({
             </motion.div>
           )}
           {allSlides.length > 1 && (
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 z-30 pointer-events-auto">
               {allSlides.map((_, i) => (
                 <button
                   key={i}

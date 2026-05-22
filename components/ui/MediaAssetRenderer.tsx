@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface MediaAssetRendererProps {
   url: string | null;
@@ -22,6 +22,128 @@ interface MediaAssetRendererProps {
   errorFallback?: React.ReactNode;
   /** For video: poster image URL to show before play (improves LCP and perceived load) */
   poster?: string | null;
+}
+
+/** Retry muted autoplay — mobile Safari often needs an explicit play() call. */
+function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, url: string | null) {
+  const [playing, setPlaying] = useState(false);
+  const [needsTap, setNeedsTap] = useState(false);
+
+  const attemptPlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('x5-playsinline', '');
+    const p = v.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => setNeedsTap(true));
+    }
+  }, [videoRef]);
+
+  useEffect(() => {
+    setPlaying(false);
+    setNeedsTap(false);
+  }, [url]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !url) return;
+    attemptPlay();
+    const timer = window.setTimeout(() => {
+      if (v.paused && !v.ended) setNeedsTap(true);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [url, attemptPlay, videoRef]);
+
+  const onPlaying = useCallback(() => {
+    setPlaying(true);
+    setNeedsTap(false);
+  }, []);
+
+  const onTapPlay = useCallback(() => {
+    attemptPlay();
+    setNeedsTap(false);
+  }, [attemptPlay]);
+
+  return { playing, needsTap, attemptPlay, onPlaying, onTapPlay };
+}
+
+interface HeroAutoplayVideoProps {
+  url: string;
+  posterUrl?: string | null;
+  className?: string;
+  fill?: boolean;
+  objectFit?: 'cover' | 'contain';
+  priority?: boolean;
+  onError?: () => void;
+}
+
+function HeroAutoplayVideo({
+  url,
+  posterUrl = null,
+  className = '',
+  fill = true,
+  objectFit = 'cover',
+  priority = false,
+  onError,
+}: HeroAutoplayVideoProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const { playing, needsTap, attemptPlay, onPlaying, onTapPlay } = useMutedAutoplay(videoRef, url);
+
+  return (
+    <div className={fill ? 'absolute inset-0' : 'relative w-full h-full'}>
+      <video
+        ref={videoRef}
+        key={url}
+        src={url}
+        autoPlay
+        loop
+        muted
+        playsInline
+        webkit-playsinline=""
+        x5-playsinline=""
+        preload={priority ? 'auto' : 'metadata'}
+        poster={posterUrl ?? undefined}
+        disablePictureInPicture
+        controlsList="nodownload nofullscreen noremoteplayback"
+        className={`hero-autoplay-video w-full h-full ${className}`}
+        style={fill ? { position: 'absolute', inset: 0, objectFit } : { objectFit }}
+        onError={onError}
+        onLoadedMetadata={attemptPlay}
+        onLoadedData={attemptPlay}
+        onCanPlay={attemptPlay}
+        onPlaying={onPlaying}
+      >
+        <source src={url} type="video/mp4" />
+        <source src={url} type="video/webm" />
+      </video>
+      {posterUrl && !playing && (
+        <img
+          src={posterUrl}
+          alt=""
+          aria-hidden
+          className={`pointer-events-none z-[1] w-full h-full object-cover ${fill ? 'absolute inset-0' : ''}`}
+        />
+      )}
+      {needsTap && (
+        <button
+          type="button"
+          onClick={onTapPlay}
+          className="absolute inset-0 z-[2] flex items-center justify-center bg-black/20 pointer-events-auto"
+          aria-label="Play video"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/50 ring-2 ring-white/40">
+            <svg className="ml-1 h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </button>
+      )}
+    </div>
+  );
 }
 
 /** Default fallback when media fails to load (e.g. Drive inaccessible) */
@@ -144,34 +266,15 @@ export function MediaAssetRenderer({
       );
     }
     return (
-      <video
-        key={url}
-        src={url}
-        autoPlay
-        loop
-        muted
-        playsInline
-        webkit-playsinline=""
-        x5-playsinline=""
-        preload={posterUrl ? 'metadata' : 'auto'}
-        poster={posterUrl ?? undefined}
-        disablePictureInPicture
-        controlsList="nodownload nofullscreen noremoteplayback"
-        className={`w-full h-full ${className}`}
-        style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
+      <HeroAutoplayVideo
+        url={url}
+        posterUrl={posterUrl}
+        className={className}
+        fill={fill}
+        objectFit={objectFit}
+        priority={priority}
         onError={handleError}
-        onLoadedMetadata={(e) => {
-          // Some mobile browsers refuse the initial autoplay attempt; calling
-          // play() explicitly with the element already muted often succeeds.
-          const v = e.currentTarget;
-          v.muted = true;
-          const p = v.play();
-          if (p && typeof p.catch === 'function') p.catch(() => {});
-        }}
-      >
-        <source src={url} type="video/mp4" />
-        <source src={url} type="video/webm" />
-      </video>
+      />
     );
   }
 
