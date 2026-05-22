@@ -124,8 +124,12 @@ export function MediaAssetRenderer({
       );
     }
     if (controls) {
+      // `key={url}` forces React to mount a fresh <video> element when the URL
+      // changes — without it, browsers do not reload the source on src change
+      // (a known HTMLMediaElement quirk).
       return (
         <video
+          key={url}
           src={url}
           controls
           playsInline
@@ -141,6 +145,8 @@ export function MediaAssetRenderer({
     }
     return (
       <video
+        key={url}
+        src={url}
         autoPlay
         loop
         muted
