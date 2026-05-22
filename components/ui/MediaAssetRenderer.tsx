@@ -151,9 +151,7 @@ export function MediaAssetRenderer({
         loop
         muted
         playsInline
-        // @ts-expect-error legacy iOS attribute, still required on older Safari
         webkit-playsinline=""
-        // @ts-expect-error needed for iOS 10+ to actually start muted before user gesture
         x5-playsinline=""
         preload={posterUrl ? 'metadata' : 'auto'}
         poster={posterUrl ?? undefined}
