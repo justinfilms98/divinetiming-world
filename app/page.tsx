@@ -101,8 +101,8 @@ export default async function HomePage() {
         {heroContent}
       </UnifiedHero>
 
-      <main className="flex flex-col flex-1 w-full">
-        <SignatureDivider className="my-14 md:my-20" />
+      <main className="flex flex-col w-full">
+        <SignatureDivider className="my-8 md:my-20" />
       </main>
     </div>
   );

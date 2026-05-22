@@ -55,6 +55,19 @@ export function UnifiedHero({
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
   const [activeIndex, setActiveIndex] = useState(0);
   const [flare, setFlare] = useState(false);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  // Mobile / touch devices throttle concurrent <video> autoplay (iOS hard-caps
+  // at one) and burn battery + bandwidth when we mount three at once. Detect
+  // touch / narrow viewports and downgrade to single-slide rendering there.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 768px)');
+    const update = () => setIsCoarsePointer(mq.matches);
+    update();
+    mq.addEventListener?.('change', update);
+    return () => mq.removeEventListener?.('change', update);
+  }, []);
 
   // Crossfade tuning — long enough that two slides genuinely blend rather than swap.
   const HOLD_MS = 10_000;
@@ -103,29 +116,46 @@ export function UnifiedHero({
       <div className={`relative ${heightClasses[heightPreset]}`}>
         <div className="absolute inset-0 bg-black">
           {/*
-            Mount every slide as its own absolute-positioned layer and only
-            toggle opacity. The videos preload + autoplay independently, so
+            Desktop: mount every slide as its own absolute-positioned layer
+            and only toggle opacity. The videos preload + autoplay together so
             by the time a layer's opacity rises to 1 it's already running —
-            we never see a frozen first frame or black flash.
+            no frozen first frame, no black flash.
+
+            Mobile / coarse-pointer: only mount the active slide. iOS allows a
+            single concurrent <video> autoplay and mounting three drains the
+            battery + bandwidth. The lens flare overlay masks the swap.
           */}
-          {allSlides.map((slide, idx) => {
-            const isActive = idx === activeIndex;
-            return (
-              <div
-                key={`hero-slide-${idx}-${slide?.mediaUrl ?? ''}`}
-                aria-hidden={!isActive}
-                className="absolute inset-0"
-                style={{
-                  opacity: isActive ? 1 : 0,
-                  transition: `opacity ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-                  zIndex: isActive ? 2 : 1,
-                  willChange: 'opacity',
-                }}
-              >
-                {renderSlide(slide)}
-              </div>
-            );
-          })}
+          {isCoarsePointer ? (
+            <div
+              key={`hero-slide-mobile-${activeIndex}-${allSlides[activeIndex]?.mediaUrl ?? ''}`}
+              className="absolute inset-0"
+              style={{
+                animation: `heroSlideFadeIn ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1) both`,
+                willChange: 'opacity',
+              }}
+            >
+              {renderSlide(allSlides[activeIndex])}
+            </div>
+          ) : (
+            allSlides.map((slide, idx) => {
+              const isActive = idx === activeIndex;
+              return (
+                <div
+                  key={`hero-slide-${idx}-${slide?.mediaUrl ?? ''}`}
+                  aria-hidden={!isActive}
+                  className="absolute inset-0"
+                  style={{
+                    opacity: isActive ? 1 : 0,
+                    transition: `opacity ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                    zIndex: isActive ? 2 : 1,
+                    willChange: 'opacity',
+                  }}
+                >
+                  {renderSlide(slide)}
+                </div>
+              );
+            })
+          )}
 
           {/* Phase D: single balanced overlay — bottom vignette + light center gradient for readability */}
           <div

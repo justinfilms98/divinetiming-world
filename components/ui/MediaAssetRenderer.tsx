@@ -150,12 +150,27 @@ export function MediaAssetRenderer({
         autoPlay
         loop
         muted
+        defaultMuted
         playsInline
+        // @ts-expect-error legacy iOS attribute, still required on older Safari
+        webkit-playsinline=""
+        // @ts-expect-error needed for iOS 10+ to actually start muted before user gesture
+        x5-playsinline=""
         preload={posterUrl ? 'metadata' : 'auto'}
         poster={posterUrl ?? undefined}
+        disablePictureInPicture
+        controlsList="nodownload nofullscreen noremoteplayback"
         className={`w-full h-full ${className}`}
         style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
         onError={handleError}
+        onLoadedMetadata={(e) => {
+          // Some mobile browsers refuse the initial autoplay attempt; calling
+          // play() explicitly with the element already muted often succeeds.
+          const v = e.currentTarget;
+          v.muted = true;
+          const p = v.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        }}
       >
         <source src={url} type="video/mp4" />
         <source src={url} type="video/webm" />
