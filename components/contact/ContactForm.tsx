@@ -152,11 +152,11 @@ export function ContactForm() {
             </label>
             <input
               id="eventDate"
-              type="text"
+              type="date"
               value={formData.eventDate}
               onChange={(e) => setFormData((p) => ({ ...p, eventDate: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
-              placeholder="e.g. June 15, 2026"
+              min={new Date().toISOString().slice(0, 10)}
+              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200 [color-scheme:light]"
             />
           </div>
 

@@ -107,28 +107,31 @@ export function Footer({ siteSettings }: { siteSettings?: SiteSettings | null })
               <p className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-[var(--text)] font-medium mb-3 md:mb-4">
                 Connect
               </p>
-              <div className="flex items-center justify-between lg:justify-start gap-4 flex-wrap">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start lg:gap-5">
                 {platformLinks.length > 0 && (
-                  <div className="flex items-center gap-2 md:gap-3">
+                  <div className="flex flex-wrap items-center gap-3 md:gap-4 max-w-full">
                     {platformLinks.map((link) => (
                       <a
                         key={link.id}
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors duration-200 p-2 -m-2 rounded-lg focus-ring"
+                        className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--accent)]/25 text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 transition-colors duration-200 focus-ring"
                         aria-label={link.label}
                       >
-                        <PlatformIcon id={link.id} className="w-5 h-5" />
+                        <PlatformIcon id={link.id} className="w-6 h-6" />
                       </a>
                     ))}
                   </div>
                 )}
                 <Link
                   href="/contact"
-                  className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors duration-200 underline-offset-4 hover:underline lg:ml-2"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-[var(--radius-button)] border-2 border-[var(--accent)]/40 bg-[var(--accent)]/10 text-sm font-semibold text-[var(--text)] hover:bg-[var(--accent)]/20 hover:border-[var(--accent)]/60 transition-colors duration-200 focus-ring w-full sm:w-auto"
                 >
                   Reach out
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
                 </Link>
               </div>
             </div>

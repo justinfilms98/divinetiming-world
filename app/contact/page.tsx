@@ -71,15 +71,15 @@ export default async function ContactPage() {
           {/* 3-column Dior-style grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 mb-20 md:mb-24">
             <ContactColumn
-              icon={<Phone className="w-6 h-6" />}
+              icon={<Phone className="w-7 h-7" aria-hidden />}
               label="Call Us"
               caption="Available during business hours."
               value={bookingPhone}
-              href={bookingPhone ? `tel:${bookingPhone}` : null}
+              href={bookingPhone ? 'tel:' : null}
               fallback="Available by email."
             />
             <ContactColumn
-              icon={<Mail className="w-6 h-6" />}
+              icon={<Mail className="w-7 h-7" aria-hidden />}
               label="Email Us"
               caption="Best for press, partnerships, and detailed inquiries."
               value={bookingEmail}
@@ -88,7 +88,7 @@ export default async function ContactPage() {
             />
             <ContactColumn
               icon={
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
+                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                 </svg>
               }
@@ -103,7 +103,7 @@ export default async function ContactPage() {
           {/* Inquiry form */}
           <section
             id="contact-form"
-            className="scroll-mt-24 max-w-3xl mx-auto bg-[var(--bg-secondary)]/40 border border-[var(--accent)]/10 rounded-2xl p-6 sm:p-10 md:p-12"
+            className="scroll-mt-[calc(var(--public-nav-height)+1rem)] max-w-3xl mx-auto bg-[var(--bg-secondary)]/40 border border-[var(--accent)]/10 rounded-2xl p-6 sm:p-10 md:p-12"
           >
             <header className="text-center mb-10">
               <h3
@@ -124,6 +124,11 @@ export default async function ContactPage() {
   );
 }
 
+function formatTelHref(phone: string) {
+  const digits = phone.replace(/[^\d+]/g, '');
+  return digits.startsWith('+') ? `tel:${digits}` : `tel:${digits.replace(/^\+?/, '+')}`;
+}
+
 function ContactColumn({
   icon,
   label,
@@ -140,23 +145,46 @@ function ContactColumn({
   fallback: string;
 }) {
   const display = value || fallback;
-  return (
-    <div className="flex flex-col items-center text-center px-4">
-      <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center mb-5">
+  const resolvedHref =
+    href && value
+      ? href.startsWith('tel:')
+        ? formatTelHref(value)
+        : href
+      : null;
+  const isInteractive = Boolean(resolvedHref);
+
+  const inner = (
+    <>
+      <div className="w-14 h-14 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center mb-5 [&_svg]:w-7 [&_svg]:h-7">
         {icon}
       </div>
       <p className="type-label text-[var(--text-muted)] tracking-[0.2em] mb-2">{label.toUpperCase()}</p>
       <p className="text-[var(--text-muted)] text-sm mb-4 max-w-[28ch] leading-relaxed">{caption}</p>
-      {href && value ? (
-        <a
-          href={href}
-          className="text-[var(--text)] hover:text-[var(--accent)] transition-colors duration-200 type-body font-medium"
-        >
-          {display}
-        </a>
-      ) : (
-        <p className="text-[var(--text-muted)]/70 text-sm">{display}</p>
-      )}
-    </div>
+      <p
+        className={
+          isInteractive
+            ? 'text-[var(--text)] group-hover:text-[var(--accent)] transition-colors duration-200 type-body font-medium'
+            : 'text-[var(--text-muted)]/70 text-sm'
+        }
+      >
+        {display}
+      </p>
+    </>
   );
+
+  const cardClass =
+    'group flex flex-col items-center text-center px-4 py-6 rounded-2xl w-full min-h-[220px] transition-colors duration-200';
+
+  if (isInteractive && resolvedHref) {
+    return (
+      <a
+        href={resolvedHref}
+        className={`${cardClass} hover:bg-[var(--accent)]/5 focus-ring cursor-pointer`}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return <div className={cardClass}>{inner}</div>;
 }

@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { SpaceBackdrop } from '@/components/space/SpaceBackdrop';
-import { CornerNav } from '@/components/layout/CornerNav';
+import { CornerNav, PublicNavSpacer } from '@/components/layout/CornerNav';
 import { Footer } from '@/components/layout/Footer';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { CartProvider } from '@/components/shop/CartContext';
@@ -29,6 +29,7 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
       <OverflowDebug />
       <SpaceBackdrop />
       <CornerNav siteSettings={siteSettings} />
+      <PublicNavSpacer />
       <div className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col min-h-screen">
         <PageTransition className="flex-1 flex flex-col min-h-0">{children}</PageTransition>
         <Footer siteSettings={siteSettings} />

@@ -51,7 +51,7 @@ export default async function HomePage() {
   const heroSlides = getHeroAllSlots(heroSection);
 
   const heroContent = (
-    <div className="relative z-10 flex flex-col items-center justify-center text-center w-full min-w-0 pt-[max(env(safe-area-inset-top),1.5rem)] pb-8 px-4 md:px-6">
+    <div className="relative z-10 flex flex-col items-center justify-center text-center w-full min-w-0 pb-8 px-4 md:px-6">
       {labelText && (
         <p className="type-hero-label text-white mb-3 hero-text-shadow">
           {labelText}

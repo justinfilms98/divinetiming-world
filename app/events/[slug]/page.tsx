@@ -128,7 +128,7 @@ export default async function EventDetailPage({
         heightPreset="standard"
       />
 
-      <main className="flex-1 pt-16 md:pt-24 pb-20 min-w-0">
+      <main className="flex-1 pt-8 md:pt-12 pb-20 min-w-0">
         <ContentRail>
           <div className="w-full max-w-6xl mx-auto">
             <Link

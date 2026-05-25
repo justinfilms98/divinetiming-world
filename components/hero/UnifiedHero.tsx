@@ -24,7 +24,7 @@ export interface UnifiedHeroProps {
 }
 
 const heightClasses = {
-  full: 'min-h-screen min-h-[100dvh]',
+  full: 'min-h-[calc(100dvh-var(--public-nav-height)-env(safe-area-inset-top,0px))]',
   tall: 'aspect-[16/9] min-h-[320px] w-full',
   standard: 'aspect-[16/9] min-h-[280px] w-full',
   compact: 'min-h-[160px] aspect-[3/1] w-full max-h-[200px]',

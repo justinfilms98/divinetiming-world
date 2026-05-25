@@ -60,7 +60,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
-      <main className="flex-1 pt-24 md:pt-28 pb-20 min-w-0">
+      <main className="flex-1 pt-8 md:pt-12 pb-20 min-w-0">
         <Section className="px-0">
           <ContentRail>
             <div className="w-full max-w-full">

@@ -13,6 +13,8 @@
   --accent: #C6A75E;       /* Accent Gold */
   --accent-hover: #D4B76A; /* Hover Gold */
   --accent2: #D4B76A;      /* Alias for hover */
+  /* Public site sticky nav (CornerNav) — hero/content offset */
+  --public-nav-height: 3.5rem;
   /* Depth highlight (sparingly) */
   --ocean: #2F5D62;
   /* Phase 7: softened white for hero text (not harsh pure white) */
@@ -39,7 +41,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  scroll-padding-top: var(--public-nav-height);
   overflow-x: clip;
 }
 
