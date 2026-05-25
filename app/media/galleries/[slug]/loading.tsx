@@ -2,7 +2,7 @@ import { LuxurySkeletonGrid } from '@/components/ui/LuxurySkeleton';
 
 export default function GalleryDetailLoading() {
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <div className="h-14 flex-shrink-0 bg-black/40" />
       <main className="flex-1 py-16 min-w-0">
         <div className="max-w-6xl mx-auto px-4">

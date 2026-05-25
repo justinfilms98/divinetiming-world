@@ -41,7 +41,7 @@ export default async function ContactPage() {
   const bookingPhone = siteSettings?.booking_phone?.trim() ?? '';
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
       <UnifiedHero
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}

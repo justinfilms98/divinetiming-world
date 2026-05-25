@@ -111,7 +111,7 @@ export default async function EventDetailPage({
   };
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}

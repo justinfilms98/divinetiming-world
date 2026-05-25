@@ -38,7 +38,7 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <UnifiedHero
         headline="Cart"
         subtext={items.length > 0 ? `${items.length} item${items.length === 1 ? '' : 's'}` : undefined}

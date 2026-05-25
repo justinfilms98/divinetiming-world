@@ -26,7 +26,7 @@ export function LegalPageView({ title, bodyMd, updatedAt }: LegalPageViewProps) 
     day: 'numeric',
   });
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
       <main className="flex-1 py-20 md:py-28">
         <article className="max-w-3xl mx-auto px-4 md:px-6">
           <Link

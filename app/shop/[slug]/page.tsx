@@ -59,7 +59,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const images = (product.product_images as { image_url: string; display_order?: number }[]) ?? [];
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="flex-1 pt-8 md:pt-12 pb-20 min-w-0">
         <Section className="px-0">
           <ContentRail>

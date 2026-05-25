@@ -46,7 +46,7 @@ export default async function EventsPage() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <UnifiedHero
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { cn } from '@/lib/ui/cn';
 import { ContentRail } from '@/components/layout/ContentRail';
 import { getPlatformLinks, PlatformIcon } from '@/lib/platformLinks';
 import type { PlatformId } from '@/lib/platformLinks';
@@ -24,7 +25,13 @@ const LEGAL_LINKS = [
 
 const FOOTER_SOCIAL_IDS: PlatformId[] = ['spotify', 'youtube', 'instagram'];
 
-export function Footer({ siteSettings }: { siteSettings?: SiteSettings | null }) {
+export function Footer({
+  siteSettings,
+  className,
+}: {
+  siteSettings?: SiteSettings | null;
+  className?: string;
+}) {
   const member1 = siteSettings?.member_1_name?.trim() || 'Liam Bongo';
   const member2 = siteSettings?.member_2_name?.trim() || 'Lex Laurence';
   const byline = [member1, member2].filter(Boolean).join(' & ');
@@ -35,7 +42,7 @@ export function Footer({ siteSettings }: { siteSettings?: SiteSettings | null })
 
   return (
     <footer
-      className="border-t border-[var(--text)]/10 mt-auto bg-[var(--bg)]/60"
+      className={cn('border-t border-[var(--text)]/10 bg-[var(--bg)]/60', className)}
       role="contentinfo"
     >
       <ContentRail className="py-10 md:py-20">

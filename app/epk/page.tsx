@@ -38,7 +38,7 @@ export default async function EPKPage() {
   const mediaType = heroSection?.media_type ?? undefined;
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <UnifiedHero
         mediaUrl={mediaUrl}
         mediaType={mediaType}

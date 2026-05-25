@@ -55,19 +55,19 @@ export function UnifiedHero({
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
   const [activeIndex, setActiveIndex] = useState(0);
   const [flare, setFlare] = useState(false);
-  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  // null = not yet measured; treat as single-slide until we know desktop can layer
+  // multiple videos (avoids mounting 3 autoplay videos on mobile before hydrate).
+  const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
 
-  // Mobile / touch devices throttle concurrent <video> autoplay (iOS hard-caps
-  // at one) and burn battery + bandwidth when we mount three at once. Detect
-  // touch / narrow viewports and downgrade to single-slide rendering there.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 768px)');
     const update = () => setIsCoarsePointer(mq.matches);
     update();
     mq.addEventListener?.('change', update);
     return () => mq.removeEventListener?.('change', update);
   }, []);
+
+  const useSingleSlideMount = isCoarsePointer !== false;
 
   // Crossfade tuning — long enough that two slides genuinely blend rather than swap.
   const HOLD_MS = 10_000;
@@ -125,7 +125,7 @@ export function UnifiedHero({
             single concurrent <video> autoplay and mounting three drains the
             battery + bandwidth. The lens flare overlay masks the swap.
           */}
-          {isCoarsePointer ? (
+          {useSingleSlideMount ? (
             <div
               key={`hero-slide-mobile-${activeIndex}-${allSlides[activeIndex]?.mediaUrl ?? ''}`}
               className="absolute inset-0"

@@ -17,7 +17,7 @@ export function PublicPageShell({
   return (
     <div
       className={cn(
-        'min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip',
+        'flex flex-col w-full max-w-[100vw] overflow-x-clip min-h-0',
         className
       )}
     >

@@ -30,9 +30,14 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
       <SpaceBackdrop />
       <CornerNav siteSettings={siteSettings} />
       <PublicNavSpacer />
-      <div className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col min-h-screen">
-        <PageTransition className="flex-1 flex flex-col min-h-0">{children}</PageTransition>
-        <Footer siteSettings={siteSettings} />
+      <div
+        className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col"
+        style={{
+          minHeight: 'calc(100dvh - var(--public-nav-height) - env(safe-area-inset-top, 0px))',
+        }}
+      >
+        <PageTransition className="flex flex-col min-h-0">{children}</PageTransition>
+        <Footer siteSettings={siteSettings} className="mt-auto shrink-0" />
       </div>
       <CartTrigger />
       <CartSlideOut />

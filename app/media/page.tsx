@@ -49,7 +49,7 @@ export default async function MediaPage() {
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <UnifiedHero
         mediaType={mediaType ?? undefined}
         mediaUrl={mediaUrl ?? undefined}

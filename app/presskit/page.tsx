@@ -36,7 +36,7 @@ export default async function PressKitPage() {
     .single();
 
   return (
-    <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <main className="pt-8 md:pt-12 pb-20 min-w-0">
       <Container>
       <GlassPanel className="max-w-4xl mx-auto">

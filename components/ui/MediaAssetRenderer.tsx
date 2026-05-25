@@ -31,8 +31,9 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
 
   const attemptPlay = useCallback(() => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !url) return;
     v.muted = true;
+    v.defaultMuted = true;
     v.playsInline = true;
     v.setAttribute('playsinline', '');
     v.setAttribute('webkit-playsinline', '');
@@ -41,7 +42,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     if (p && typeof p.catch === 'function') {
       p.catch(() => setNeedsTap(true));
     }
-  }, [videoRef]);
+  }, [videoRef, url]);
 
   useEffect(() => {
     setPlaying(false);
@@ -52,11 +53,15 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     const v = videoRef.current;
     if (!v || !url) return;
     attemptPlay();
+    const raf = requestAnimationFrame(() => attemptPlay());
     const timer = window.setTimeout(() => {
       if (v.paused && !v.ended) setNeedsTap(true);
-    }, 2500);
-    return () => window.clearTimeout(timer);
-  }, [url, attemptPlay, videoRef]);
+    }, 1200);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [url, attemptPlay]);
 
   const onPlaying = useCallback(() => {
     setPlaying(true);
@@ -105,9 +110,10 @@ function HeroAutoplayVideo({
         playsInline
         webkit-playsinline=""
         x5-playsinline=""
-        preload={priority ? 'auto' : 'metadata'}
+        preload="auto"
         poster={posterUrl ?? undefined}
         disablePictureInPicture
+        disableRemotePlayback
         controlsList="nodownload nofullscreen noremoteplayback"
         className={`hero-autoplay-video w-full h-full ${className}`}
         style={fill ? { position: 'absolute', inset: 0, objectFit } : { objectFit }}
@@ -115,6 +121,7 @@ function HeroAutoplayVideo({
         onLoadedMetadata={attemptPlay}
         onLoadedData={attemptPlay}
         onCanPlay={attemptPlay}
+        onCanPlayThrough={attemptPlay}
         onPlaying={onPlaying}
       >
         <source src={url} type="video/mp4" />

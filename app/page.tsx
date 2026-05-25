@@ -87,8 +87,13 @@ export default async function HomePage() {
     </div>
   );
 
+  const heroVideoUrl = mediaType === 'video' && mediaUrl ? mediaUrl : null;
+
   return (
-    <div className="relative min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-clip bg-black">
+    <div className="relative flex flex-col w-full max-w-[100vw] overflow-x-clip bg-black">
+      {heroVideoUrl && (
+        <link rel="preload" href={heroVideoUrl} as="fetch" crossOrigin="anonymous" />
+      )}
       <UnifiedHero
         mediaUrl={mediaUrl}
         mediaType={mediaType}
