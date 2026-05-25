@@ -11,6 +11,7 @@ import { revalidatePaths } from '@/lib/revalidate';
 import { resolveHeroMediaUrl, resolveHeroLogoUrl, resolveHeroSlotVideoUrl, resolveHeroSlotImageUrl } from '@/lib/storageUrls';
 import { Save, Check, Copy, ImageIcon, Video, Upload, HelpCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/ui/cn';
+import { compressImage } from '@/lib/utils/compressMedia';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
 
 const PAGE_KEYS = ['home', 'events', 'media', 'shop', 'booking'] as const;
@@ -206,6 +207,7 @@ export function DashboardHeroEditor() {
       }
       setPosterUploading(true);
       try {
+        const optimized = await compressImage(file, { maxSizeMB: 1.5, maxWidthOrHeight: 1920 });
         const pathRes = await fetch('/api/admin/hero-slot/upload-path', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -222,8 +224,8 @@ export function DashboardHeroEditor() {
           throw new Error((pathData?.error as string) || 'Could not get upload path');
         }
         const { path } = pathData as { path: string };
-        const { error: uploadErr } = await supabase.storage.from('media').upload(path, file, {
-          contentType: file.type || 'image/jpeg',
+        const { error: uploadErr } = await supabase.storage.from('media').upload(path, optimized, {
+          contentType: optimized.type || file.type || 'image/jpeg',
           upsert: true,
         });
         if (uploadErr) throw new Error(uploadErr.message || 'Storage upload failed');
@@ -389,7 +391,7 @@ export function DashboardHeroEditor() {
       </div>
       {helpOpen && (
         <div className="mb-6 p-4 rounded-xl border border-slate-200 bg-slate-50/80 text-sm text-slate-600 space-y-2">
-          <p><strong>Upload</strong> stores files in site storage (Supabase). Image max 10MB; logo max 2MB.</p>
+          <p><strong>Upload</strong> stores files in site storage (Supabase). Videos over ~3MB are auto-compressed to 720p web MP4 before upload (first run loads the compressor — allow up to a minute).</p>
           <p><strong>Replace</strong> / &quot;Choose from library&quot; use the media library; you can also pick from cloud drives (e.g. Google Drive) if your file picker supports it.</p>
         </div>
       )}
@@ -451,6 +453,7 @@ export function DashboardHeroEditor() {
                 <UniversalUploader
                   acceptedTypes={['image', 'video']}
                   multiple={false}
+                  compression="hero"
                   onSelected={handleReplaceMedia}
                   onUploadingChange={setUploadInProgress}
                   buttonLabel="Upload image or video"
@@ -583,6 +586,8 @@ export function DashboardHeroEditor() {
                         <p className="text-white/60 text-xs font-medium uppercase tracking-wider">Slot {slotNum}</p>
                         <UniversalUploader
                           acceptedTypes={['video', 'image']}
+                          compression="hero"
+                          hideStorageTip
                           onSelected={async (files) => {
                             const file = files[0];
                             if (!file || !hero?.id) return;
@@ -627,7 +632,6 @@ export function DashboardHeroEditor() {
                             }
                           }}
                           buttonLabel={slotUrl ? 'Replace' : 'Upload'}
-                          hideStorageTip
                         />
                         {slotUrl && (
                           <button

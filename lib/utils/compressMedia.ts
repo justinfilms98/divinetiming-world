@@ -2,168 +2,250 @@ import imageCompression from 'browser-image-compression';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-// Supabase typically allows up to 50MB, but we'll target smaller for better performance
-const MAX_IMAGE_SIZE_MB = 5; // 5MB for images
-const MAX_VIDEO_SIZE_MB = 50; // 50MB for videos (Supabase limit)
-const MAX_IMAGE_WIDTH = 1920; // Max width for hero images
-const MAX_IMAGE_HEIGHT = 1080; // Max height for hero images
+export type CompressionPreset = 'hero' | 'standard';
+
+export type CompressionPresetConfig = {
+  /** Compress videos at or above this size */
+  videoCompressAboveBytes: number;
+  /** Target output size (soft cap for bitrate math) */
+  videoTargetBytes: number;
+  maxWidth: number;
+  maxHeight: number;
+  crf: string;
+};
+
+export const COMPRESSION_PRESETS: Record<CompressionPreset, CompressionPresetConfig> = {
+  hero: {
+    videoCompressAboveBytes: 3 * 1024 * 1024,
+    videoTargetBytes: 8 * 1024 * 1024,
+    maxWidth: 1280,
+    maxHeight: 720,
+    crf: '26',
+  },
+  standard: {
+    videoCompressAboveBytes: 12 * 1024 * 1024,
+    videoTargetBytes: 20 * 1024 * 1024,
+    maxWidth: 1920,
+    maxHeight: 1080,
+    crf: '28',
+  },
+};
+
+const DEFAULT_IMAGE_MAX_MB = 5;
+const DEFAULT_IMAGE_MAX_DIMENSION = 1920;
 
 let ffmpegInstance: FFmpeg | null = null;
 let ffmpegLoaded = false;
+let ffmpegLoadPromise: Promise<FFmpeg> | null = null;
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getVideoDurationSec(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      const d = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 30;
+      URL.revokeObjectURL(url);
+      resolve(d);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not read video metadata'));
+    };
+    video.src = url;
+  });
+}
 
 /**
  * Compress an image file to fit within size limits
  */
-export async function compressImage(file: File): Promise<File> {
+export async function compressImage(
+  file: File,
+  options?: { maxSizeMB?: number; maxWidthOrHeight?: number }
+): Promise<File> {
+  const maxSizeMB = options?.maxSizeMB ?? DEFAULT_IMAGE_MAX_MB;
   const fileSizeMB = file.size / (1024 * 1024);
 
-  // If already under limit, return as-is
-  if (fileSizeMB <= MAX_IMAGE_SIZE_MB) {
+  if (fileSizeMB <= maxSizeMB) {
     return file;
   }
 
   try {
-    const options = {
-      maxSizeMB: MAX_IMAGE_SIZE_MB,
-      maxWidthOrHeight: Math.max(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT),
+    const compressedFile = await imageCompression(file, {
+      maxSizeMB,
+      maxWidthOrHeight: options?.maxWidthOrHeight ?? DEFAULT_IMAGE_MAX_DIMENSION,
       useWebWorker: true,
       fileType: file.type,
-    };
-
-    const compressedFile = await imageCompression(file, options);
+    });
     return compressedFile;
   } catch (error) {
     console.error('Image compression error:', error);
-    // If compression fails, return original (upload will fail if too large)
     return file;
   }
 }
 
-/**
- * Load FFmpeg instance (lazy load)
- */
-async function loadFFmpeg(): Promise<FFmpeg> {
+async function loadFFmpeg(onProgress?: (progress: number) => void): Promise<FFmpeg> {
   if (ffmpegInstance && ffmpegLoaded) {
     return ffmpegInstance;
   }
+  if (ffmpegLoadPromise) {
+    return ffmpegLoadPromise;
+  }
 
-  const ffmpeg = new FFmpeg();
-  
-  // Load FFmpeg core
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
+  ffmpegLoadPromise = (async () => {
+    onProgress?.(5);
+    const ffmpeg = new FFmpeg();
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+    ffmpegInstance = ffmpeg;
+    ffmpegLoaded = true;
+    return ffmpeg;
+  })();
 
-  ffmpegInstance = ffmpeg;
-  ffmpegLoaded = true;
-  return ffmpeg;
+  return ffmpegLoadPromise;
+}
+
+export interface CompressVideoOptions {
+  preset?: CompressionPreset;
+  onProgress?: (progress: number) => void;
 }
 
 /**
- * Compress a video file if it's too large using FFmpeg
+ * Compress a video for web delivery (H.264, faststart, scaled).
+ * Skips compression when the file is already small for the preset.
  */
-export async function compressVideo(file: File, onProgress?: (progress: number) => void): Promise<File> {
-  const fileSizeMB = file.size / (1024 * 1024);
+export async function compressVideo(file: File, options?: CompressVideoOptions): Promise<File> {
+  const preset = options?.preset ?? 'standard';
+  const config = COMPRESSION_PRESETS[preset];
+  const onProgress = options?.onProgress;
 
-  // If already under limit, return as-is
-  if (fileSizeMB <= MAX_VIDEO_SIZE_MB) {
+  if (file.size <= config.videoCompressAboveBytes) {
     return file;
   }
 
   try {
-    onProgress?.(10);
-    const ffmpeg = await loadFFmpeg();
-    
-    onProgress?.(20);
-    
-    // Write input file to FFmpeg
-    const inputFileName = 'input.' + file.name.split('.').pop();
+    onProgress?.(8);
+    const durationSec = await getVideoDurationSec(file).catch(() => 30);
+    const ffmpeg = await loadFFmpeg(onProgress);
+
+    onProgress?.(15);
+
+    const inputExt = file.name.split('.').pop()?.toLowerCase() || 'mp4';
+    const inputFileName = `input.${inputExt}`;
     await ffmpeg.writeFile(inputFileName, await fetchFile(file));
-    
-    onProgress?.(30);
-    
-    // Calculate target bitrate to get under 50MB
-    // Rough estimate: target size * 8 / duration (in seconds)
-    // We'll use a conservative bitrate
-    const targetBitrate = Math.floor((MAX_VIDEO_SIZE_MB * 8 * 1024 * 1024) / 60); // Assume ~60s video, adjust as needed
-    
-    // Set up progress callback
+
+    onProgress?.(22);
+
+    const targetBitrateKbps = Math.max(
+      400,
+      Math.floor((config.videoTargetBytes * 8) / durationSec / 1000)
+    );
+
     ffmpeg.on('progress', ({ progress }) => {
-      const progressPercent = 30 + (progress * 0.6 * 100); // 30-90%
-      onProgress?.(Math.min(progressPercent, 90));
+      onProgress?.(22 + Math.min(progress, 1) * 68);
     });
-    
-    // Compress video with H.264 codec
+
     const outputFileName = 'output.mp4';
+    const scaleFilter = `scale=${config.maxWidth}:${config.maxHeight}:force_original_aspect_ratio=decrease`;
+
     await ffmpeg.exec([
-      '-i', inputFileName,
-      '-c:v', 'libx264',
-      '-preset', 'medium',
-      '-crf', '28', // Higher CRF = more compression (18-28 is good range)
-      '-maxrate', `${targetBitrate}`,
-      '-bufsize', `${targetBitrate * 2}`,
-      '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease', // Max 1080p
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      '-movflags', '+faststart',
+      '-i',
+      inputFileName,
+      '-c:v',
+      'libx264',
+      '-preset',
+      'medium',
+      '-crf',
+      config.crf,
+      '-maxrate',
+      `${targetBitrateKbps}k`,
+      '-bufsize',
+      `${targetBitrateKbps * 2}k`,
+      '-vf',
+      scaleFilter,
+      '-c:a',
+      'aac',
+      '-b:a',
+      '128k',
+      '-movflags',
+      '+faststart',
       outputFileName,
     ]);
-    
-    onProgress?.(95);
-    
-    // Read compressed file
+
+    onProgress?.(92);
+
     const data = await ffmpeg.readFile(outputFileName);
-    // Convert FileData to Uint8Array to ensure proper BlobPart type
-    // FileData can be string | Uint8Array, but for binary video files it's Uint8Array
-    if (data instanceof Uint8Array) {
-      // Use slice() to create a new Uint8Array with a proper ArrayBuffer
-      // This ensures Blob constructor gets ArrayBuffer, not ArrayBufferLike
-      const uint8Array = data.slice();
-      const compressedBlob = new Blob([uint8Array], { type: 'video/mp4' });
-      // Clean up
-      await ffmpeg.deleteFile(inputFileName);
-      await ffmpeg.deleteFile(outputFileName);
-      
-      onProgress?.(100);
-      
-      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '.mp4'), {
-        type: 'video/mp4',
-      });
-      
-      // If still too large, return original (compression didn't help enough)
-      const compressedSizeMB = compressedFile.size / (1024 * 1024);
-      if (compressedSizeMB > MAX_VIDEO_SIZE_MB * 1.1) {
-        console.warn(`Compressed video is still ${compressedSizeMB.toFixed(2)}MB. Original file may be too large to compress effectively.`);
-        return file;
-      }
-      
-      return compressedFile;
-    } else {
-      // Should not happen for binary video files, but handle it
-      throw new Error('Expected Uint8Array from FFmpeg readFile for video file');
+    await ffmpeg.deleteFile(inputFileName);
+    await ffmpeg.deleteFile(outputFileName);
+
+    if (!(data instanceof Uint8Array)) {
+      throw new Error('Expected binary output from FFmpeg');
     }
+
+    const compressedBlob = new Blob([data.slice()], { type: 'video/mp4' });
+    onProgress?.(100);
+
+    const compressedFile = new File(
+      [compressedBlob],
+      file.name.replace(/\.[^/.]+$/, '.mp4'),
+      { type: 'video/mp4' }
+    );
+
+    if (compressedFile.size >= file.size * 0.95) {
+      console.warn(
+        `Video compression did not reduce size meaningfully (${formatBytes(file.size)} → ${formatBytes(compressedFile.size)}). Using original.`
+      );
+      return file;
+    }
+
+    return compressedFile;
   } catch (error) {
     console.error('Video compression error:', error);
-    // If compression fails, return original
     return file;
   }
 }
 
+export interface CompressMediaOptions {
+  preset?: CompressionPreset;
+  onProgress?: (progress: number) => void;
+  imageMaxSizeMB?: number;
+}
+
 /**
- * Compress media file (image or video) automatically
+ * Compress media file (image or video) before upload.
  */
-export async function compressMedia(file: File, onProgress?: (progress: number) => void): Promise<File> {
-  const isImage = file.type.startsWith('image/');
-  const isVideo = file.type.startsWith('video/');
-
-  if (isImage) {
-    return compressImage(file);
-  } else if (isVideo) {
-    return compressVideo(file, onProgress);
+export async function compressMedia(file: File, options?: CompressMediaOptions): Promise<File> {
+  if (file.type.startsWith('image/')) {
+    return compressImage(file, {
+      maxSizeMB: options?.imageMaxSizeMB,
+    });
   }
-
-  // Unknown type, return as-is
+  if (file.type.startsWith('video/')) {
+    return compressVideo(file, {
+      preset: options?.preset,
+      onProgress: options?.onProgress,
+    });
+  }
   return file;
+}
+
+/** Whether this file would be compressed for the given preset */
+export function willCompress(file: File, preset: CompressionPreset = 'standard'): boolean {
+  if (file.type.startsWith('image/')) {
+    const maxMb = preset === 'hero' ? 2 : DEFAULT_IMAGE_MAX_MB;
+    return file.size > maxMb * 1024 * 1024;
+  }
+  if (file.type.startsWith('video/')) {
+    return file.size > COMPRESSION_PRESETS[preset].videoCompressAboveBytes;
+  }
+  return false;
 }

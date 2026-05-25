@@ -3,6 +3,12 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  compressMedia,
+  formatBytes,
+  willCompress,
+  type CompressionPreset,
+} from '@/lib/utils/compressMedia';
 
 
 export type UploadedFile = {
@@ -35,6 +41,11 @@ interface UniversalUploaderProps {
   onUploadingChange?: (uploading: boolean) => void;
   /** Hide the cloud-drive tip; use when help is in a separate collapsible. */
   hideStorageTip?: boolean;
+  /**
+   * Compress images/videos in the browser before upload.
+   * Use "hero" for homepage hero slots (720p, ~8MB target).
+   */
+  compression?: boolean | CompressionPreset;
 }
 
 
@@ -68,16 +79,22 @@ export function UniversalUploader({
   acceptOverride,
   onUploadingChange,
   hideStorageTip = false,
+  compression = 'standard',
 }: UniversalUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [statusLabel, setStatusLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successDetail, setSuccessDetail] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const maxBytes = getMaxBytes(maxSizeBytes);
   const accept = acceptOverride ?? acceptAttribute(acceptedTypes);
+  const compressionEnabled = compression !== false;
+  const compressionPreset: CompressionPreset =
+    compression === true || compression === 'standard' ? 'standard' : compression === 'hero' ? 'hero' : 'standard';
 
   useEffect(() => {
     if (!uploading) return;
@@ -111,20 +128,56 @@ export function UniversalUploader({
       }
       setError(null);
       setSuccess(false);
+      setSuccessDetail(null);
       setUploading(true);
       onUploadingChange?.(true);
       const total = list.length;
       const uploaded: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
+      const compressionNotes: string[] = [];
       try {
         const supabase = createClient();
         for (let i = 0; i < list.length; i++) {
-          const file = list[i]!;
-          setProgress((i / total) * 100);
+          let file = list[i]!;
+          const fileBaseProgress = (i / total) * 100;
+          const fileSpan = 100 / total;
 
           if (!file.size || file.size <= 0) {
             setError(`"${file.name}" is empty (0 bytes). Please re-select the file.`);
             return;
           }
+
+          if (compressionEnabled && (file.type.startsWith('video/') || file.type.startsWith('image/'))) {
+            const originalSize = file.size;
+            if (willCompress(file, compressionPreset)) {
+              setStatusLabel(
+                file.type.startsWith('video/')
+                  ? 'Compressing video for web…'
+                  : 'Optimizing image…'
+              );
+              file = await compressMedia(file, {
+                preset: compressionPreset,
+                imageMaxSizeMB: compressionPreset === 'hero' ? 2 : undefined,
+                onProgress: (p) => {
+                  setProgress(fileBaseProgress + (p / 100) * fileSpan * 0.4);
+                },
+              });
+              if (file.size < originalSize) {
+                compressionNotes.push(
+                  `${file.name}: ${formatBytes(originalSize)} → ${formatBytes(file.size)}`
+                );
+              }
+            }
+          }
+
+          if (file.size > maxBytes) {
+            setError(
+              `"${file.name}" is still ${formatBytes(file.size)} after compression (max ${formatBytes(maxBytes)}). Try a shorter clip or lower resolution.`
+            );
+            return;
+          }
+
+          setStatusLabel('Uploading…');
+          setProgress(fileBaseProgress + fileSpan * 0.45);
 
           const pathRes = await fetch('/api/admin/media/upload-path', {
             method: 'POST',
@@ -160,7 +213,7 @@ export function UniversalUploader({
             return;
           }
 
-          setProgress(((i + 0.75) / total) * 100);
+          setProgress(fileBaseProgress + fileSpan * 0.9);
           uploaded.push({
             storage_path: path,
             public_url: publicUrl || path,
@@ -202,7 +255,13 @@ export function UniversalUploader({
         if (normalized.length) {
           onSelected(multiple ? normalized : normalized.slice(0, 1));
           setSuccess(true);
-          setTimeout(() => setSuccess(false), 2500);
+          if (compressionNotes.length) {
+            setSuccessDetail(`Compressed: ${compressionNotes.join('; ')}`);
+          }
+          setTimeout(() => {
+            setSuccess(false);
+            setSuccessDetail(null);
+          }, 5000);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -214,11 +273,12 @@ export function UniversalUploader({
       } finally {
         setUploading(false);
         setProgress(null);
+        setStatusLabel(null);
         onUploadingChange?.(false);
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [multiple, onSelected, maxBytes, acceptOverride, onUploadingChange]
+    [multiple, onSelected, maxBytes, acceptOverride, onUploadingChange, compressionEnabled, compressionPreset]
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,15 +323,16 @@ export function UniversalUploader({
         </div>
       )}
       {success && (
-        <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-          Upload complete.
+        <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm space-y-1">
+          <p>Upload complete.</p>
+          {successDetail && <p className="text-green-800/80 text-xs">{successDetail}</p>}
         </div>
       )}
       {(uploading || progress != null) && (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-slate-600 text-sm">
             <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
-            <span>Uploading…</span>
+            <span>{statusLabel ?? 'Uploading…'}</span>
           </div>
           {progress != null && (
             <div className="h-1.5 w-full max-w-[200px] rounded-full bg-slate-200 overflow-hidden">
@@ -327,7 +388,9 @@ export function UniversalUploader({
       </div>
       {!hideStorageTip && (
         <p className="text-slate-500 text-xs max-w-sm">
-          Tip: You can pick files from iCloud Drive, Google Drive, OneDrive, or Dropbox if they appear in your device file picker.
+          {compressionEnabled
+            ? 'Large videos are automatically compressed for web (720p on hero uploads) before upload. First video compression may take a minute while the compressor loads.'
+            : 'Tip: You can pick files from iCloud Drive, Google Drive, OneDrive, or Dropbox if they appear in your device file picker.'}
         </p>
       )}
     </div>
