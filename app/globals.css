@@ -19,6 +19,11 @@
   --ocean: #2F5D62;
   /* Phase 7: softened white for hero text (not harsh pure white) */
   --white-soft: rgba(255, 255, 255, 0.96);
+  /* Cinematic bands — near-black sections that carry full-bleed media */
+  --bg-night: #0B0B0C;
+  --text-on-dark: rgba(247, 243, 237, 0.94);
+  --text-on-dark-muted: rgba(247, 243, 237, 0.62);
+  --border-on-dark: rgba(198, 167, 94, 0.24);
 }
 
 /*
@@ -334,6 +339,25 @@ body {
 /* Section lift — barely perceptible tone shift for content sections */
 .section-lift {
   background: var(--atmosphere-section-lift);
+}
+
+/*
+ * Section bands. The page alternates between warm sand (reading) and
+ * near-black (cinematic media) so the dark sections read as deliberate
+ * contrast rather than a second theme. `.band-night` remaps the text tokens
+ * for its subtree, so token-driven children invert without per-element classes.
+ */
+.band-sand { background: var(--bg); }
+.band-dune { background: var(--bg-secondary); }
+.band-night {
+  background: var(--bg-night);
+  --text: var(--text-on-dark);
+  --text-muted: var(--text-on-dark-muted);
+  --border-subtle: var(--border-on-dark);
+  color: var(--text-on-dark);
+}
+.band-night .focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-night), 0 0 0 4px var(--accent);
 }
 
 /* Phase 33: signature divider — left fade, soft center, right fade; optional faint glow */

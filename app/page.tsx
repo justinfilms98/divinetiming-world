@@ -3,8 +3,21 @@ import { DivineTimingIntro } from '@/components/home/DivineTimingIntro';
 import { HeroLogo } from '@/components/home/HeroLogo';
 import { HeroContent } from '@/components/home/HeroContent';
 import { HeroPlatformRow } from '@/components/home/HeroPlatformRow';
-import { SignatureDivider } from '@/components/brand/SignatureDivider';
-import { getHeroSection, getSiteSettings, getPageSettings } from '@/lib/content/server';
+import { ExperienceSection } from '@/components/home/ExperienceSection';
+import { UpcomingEventsSection } from '@/components/home/UpcomingEventsSection';
+import { ManifestoSection } from '@/components/home/ManifestoSection';
+import { FilmsSection } from '@/components/home/FilmsSection';
+import { ShopHighlightSection } from '@/components/home/ShopHighlightSection';
+import { TribeSection } from '@/components/home/TribeSection';
+import { BookingCtaSection } from '@/components/home/BookingCtaSection';
+import {
+  getHeroSection,
+  getSiteSettings,
+  getPageSettings,
+  getEvents,
+  getProducts,
+  getVideos,
+} from '@/lib/content/server';
 import { getHeroSingleSource, getHeroAllSlots } from '@/lib/content/heroSingleSource';
 import { DEFAULT_OG_IMAGE } from '@/lib/site';
 import type { Metadata } from 'next';
@@ -32,14 +45,27 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [heroSection, siteSettings, pageSettings] = await Promise.all([
+  const [heroSection, siteSettings, pageSettings, upcomingEvents, products, videos] = await Promise.all([
     getHeroSection('home'),
     getSiteSettings(),
     getPageSettings('home'),
+    getEvents({ upcomingOnly: true }),
+    getProducts(),
+    getVideos(),
   ]);
-  // Primary CTA defaults to Shop; admins can still override via hero_sections.cta_text/cta_url.
-  const primaryCtaText = heroSection?.cta_text?.trim() || 'Shop the collection';
-  const primaryCtaUrl = heroSection?.cta_url?.trim() || '/shop';
+  // Music is the first thing a fan should reach, so the primary CTA points at
+  // streaming until a dedicated /music page exists. Admins can still override
+  // both label and destination via hero_sections.cta_text/cta_url.
+  const primaryCtaText = heroSection?.cta_text?.trim() || 'Listen now';
+  const primaryCtaUrl = heroSection?.cta_url?.trim() || siteSettings?.spotify_url?.trim() || '/media';
+
+  const featuredEvents = upcomingEvents.slice(0, 3);
+  const featuredProducts = [...products]
+    .sort((a, b) => Number(b.is_featured) - Number(a.is_featured))
+    .slice(0, 4);
+  const featuredVideos = videos.slice(0, 2);
+  const experienceBackdrop =
+    featuredEvents.find((e) => e.resolved_thumbnail_url)?.resolved_thumbnail_url ?? null;
 
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.4;
   const artistName = heroSection?.headline ?? siteSettings?.artist_name ?? pageSettings?.seo_title ?? 'DIVINE:TIMING';
@@ -80,8 +106,8 @@ export default async function HomePage() {
         subtext={heroSection?.subtext ?? undefined}
         ctaText={primaryCtaText}
         ctaUrl={primaryCtaUrl}
-        secondaryCtaText="Watch & Listen"
-        secondaryCtaUrl="/media"
+        secondaryCtaText="Book the act"
+        secondaryCtaUrl="/contact"
       />
       <HeroPlatformRow overrides={siteSettings ?? undefined} delay={0.5} />
     </div>
@@ -106,8 +132,18 @@ export default async function HomePage() {
         {heroContent}
       </UnifiedHero>
 
+      {/*
+        Band rhythm alternates cinematic near-black against warm sand so the
+        dark sections read as contrast rather than a second theme.
+      */}
       <main className="flex flex-col w-full">
-        <SignatureDivider className="my-8 md:my-20" />
+        <ExperienceSection backgroundUrl={experienceBackdrop} />
+        <UpcomingEventsSection events={featuredEvents} />
+        <ManifestoSection />
+        <FilmsSection videos={featuredVideos} />
+        <ShopHighlightSection products={featuredProducts} />
+        <TribeSection />
+        <BookingCtaSection bookingEmail={siteSettings?.booking_email ?? null} />
       </main>
     </div>
   );
