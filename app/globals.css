@@ -359,6 +359,10 @@ body {
 .band-night .focus-ring:focus-visible {
   box-shadow: 0 0 0 2px var(--bg-night), 0 0 0 4px var(--accent);
 }
+/* Two dark bands in a row would merge into one slab without a seam. */
+.band-night + .band-night {
+  border-top: 1px solid var(--border-on-dark);
+}
 
 /* Phase 33: signature divider — left fade, soft center, right fade; optional faint glow */
 .signature-divider-line {

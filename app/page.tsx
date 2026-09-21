@@ -3,6 +3,7 @@ import { DivineTimingIntro } from '@/components/home/DivineTimingIntro';
 import { HeroLogo } from '@/components/home/HeroLogo';
 import { HeroContent } from '@/components/home/HeroContent';
 import { HeroPlatformRow } from '@/components/home/HeroPlatformRow';
+import { NowPlayingSection } from '@/components/home/NowPlayingSection';
 import { ExperienceSection } from '@/components/home/ExperienceSection';
 import { UpcomingEventsSection } from '@/components/home/UpcomingEventsSection';
 import { ManifestoSection } from '@/components/home/ManifestoSection';
@@ -17,6 +18,7 @@ import {
   getEvents,
   getProducts,
   getVideos,
+  getLatestRelease,
 } from '@/lib/content/server';
 import { getHeroSingleSource, getHeroAllSlots } from '@/lib/content/heroSingleSource';
 import { DEFAULT_OG_IMAGE } from '@/lib/site';
@@ -45,19 +47,19 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [heroSection, siteSettings, pageSettings, upcomingEvents, products, videos] = await Promise.all([
+  const [heroSection, siteSettings, pageSettings, upcomingEvents, products, videos, latestRelease] = await Promise.all([
     getHeroSection('home'),
     getSiteSettings(),
     getPageSettings('home'),
     getEvents({ upcomingOnly: true }),
     getProducts(),
     getVideos(),
+    getLatestRelease(),
   ]);
-  // Music is the first thing a fan should reach, so the primary CTA points at
-  // streaming until a dedicated /music page exists. Admins can still override
-  // both label and destination via hero_sections.cta_text/cta_url.
+  // Music is the first thing a fan should reach. Admins can still override both
+  // label and destination via hero_sections.cta_text/cta_url.
   const primaryCtaText = heroSection?.cta_text?.trim() || 'Listen now';
-  const primaryCtaUrl = heroSection?.cta_url?.trim() || siteSettings?.spotify_url?.trim() || '/media';
+  const primaryCtaUrl = heroSection?.cta_url?.trim() || '/music';
 
   const featuredEvents = upcomingEvents.slice(0, 3);
   const featuredProducts = [...products]
@@ -137,12 +139,13 @@ export default async function HomePage() {
         dark sections read as contrast rather than a second theme.
       */}
       <main className="flex flex-col w-full">
+        <NowPlayingSection release={latestRelease} />
         <ExperienceSection backgroundUrl={experienceBackdrop} />
         <UpcomingEventsSection events={featuredEvents} />
         <ManifestoSection />
         <FilmsSection videos={featuredVideos} />
-        <ShopHighlightSection products={featuredProducts} />
         <TribeSection />
+        <ShopHighlightSection products={featuredProducts} />
         <BookingCtaSection bookingEmail={siteSettings?.booking_email ?? null} />
       </main>
     </div>

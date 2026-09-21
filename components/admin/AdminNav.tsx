@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ImagePlay,
   CalendarDays,
+  Disc3,
   ShoppingBag,
   Settings2,
   Clapperboard,
@@ -15,12 +16,30 @@ import {
   Compass,
   Scale,
   UserCircle,
+  Inbox,
+  Plug,
 } from 'lucide-react';
+import { isContentInboxEnabled } from '@/lib/features';
+import type { LucideIcon } from 'lucide-react';
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
 
 /** Admin nav by content intent (charter: no DB abstractions). */
-const NAV_ITEMS = [
+const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  // Content Inbox (Phase 1 content engine) — only shown when the feature flag is on.
+  ...(isContentInboxEnabled()
+    ? [
+        { label: 'Content Inbox', href: '/admin/inbox', icon: Inbox },
+        { label: 'Integrations', href: '/admin/integrations', icon: Plug },
+      ]
+    : []),
   { label: 'Homepage', href: '/admin/hero', icon: Clapperboard },
+  { label: 'Music', href: '/admin/releases', icon: Disc3 },
   { label: 'Events', href: '/admin/events', icon: CalendarDays },
   { label: 'Media Library', href: '/admin/media', icon: ImagePlay },
   { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
@@ -31,7 +50,7 @@ const NAV_ITEMS = [
   { label: 'About', href: '/admin/about', icon: UserCircle },
   { label: 'Legal Policies', href: '/admin/policies', icon: Scale },
   { label: 'Site Settings', href: '/admin/settings', icon: Settings2 },
-] as const;
+];
 
 interface AdminNavProps {
   collapsed?: boolean;

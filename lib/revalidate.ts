@@ -8,10 +8,12 @@ const REVALIDATE_PATHS: Record<string, string[]> = {
   homepage: ['/'],
   events: ['/events'],
   media: ['/media'],
+  // A release change also moves the homepage "Now playing" slot.
+  music: ['/music', '/'],
   shop: ['/shop'],
   booking: ['/booking'],
   about: ['/about'],
-  pages: ['/', '/events', '/media', '/shop', '/booking', '/about'],
+  pages: ['/', '/events', '/media', '/music', '/shop', '/booking', '/about'],
 };
 
 export async function revalidateAfterSave(scope: keyof typeof REVALIDATE_PATHS): Promise<void> {

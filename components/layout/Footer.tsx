@@ -8,6 +8,7 @@ import type { PlatformId } from '@/lib/platformLinks';
 import type { SiteSettings } from '@/lib/types/content';
 
 const SITEMAP_LINKS = [
+  { label: 'Music', href: '/music' },
   { label: 'Events', href: '/events' },
   { label: 'Media', href: '/media' },
   { label: 'Shop', href: '/shop' },

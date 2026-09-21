@@ -10,11 +10,15 @@ import { useScrollLock } from '@/lib/ui/useScrollLock';
 import type { SiteSettings } from '@/lib/types/content';
 
 const navItems = [
+  { label: 'MUSIC', href: '/music' },
   { label: 'EVENTS', href: '/events' },
   { label: 'MEDIA', href: '/media' },
   { label: 'SHOP', href: '/shop' },
   { label: 'JOURNEY', href: '/journey' },
 ];
+
+/** Desktop nav splits around the centre logo; derived so adding a link rebalances. */
+const NAV_SPLIT = Math.ceil(navItems.length / 2);
 
 const MENU_DURATION = 0.28;
 const MENU_EASE = [0.4, 0, 0.2, 1] as const;
@@ -69,7 +73,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
 
           {/* Desktop: left nav links */}
           <div className="hidden md:flex items-center gap-8 min-w-0">
-            {navItems.slice(0, 2).map((item) => {
+            {navItems.slice(0, NAV_SPLIT).map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link key={item.href} href={item.href} className={linkClass(isActive)} style={{ transition: NAV_TRANSITION }}>
@@ -90,7 +94,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
 
           {/* Desktop: right nav links */}
           <div className="hidden md:flex items-center gap-8 min-w-0 justify-end">
-            {navItems.slice(2).map((item) => {
+            {navItems.slice(NAV_SPLIT).map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link key={item.href} href={item.href} className={linkClass(isActive)} style={{ transition: NAV_TRANSITION }}>

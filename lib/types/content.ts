@@ -96,6 +96,36 @@ export interface HeroCarouselSlide {
 /** Content state: only 'published' appears on public pages. */
 export type ContentStatus = 'draft' | 'published' | 'archived';
 
+/** Releases add 'scheduled': finished, but embargoed until release_date. */
+export type ReleaseStatus = ContentStatus | 'scheduled';
+
+export type ReleaseType = 'single' | 'ep' | 'album' | 'remix' | 'compilation' | 'mix';
+
+export interface Release {
+  id: string;
+  title: string;
+  slug: string;
+  release_type: ReleaseType;
+  release_date: string | null;
+  cover_image_url: string | null;
+  external_cover_asset_id?: string | null;
+  spotify_url: string | null;
+  apple_music_url: string | null;
+  youtube_url: string | null;
+  soundcloud_url: string | null;
+  beatport_url: string | null;
+  description: string | null;
+  credits: string | null;
+  video_url: string | null;
+  is_featured: boolean;
+  display_order: number;
+  status: ReleaseStatus;
+  created_at: string;
+  updated_at: string;
+  /** Set by the content layer after resolving the linked media asset. */
+  resolved_cover_url?: string | null;
+}
+
 export interface Event {
   id: string;
   slug?: string | null;

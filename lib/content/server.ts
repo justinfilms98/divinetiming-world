@@ -30,10 +30,11 @@ import type {
   AboutPhoto,
   AboutTimelineItem,
   SiteSettings,
+  Release,
 } from '@/lib/types/content';
 import type { MediaPageVideo, GalleryForHub } from '@/lib/content/shared';
 
-export type { PageSettings, HeroSection, HeroCarouselSlide, Event, Gallery, GalleryMedia, Product, MediaPageVideo, GalleryForHub };
+export type { PageSettings, HeroSection, HeroCarouselSlide, Event, Gallery, GalleryMedia, Product, MediaPageVideo, GalleryForHub, Release };
 
 const HERO_SELECT =
   'page_slug, media_type, media_url, media_storage_path, hero_logo_url, hero_logo_storage_path, overlay_opacity, label_text, headline, subtext, cta_text, cta_url, animation_type, animation_enabled, id, created_at, updated_at, external_media_asset_id, hero_slots';
@@ -545,6 +546,64 @@ export async function getLibraryVideoAssets(): Promise<MediaPageVideo[]> {
       caption: null,
       is_vertical: false,
     }));
+}
+
+async function resolveReleaseCover(release: Release): Promise<Release> {
+  const direct = release.cover_image_url?.trim();
+  if (direct && (direct.startsWith('http://') || direct.startsWith('https://'))) {
+    return { ...release, resolved_cover_url: direct };
+  }
+  if (release.external_cover_asset_id) {
+    const resolved = await resolveMediaUrl(null, release.external_cover_asset_id);
+    if (resolved?.url) return { ...release, resolved_cover_url: resolved.url };
+  }
+  return { ...release, resolved_cover_url: direct || null };
+}
+
+/**
+ * Public catalogue, newest first. RLS already limits anon reads to published
+ * rows; the release_date guard additionally hides anything published early by
+ * mistake with a future date.
+ */
+export async function getReleases(): Promise<Release[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('releases')
+    .select('*')
+    .eq('status', 'published')
+    .order('release_date', { ascending: false, nullsFirst: false })
+    .order('display_order', { ascending: true });
+
+  if (error) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const releases = ((data || []) as Release[]).filter(
+    (r) => !r.release_date || r.release_date <= today
+  );
+  return Promise.all(releases.map(resolveReleaseCover));
+}
+
+export async function getReleaseBySlug(slug: string): Promise<Release | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('releases')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return resolveReleaseCover(data as Release);
+}
+
+/**
+ * Powers the homepage "Now playing" slot. A release flagged is_featured wins;
+ * otherwise the most recent by release_date. This is the automatic
+ * latest-release detection required by brief section 7.
+ */
+export async function getLatestRelease(): Promise<Release | null> {
+  const releases = await getReleases();
+  if (releases.length === 0) return null;
+  return releases.find((r) => r.is_featured) ?? releases[0];
 }
 
 export async function getSiteSettings(): Promise<SiteSettings | null> {
