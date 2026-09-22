@@ -373,9 +373,9 @@ export function DashboardHeroEditor() {
     <AdminCard className="mb-8">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800 tracking-tight mb-1">Hero Editor</h2>
-          <p className="text-slate-600 text-sm">
-            Single hero per page: media, poster (for video), overlay, page label, headline, and primary CTA.
+          <h2 className="text-lg font-semibold text-white tracking-tight mb-1">Page hero</h2>
+          <p className="text-white/50 text-sm">
+            Choose a page, then edit media, overlay, label, headline, and primary CTA.
           </p>
         </div>
         <button
@@ -398,26 +398,35 @@ export function DashboardHeroEditor() {
 
       {/* Page selector — pill tabs */}
       <div className="mb-6">
+        <p className="text-xs uppercase tracking-wider text-white/40 mb-2">Select page</p>
         <div
-          className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit"
-          role="group"
-          aria-label="Select page"
+          className="flex flex-wrap gap-1 p-1 bg-white/5 rounded-xl w-fit"
+          role="tablist"
+          aria-label="Select page to edit"
         >
           {PAGE_KEYS.map((key) => (
             <button
               key={key}
               type="button"
+              role="tab"
+              aria-selected={selectedPage === key}
               onClick={() => setSelectedPage(key)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 selectedPage === key
                   ? 'bg-[#C6A75E] text-[#0a0a0a] font-semibold'
-                  : 'text-white/50 hover:text-white'
+                  : 'text-white/50 hover:text-white hover:bg-white/5'
               }`}
             >
               {PAGE_LABELS[key]}
             </button>
           ))}
         </div>
+        <p className="mt-3 text-sm text-white/60">
+          Editing <span className="text-white font-medium">{PAGE_LABELS[selectedPage]}</span>
+          {selectedPage === 'home'
+            ? ' — logo, carousel slots, overlay, and copy'
+            : ' — single media, overlay, and copy'}
+        </p>
       </div>
 
       {!hero ? (
@@ -663,10 +672,11 @@ export function DashboardHeroEditor() {
 
           {/* Overlay */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-white/70 mb-1" htmlFor="hero-overlay">
               Overlay opacity: {overlayPct}%
             </label>
             <input
+              id="hero-overlay"
               type="range"
               min="0"
               max="90"
@@ -677,7 +687,13 @@ export function DashboardHeroEditor() {
                 })
               }
               className="w-full max-w-xs"
+              aria-valuemin={0}
+              aria-valuemax={90}
+              aria-valuenow={overlayPct}
             />
+            <p className="text-xs text-white/40 mt-1 max-w-md">
+              Darkens the hero media so the label, headline, and CTA stay readable. 0% is none; around 40% is typical.
+            </p>
           </div>
 
           {/* Poster image (for video) — non-home only; home posters live in each carousel slot. */}
@@ -734,73 +750,77 @@ export function DashboardHeroEditor() {
           {/* Copy */}
           <div className="grid gap-4 sm:grid-cols-1">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-white/70 mb-1">
                 Label text (optional)
               </label>
               <input
                 type="text"
                 value={hero.label_text ?? ''}
                 onChange={(e) => updateHero({ label_text: e.target.value })}
-                className="admin-input w-full px-3 py-2 text-slate-800"
+                className="admin-input w-full px-3 py-2"
                 placeholder="e.g. ELECTRONIC DUO — small-caps above headline; leave blank to hide"
               />
-              <p className="text-xs text-slate-500 mt-1">Shown above the headline on the public hero. If blank, the label is not shown.</p>
+              <p className="text-xs text-white/40 mt-1">Shown above the headline on the public hero. If blank, the label is not shown.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-white/70 mb-1">
                 Headline
               </label>
               <input
                 type="text"
                 value={hero.headline ?? ''}
                 onChange={(e) => updateHero({ headline: e.target.value })}
-                className="admin-input w-full px-3 py-2 text-slate-800"
+                className="admin-input w-full px-3 py-2"
                 placeholder="Page headline"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-white/70 mb-1">
                 Subtext
               </label>
               <input
                 type="text"
                 value={hero.subtext ?? ''}
                 onChange={(e) => updateHero({ subtext: e.target.value })}
-                className="admin-input w-full px-3 py-2 text-slate-800"
+                className="admin-input w-full px-3 py-2"
                 placeholder="Optional subtext"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Primary CTA label (optional)
-              </label>
-              <input
-                type="text"
-                value={hero.cta_text ?? ''}
-                onChange={(e) => { setCtaError(null); updateHero({ cta_text: e.target.value }); }}
-                className={cn('admin-input w-full px-3 py-2 text-slate-800', ctaError && 'border-red-400')}
-                placeholder="e.g. Book now"
-                aria-invalid={!!ctaError}
-                aria-describedby={ctaError ? 'cta-error' : undefined}
-              />
-              {ctaError && (
-                <p id="cta-error" className="text-xs text-red-600 mt-1" role="alert">
-                  {ctaError}
-                </p>
-              )}
-              <p className="text-xs text-slate-500 mt-1">Required when CTA URL is set. CTA button is only shown when both label and URL are set.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Primary CTA URL (optional)
-              </label>
-              <input
-                type="url"
-                value={hero.cta_url ?? ''}
-                onChange={(e) => { setCtaError(null); updateHero({ cta_url: e.target.value }); }}
-                className="admin-input w-full px-3 py-2 text-slate-800"
-                placeholder="https://... or #booking-form"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1" htmlFor="hero-cta-label">
+                  Primary CTA label (optional)
+                </label>
+                <input
+                  id="hero-cta-label"
+                  type="text"
+                  value={hero.cta_text ?? ''}
+                  onChange={(e) => { setCtaError(null); updateHero({ cta_text: e.target.value }); }}
+                  className={cn('admin-input w-full px-3 py-2', ctaError && 'border-red-400')}
+                  placeholder="e.g. Book now"
+                  aria-invalid={!!ctaError}
+                  aria-describedby={ctaError ? 'cta-error' : 'cta-help'}
+                />
+                {ctaError && (
+                  <p id="cta-error" className="text-xs text-red-400 mt-1" role="alert">
+                    {ctaError}
+                  </p>
+                )}
+                <p id="cta-help" className="text-xs text-white/40 mt-1">Required when a URL is set. Both fields are needed to show the button.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1" htmlFor="hero-cta-url">
+                  Primary CTA URL (optional)
+                </label>
+                <input
+                  id="hero-cta-url"
+                  type="url"
+                  value={hero.cta_url ?? ''}
+                  onChange={(e) => { setCtaError(null); updateHero({ cta_url: e.target.value }); }}
+                  className="admin-input w-full px-3 py-2"
+                  placeholder="https://... or /booking"
+                />
+              </div>
             </div>
           </div>
 

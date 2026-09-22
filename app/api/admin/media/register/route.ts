@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
+import { orientationFromDimensions } from '@/lib/media/types';
 
 interface SupabaseRegisterFile {
   storage_path: string;
@@ -7,6 +8,8 @@ interface SupabaseRegisterFile {
   name?: string;
   mimeType?: string;
   size?: number;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -48,6 +51,8 @@ export async function POST(request: NextRequest) {
         name: f.name ?? f.originalFilename ?? null,
         mimeType: f.mimeType ?? f.mime_type ?? null,
         size: f.size ?? f.size_bytes ?? null,
+        width: typeof f.width === 'number' ? f.width : undefined,
+        height: typeof f.height === 'number' ? f.height : undefined,
       });
     }
 
@@ -73,6 +78,13 @@ export async function POST(request: NextRequest) {
         name: f.name ?? null,
         mime_type: f.mimeType ?? null,
         size_bytes: f.size ?? null,
+        width: f.width ?? null,
+        height: f.height ?? null,
+        orientation: orientationFromDimensions(f.width, f.height),
+        usage_type: 'public',
+        is_archived: false,
+        is_featured: false,
+        tags: [] as string[],
         updated_at: new Date().toISOString(),
       };
 
@@ -84,9 +96,10 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (existing?.id) {
+        const { usage_type: _usage, is_archived: _archived, is_featured: _featured, tags: _tags, ...refresh } = row;
         const { data: updated, error } = await supabase
           .from('external_media_assets')
-          .update(row)
+          .update(refresh)
           .eq('id', existing.id)
           .select()
           .single();

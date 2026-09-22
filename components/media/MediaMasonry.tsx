@@ -43,6 +43,7 @@ export function MediaMasonry({ items, columns = 4 }: MediaMasonryProps) {
             key={item.id}
             type="button"
             onClick={() => setOpenIndex(i)}
+            aria-label={item.caption?.trim() || (item.mediaType === 'video' ? 'Play video' : 'View image')}
             className="mb-4 block w-full break-inside-avoid overflow-hidden rounded-xl bg-[var(--bg-secondary)] border border-[var(--accent)]/10 group relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
           >
             {item.mediaType === 'video' ? (

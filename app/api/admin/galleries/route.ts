@@ -11,6 +11,15 @@ function slugify(text: string): string {
     .replace(/-+/g, '-');
 }
 
+function revalidateCollectionPaths(slug?: string | null) {
+  revalidatePath('/media');
+  revalidatePath('/collections');
+  if (slug) {
+    revalidatePath(`/collections/${slug}`);
+    revalidatePath(`/media/galleries/${slug}`);
+  }
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
@@ -18,16 +27,31 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, description, cover_image_url, cover_external_asset_id, cover_url, display_order, clear_cover, status: statusInput } = body;
+    const {
+      id,
+      name,
+      description,
+      cover_image_url,
+      cover_external_asset_id,
+      cover_url,
+      display_order,
+      clear_cover,
+      status: statusInput,
+      is_featured: featuredInput,
+      theme: themeInput,
+    } = body;
 
     if (id) {
       const updates: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
       if (name != null) updates.name = name;
-      if (description != null) updates.description = description;
-      const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
-      (updates as Record<string, unknown>).status = status;
+      if (description !== undefined) updates.description = description;
+      if (statusInput === 'draft' || statusInput === 'archived' || statusInput === 'published') {
+        updates.status = statusInput;
+      }
+      if (typeof featuredInput === 'boolean') updates.is_featured = featuredInput;
+      if (themeInput !== undefined) updates.theme = typeof themeInput === 'string' ? themeInput.trim() || null : null;
       if (clear_cover === true) {
         updates.cover_image_url = null;
         updates.external_cover_asset_id = null;
@@ -48,13 +72,20 @@ export async function POST(request: NextRequest) {
         console.error('Admin galleries update error:', error);
         return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
-      revalidatePath('/media');
+      revalidateCollectionPaths(data?.slug);
       return NextResponse.json({ gallery: data });
     }
 
     const slug = slugify(name || 'gallery') || `gallery-${Date.now()}`;
     const { data: existing } = await supabase.from('galleries').select('id').eq('slug', slug).maybeSingle();
     const finalSlug = existing ? `${slug}-${Date.now().toString(36).slice(-6)}` : slug;
+
+    const { data: maxOrder } = await supabase
+      .from('galleries')
+      .select('display_order')
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const { data, error } = await supabase
       .from('galleries')
@@ -64,8 +95,10 @@ export async function POST(request: NextRequest) {
         description: description ?? null,
         cover_image_url: cover_url ?? cover_image_url ?? null,
         external_cover_asset_id: cover_external_asset_id ?? null,
-        display_order: display_order ?? 0,
-        status: statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published',
+        display_order: display_order ?? (maxOrder?.display_order ?? -1) + 1,
+        status: statusInput === 'published' || statusInput === 'archived' ? statusInput : 'draft',
+        is_featured: featuredInput === true,
+        theme: typeof themeInput === 'string' ? themeInput.trim() || null : null,
       })
       .select()
       .single();
@@ -73,7 +106,7 @@ export async function POST(request: NextRequest) {
       console.error('Admin galleries insert error:', error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
-    revalidatePath('/media');
+    revalidateCollectionPaths(data?.slug);
     return NextResponse.json({ gallery: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
@@ -89,14 +122,28 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { swap } = body as { swap?: [{ id: string; display_order: number }, { id: string; display_order: number }] };
+    const { swap, items } = body as {
+      swap?: [{ id: string; display_order: number }, { id: string; display_order: number }];
+      items?: { id: string; display_order: number }[];
+    };
+    if (Array.isArray(items) && items.length > 0) {
+      for (const item of items) {
+        await supabase
+          .from('galleries')
+          .update({ display_order: item.display_order, updated_at: new Date().toISOString() })
+          .eq('id', item.id);
+      }
+      revalidateCollectionPaths();
+      return NextResponse.json({ ok: true });
+    }
     if (!Array.isArray(swap) || swap.length !== 2) {
       return NextResponse.json({ error: 'swap array with 2 items required' }, { status: 400 });
     }
+
     const [a, b] = swap;
     await supabase.from('galleries').update({ display_order: b.display_order, updated_at: new Date().toISOString() }).eq('id', a.id);
     await supabase.from('galleries').update({ display_order: a.display_order, updated_at: new Date().toISOString() }).eq('id', b.id);
-    revalidatePath('/media');
+    revalidateCollectionPaths();
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
@@ -119,7 +166,7 @@ export async function DELETE(request: NextRequest) {
       console.error('Admin galleries DELETE error:', error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
-    revalidatePath('/media');
+    revalidateCollectionPaths();
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';

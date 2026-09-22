@@ -5,6 +5,9 @@
 
 export const SITE_NAME = 'Divine Timing';
 
+/** Brand tagline already used as the default meta description. Do not invent alternatives. */
+export const SITE_TAGLINE = 'Live, evolving, in motion.';
+
 export const BASE_URL =
   typeof process.env.NEXT_PUBLIC_SITE_URL === 'string' &&
   process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')

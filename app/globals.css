@@ -50,6 +50,28 @@ html {
   overflow-x: clip;
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 0.75rem;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-button);
+  font-family: var(--font-ui);
+  font-size: var(--text-button);
+  font-weight: 600;
+  transform: translateY(-160%);
+  transition: transform 0.2s var(--ease-standard);
+}
+.skip-link:focus {
+  transform: translateY(0);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -274,6 +296,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {
@@ -377,6 +402,106 @@ body {
     transparent 100%
   );
   box-shadow: 0 0 20px rgba(198, 167, 94, 0.06);
+}
+
+/* ——— Tribal spiral (necklace sub-logo) ——— */
+.spiral-mark {
+  color: var(--accent);
+  display: block;
+}
+.spiral-mark__glow {
+  opacity: 0.12;
+  filter: blur(10px);
+}
+
+.spiral-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  color: var(--accent);
+}
+.spiral-loader__svg {
+  display: block;
+  overflow: visible;
+}
+.spiral-loader__halo {
+  fill: var(--accent);
+  opacity: 0.1;
+  filter: blur(12px);
+}
+.spiral-loader__track {
+  stroke: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.spiral-loader__path {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+.spiral-loader__caption {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Draw: path fills from the centre outward */
+.spiral-loader--draw .spiral-loader__path,
+.spiral-loader--both .spiral-loader__path {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: spiral-draw 1.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.spiral-loader--spin .spiral-loader__svg,
+.spiral-loader--both .spiral-loader__svg {
+  animation: spiral-spin 4.5s linear infinite;
+}
+.spiral-loader--both .spiral-loader__svg {
+  animation-delay: 1.55s;
+  animation-fill-mode: both;
+}
+
+@keyframes spiral-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes spiral-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spiral-buffer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(11, 11, 12, 0.35) 0%, transparent 65%);
+  transition: opacity 0.25s ease;
+}
+.spiral-buffer[data-visible='false'] {
+  opacity: 0;
+}
+.spiral-buffer[data-visible='true'] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spiral-loader--draw .spiral-loader__path,
+  .spiral-loader--both .spiral-loader__path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .spiral-loader--spin .spiral-loader__svg,
+  .spiral-loader--both .spiral-loader__svg {
+    animation: none;
+  }
 }
 
 /* Typography utility classes (use design tokens) — Phase 11 design system lock */
@@ -585,6 +710,7 @@ body {
   transform: translateX(-50%);
 }
 .nav-link-underline:hover::after,
+.nav-link-underline:focus-visible::after,
 .nav-link-underline.text-accent-active::after {
   width: 100%;
 }

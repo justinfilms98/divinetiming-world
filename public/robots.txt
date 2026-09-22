@@ -7,3 +7,5 @@ Disallow: /admin/
 Disallow: /api
 Disallow: /api/
 Disallow: /login
+
+Sitemap: https://divinetiming.world/sitemap.xml

@@ -7,14 +7,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getPlatformLinks, PlatformIcon } from '@/lib/platformLinks';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 import { useScrollLock } from '@/lib/ui/useScrollLock';
+import { SpiralMark } from '@/components/brand/SpiralMark';
 import type { SiteSettings } from '@/lib/types/content';
 
+// Order follows the brief's primary IA: Music, Live, Story, Media, Shop, Book.
 const navItems = [
   { label: 'MUSIC', href: '/music' },
   { label: 'EVENTS', href: '/events' },
+  { label: 'JOURNEY', href: '/journey' },
   { label: 'MEDIA', href: '/media' },
   { label: 'SHOP', href: '/shop' },
-  { label: 'JOURNEY', href: '/journey' },
+  { label: 'BOOK', href: '/booking' },
 ];
 
 /** Desktop nav splits around the centre logo; derived so adding a link rebalances. */
@@ -76,7 +79,13 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
             {navItems.slice(0, NAV_SPLIT).map((item) => {
               const isActive = pathname === item.href;
               return (
-                <Link key={item.href} href={item.href} className={linkClass(isActive)} style={{ transition: NAV_TRANSITION }}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${linkClass(isActive)} focus-ring rounded-sm`}
+                  style={{ transition: NAV_TRANSITION }}
+                  aria-current={isActive ? 'page' : undefined}
+                >
                   {item.label}
                 </Link>
               );
@@ -86,10 +95,14 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           {/* Logo — centered on mobile via grid, centered on desktop via flex */}
           <Link
             href="/"
-            className="justify-self-center md:static text-base md:text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center"
+            className="justify-self-center md:static inline-flex items-center gap-1.5 text-base md:text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm"
             style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
+            aria-label="DIVINE:TIMING home"
+            aria-current={pathname === '/' ? 'page' : undefined}
           >
-            DIVINE:TIMING
+            <span>DIVINE</span>
+            <SpiralMark size={14} className="shrink-0 text-[var(--accent)]" />
+            <span>TIMING</span>
           </Link>
 
           {/* Desktop: right nav links */}
@@ -97,7 +110,13 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
             {navItems.slice(NAV_SPLIT).map((item) => {
               const isActive = pathname === item.href;
               return (
-                <Link key={item.href} href={item.href} className={linkClass(isActive)} style={{ transition: NAV_TRANSITION }}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${linkClass(isActive)} focus-ring rounded-sm`}
+                  style={{ transition: NAV_TRANSITION }}
+                  aria-current={isActive ? 'page' : undefined}
+                >
                   {item.label}
                 </Link>
               );
@@ -112,6 +131,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
             style={{ transition: NAV_TRANSITION }}
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-nav-menu"
           >
             <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.25}>
               {isMobileMenuOpen ? (
@@ -141,6 +161,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
             />
             <motion.div
               ref={panelRef}
+              id="mobile-nav-menu"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
@@ -181,8 +202,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                   <Link
                     href="/"
                     onClick={closeMenu}
-                    className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${pathname === '/' ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
+                    className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors focus-ring ${pathname === '/' ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
                     style={{ fontFamily: 'var(--font-ui)' }}
+                    aria-current={pathname === '/' ? 'page' : undefined}
                   >
                     Home
                   </Link>
@@ -193,8 +215,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                         key={item.href}
                         href={item.href}
                         onClick={closeMenu}
-                        className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${isActive ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
+                        className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors focus-ring ${isActive ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
                         style={{ fontFamily: 'var(--font-ui)' }}
+                        aria-current={isActive ? 'page' : undefined}
                       >
                         {item.label}
                       </Link>
@@ -203,8 +226,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                   <Link
                     href="/contact"
                     onClick={closeMenu}
-                    className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors ${pathname === '/contact' ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
+                    className={`py-3.5 px-3 rounded-lg text-base font-semibold tracking-[var(--letter-spacing-nav)] uppercase transition-colors focus-ring ${pathname === '/contact' ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text)] hover:text-[var(--accent)] hover:bg-[var(--bg-secondary)]/80'}`}
                     style={{ fontFamily: 'var(--font-ui)' }}
+                    aria-current={pathname === '/contact' ? 'page' : undefined}
                   >
                     Contact
                   </Link>

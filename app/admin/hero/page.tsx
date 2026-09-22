@@ -1,14 +1,13 @@
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { DashboardHeroEditor } from '@/components/admin/DashboardHeroEditor';
 
 export default function AdminHeroPage() {
   return (
-    <div className="space-y-8">
-      <AdminPageHeader
-        title="Hero"
-        description="Edit hero media, carousel slots, and copy for each public page."
-      />
+    <AdminPage
+      title="Homepage Hero"
+      subtitle="Edit media, overlay, and copy for each public page. Home uses carousel slots; other pages use a single hero."
+    >
       <DashboardHeroEditor />
-    </div>
+    </AdminPage>
   );
 }

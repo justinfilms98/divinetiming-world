@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { SpiralLoader } from '@/components/brand/SpiralLoader';
 
 interface MediaAssetRendererProps {
   url: string | null;
@@ -28,6 +29,7 @@ interface MediaAssetRendererProps {
 function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, url: string | null) {
   const [playing, setPlaying] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
+  const [buffering, setBuffering] = useState(true);
 
   const attemptPlay = useCallback(() => {
     const v = videoRef.current;
@@ -40,13 +42,17 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     v.setAttribute('x5-playsinline', '');
     const p = v.play();
     if (p && typeof p.catch === 'function') {
-      p.catch(() => setNeedsTap(true));
+      p.catch(() => {
+        setNeedsTap(true);
+        setBuffering(false);
+      });
     }
   }, [videoRef, url]);
 
   useEffect(() => {
     setPlaying(false);
     setNeedsTap(false);
+    setBuffering(true);
   }, [url]);
 
   useEffect(() => {
@@ -55,25 +61,38 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     attemptPlay();
     const raf = requestAnimationFrame(() => attemptPlay());
     const timer = window.setTimeout(() => {
-      if (v.paused && !v.ended) setNeedsTap(true);
+      if (v.paused && !v.ended) {
+        setNeedsTap(true);
+        setBuffering(false);
+      }
     }, 1200);
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
     };
-  }, [url, attemptPlay]);
+  }, [url, attemptPlay, videoRef]);
 
   const onPlaying = useCallback(() => {
     setPlaying(true);
     setNeedsTap(false);
+    setBuffering(false);
   }, []);
+
+  const onWaiting = useCallback(() => {
+    setBuffering(true);
+  }, []);
+
+  const onCanPlay = useCallback(() => {
+    setBuffering(false);
+    attemptPlay();
+  }, [attemptPlay]);
 
   const onTapPlay = useCallback(() => {
     attemptPlay();
     setNeedsTap(false);
   }, [attemptPlay]);
 
-  return { playing, needsTap, attemptPlay, onPlaying, onTapPlay };
+  return { playing, needsTap, buffering, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay };
 }
 
 interface HeroAutoplayVideoProps {
@@ -86,6 +105,51 @@ interface HeroAutoplayVideoProps {
   onError?: () => void;
 }
 
+function BufferedVideo({
+  url,
+  posterUrl,
+  className = '',
+  fill = false,
+  objectFit = 'cover',
+  onError,
+}: {
+  url: string;
+  posterUrl?: string | null;
+  className?: string;
+  fill?: boolean;
+  objectFit?: 'cover' | 'contain';
+  onError?: () => void;
+}) {
+  const [buffering, setBuffering] = useState(true);
+
+  return (
+    <div className={fill ? 'absolute inset-0' : 'relative w-full h-full'}>
+      {/* key forces a fresh element when the URL changes (HTMLMediaElement quirk). */}
+      <video
+        key={url}
+        src={url}
+        controls
+        playsInline
+        preload="metadata"
+        poster={posterUrl ?? undefined}
+        className={`w-full h-full ${className}`}
+        style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
+        onError={onError}
+        onWaiting={() => setBuffering(true)}
+        onPlaying={() => setBuffering(false)}
+        onCanPlay={() => setBuffering(false)}
+        onLoadedData={() => setBuffering(false)}
+      >
+        <source src={url} type="video/mp4" />
+        <source src={url} type="video/webm" />
+      </video>
+      <div className="spiral-buffer" data-visible={buffering ? 'true' : 'false'}>
+        <SpiralLoader size="md" variant="spin" label="Buffering video" />
+      </div>
+    </div>
+  );
+}
+
 function HeroAutoplayVideo({
   url,
   posterUrl = null,
@@ -96,7 +160,8 @@ function HeroAutoplayVideo({
   onError,
 }: HeroAutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { playing, needsTap, attemptPlay, onPlaying, onTapPlay } = useMutedAutoplay(videoRef, url);
+  const { playing, needsTap, buffering, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
+    useMutedAutoplay(videoRef, url);
 
   return (
     <div className={fill ? 'absolute inset-0' : 'relative w-full h-full'}>
@@ -120,9 +185,10 @@ function HeroAutoplayVideo({
         onError={onError}
         onLoadedMetadata={attemptPlay}
         onLoadedData={attemptPlay}
-        onCanPlay={attemptPlay}
-        onCanPlayThrough={attemptPlay}
+        onCanPlay={onCanPlay}
+        onCanPlayThrough={onCanPlay}
         onPlaying={onPlaying}
+        onWaiting={onWaiting}
       >
         <source src={url} type="video/mp4" />
         <source src={url} type="video/webm" />
@@ -135,6 +201,9 @@ function HeroAutoplayVideo({
           className={`pointer-events-none z-[1] w-full h-full object-cover ${fill ? 'absolute inset-0' : ''}`}
         />
       )}
+      <div className="spiral-buffer" data-visible={buffering && !needsTap ? 'true' : 'false'}>
+        <SpiralLoader size="md" variant="spin" label="Buffering video" />
+      </div>
       {needsTap && (
         <button
           type="button"
@@ -253,23 +322,15 @@ export function MediaAssetRenderer({
       );
     }
     if (controls) {
-      // `key={url}` forces React to mount a fresh <video> element when the URL
-      // changes — without it, browsers do not reload the source on src change
-      // (a known HTMLMediaElement quirk).
       return (
-        <video
-          key={url}
-          src={url}
-          controls
-          playsInline
-          preload="metadata"
-          className={`w-full h-full ${className}`}
-          style={fill ? { position: 'absolute', inset: 0, objectFit } : undefined}
+        <BufferedVideo
+          url={url}
+          posterUrl={posterUrl}
+          className={className}
+          fill={fill}
+          objectFit={objectFit}
           onError={handleError}
-        >
-          <source src={url} type="video/mp4" />
-          <source src={url} type="video/webm" />
-        </video>
+        />
       );
     }
     return (

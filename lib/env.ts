@@ -7,7 +7,8 @@ import 'server-only';
 
 /** User-facing messages when env is missing or a feature is unavailable. Never expose stack or vendor errors. */
 export const ENV_ERROR_MESSAGES = {
-  checkoutUnavailable: 'Checkout is temporarily unavailable. Please try again later or contact us.',
+  checkoutUnavailable:
+    'Checkout is not enabled yet. You can still browse and add items to your cart — payments will open once Stripe is connected.',
   supabaseUnavailable: 'Service temporarily unavailable.',
   stripeUnavailable: 'Payment service is temporarily unavailable.',
   unauthorized: 'Unauthorized',

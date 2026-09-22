@@ -7,7 +7,7 @@ import { useScrollLock } from '@/lib/ui/useScrollLock';
 
 /** Safe embed URL: 11-char ID only. No autoplay with sound (autoplay=0, user taps to play). */
 function embedUrl(youtubeId: string): string {
-  return `https://www.youtube.com/embed/${youtubeId}?modestbranding=1&rel=0&autoplay=0`;
+  return `https://www.youtube.com/embed/${youtubeId}?modestbranding=1&rel=0&autoplay=0&cc_load_policy=1`;
 }
 
 interface VideoPlayerModalProps {

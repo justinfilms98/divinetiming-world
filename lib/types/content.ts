@@ -126,13 +126,65 @@ export interface Release {
   resolved_cover_url?: string | null;
 }
 
+/** Closed set from migration 043. Null on events booked before the field existed. */
+export type EventType = 'festival' | 'club' | 'private' | 'curated' | 'residency';
+
+/**
+ * Ticketing lifecycle from migration 043. Drives the public CTA: only 'on_sale'
+ * (or 'announced' with a ticket URL) shows a live ticket button.
+ */
+export type EventBookingStatus = 'announced' | 'on_sale' | 'sold_out' | 'cancelled';
+
+export const EVENT_TYPES: readonly EventType[] = [
+  'festival',
+  'club',
+  'private',
+  'curated',
+  'residency',
+];
+
+export const EVENT_BOOKING_STATUSES: readonly EventBookingStatus[] = [
+  'announced',
+  'on_sale',
+  'sold_out',
+  'cancelled',
+];
+
+/** Human labels for the closed sets above. Used by admin selects and public badges. */
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  festival: 'Festival',
+  club: 'Club',
+  private: 'Private',
+  curated: 'Curated',
+  residency: 'Residency',
+};
+
+export const EVENT_BOOKING_STATUS_LABELS: Record<EventBookingStatus, string> = {
+  announced: 'Announced',
+  on_sale: 'On sale',
+  sold_out: 'Sold out',
+  cancelled: 'Cancelled',
+};
+
 export interface Event {
   id: string;
   slug?: string | null;
   date: string;
   city: string;
+  /** Added in 043. Null on events created before the field existed. */
+  country?: string | null;
   venue: string;
+  /** Added in 043: official venue/promoter page. */
+  venue_url?: string | null;
   ticket_url: string | null;
+  /** Added in 043. Null means the type was never recorded — render nothing. */
+  event_type?: EventType | null;
+  /** Added in 043. Defaults to 'announced' for pre-existing rows. */
+  booking_status?: EventBookingStatus | null;
+  /** Added in 043: photo set from the night (past-event proof). */
+  gallery_url?: string | null;
+  /** Added in 043: recap/aftermovie video (past-event proof). */
+  recap_video_url?: string | null;
   is_featured: boolean;
   title: string | null;
   description: string | null;
@@ -174,6 +226,10 @@ export interface Gallery {
   created_at: string;
   updated_at: string;
   external_cover_asset_id?: string | null;
+  /** Featured stories lead the public Collections hub. */
+  is_featured?: boolean;
+  /** Optional chapter/theme label. Artist-authored; never invented. */
+  theme?: string | null;
   /** Set by content layer when resolving cover (URL or external asset). */
   resolved_cover_url?: string | null;
 }
@@ -209,7 +265,13 @@ export interface ProductVariant {
   id: string;
   name: string;
   price_cents: number | null;
-  inventory_count: number;
+  inventory_count: number | null;
+  sku?: string | null;
+  size?: string | null;
+  color?: string | null;
+  shipping_weight_grams?: number | null;
+  track_inventory?: boolean | null;
+  stripe_price_id?: string | null;
 }
 
 export interface Product {
@@ -227,6 +289,17 @@ export interface Product {
   /** draft = hidden from shop; published = visible; archived = hidden. */
   status?: ContentStatus;
   stripe_product_id: string | null;
+  /** Existing Stripe Price ID for products sold without a variant. */
+  stripe_price_id?: string | null;
+  sku?: string | null;
+  category?: string | null;
+  shipping_weight_grams?: number | null;
+  is_preorder?: boolean | null;
+  preorder_ships_at?: string | null;
+  sale_starts_at?: string | null;
+  sale_ends_at?: string | null;
+  track_inventory?: boolean | null;
+  inventory_count?: number | null;
   display_order: number;
   created_at: string;
   updated_at: string;
@@ -275,6 +348,37 @@ export interface AboutTimelineItem {
   updated_at: string;
 }
 
+export type JourneyBlockStatus = 'draft' | 'published';
+export type JourneyBlockAlign = 'left' | 'right' | 'center';
+
+/** Public /journey chapter. Drafts never reach getJourneyBlocks(). */
+export interface JourneyBlock {
+  id: string;
+  title: string | null;
+  era_label: string | null;
+  body: string | null;
+  image_url: string | null;
+  resolved_image_url: string | null;
+  align: JourneyBlockAlign;
+  display_order: number;
+  status: JourneyBlockStatus;
+}
+
+export type LegalPolicySlug = 'privacy' | 'terms' | 'refund' | 'shipping';
+
+export type LegalPolicyStatus = 'draft' | 'published';
+
+/** Public legal document. Drafts never reach the public fetchers. */
+export interface LegalPolicy {
+  slug: LegalPolicySlug;
+  title: string;
+  body_md: string;
+  updated_at: string;
+  status: LegalPolicyStatus;
+  /** Independent of updated_at — a typo fix must not move the legal date. */
+  effective_date: string | null;
+}
+
 export interface SiteSettings {
   id: string;
   artist_name: string;
@@ -288,6 +392,68 @@ export interface SiteSettings {
   apple_music_url: string | null;
   booking_phone: string | null;
   booking_email: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PresskitAssetKind = 'photo' | 'logo';
+
+export interface PressKit {
+  id: string;
+  title: string;
+  bio_text: string;
+  short_bio: string | null;
+  long_bio: string | null;
+  experience_text: string;
+  audience_text: string | null;
+  links_text: string | null;
+  tech_rider_text: string | null;
+  tech_rider_url: string | null;
+  hospitality_rider_text: string | null;
+  hospitality_rider_url: string | null;
+  performance_reel_url: string | null;
+  booking_contact_name: string | null;
+  booking_contact_email: string | null;
+  booking_contact_phone: string | null;
+  /** One-sheet / downloadable press PDF. URL only — never a generated binary. */
+  pdf_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PresskitAsset {
+  id: string;
+  kind: PresskitAssetKind;
+  external_media_asset_id: string | null;
+  url: string | null;
+  caption: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  resolved_url?: string | null;
+}
+
+export interface PressRelease {
+  id: string;
+  title: string;
+  slug: string;
+  body_md: string | null;
+  published_at: string | null;
+  external_url: string | null;
+  status: 'draft' | 'published';
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PresskitPerformance {
+  id: string;
+  label: string;
+  venue: string | null;
+  city: string | null;
+  country: string | null;
+  year: number | null;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }

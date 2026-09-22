@@ -77,7 +77,7 @@ export function UnifiedHero({
   // only their opacity is toggled, so each video is already playing in the
   // background when its layer becomes active — no black flash possible.
   useEffect(() => {
-    if (allSlides.length <= 1) return;
+    if (allSlides.length <= 1 || reducedMotion) return;
     const tick = setTimeout(() => {
       setFlare(true);
       setActiveIndex((prev) => (prev + 1) % allSlides.length);
@@ -85,7 +85,7 @@ export function UnifiedHero({
       return () => clearTimeout(clean);
     }, HOLD_MS);
     return () => clearTimeout(tick);
-  }, [activeIndex, allSlides.length]);
+  }, [activeIndex, allSlides.length, reducedMotion]);
 
   const goToSlide = (target: number) => {
     if (target === activeIndex) return;
@@ -94,7 +94,7 @@ export function UnifiedHero({
     setTimeout(() => setFlare(false), CROSSFADE_MS);
   };
 
-  const renderSlide = (slide: typeof allSlides[number] | undefined) => {
+  const renderSlide = (slide: typeof allSlides[number] | undefined, slideIndex = 0) => {
     if (!slide?.mediaUrl) return null;
     const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
     return (
@@ -103,7 +103,7 @@ export function UnifiedHero({
         mediaType={t}
         poster={slide.posterUrl ?? posterUrl ?? null}
         fallback={HeroEclipseFallback}
-        priority
+        priority={slideIndex === 0}
         sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
       />
     );
@@ -134,7 +134,7 @@ export function UnifiedHero({
                 willChange: 'opacity',
               }}
             >
-              {renderSlide(allSlides[activeIndex])}
+              {renderSlide(allSlides[activeIndex], activeIndex)}
             </div>
           ) : (
             allSlides.map((slide, idx) => {
@@ -151,7 +151,7 @@ export function UnifiedHero({
                     willChange: 'opacity',
                   }}
                 >
-                  {renderSlide(slide)}
+                  {renderSlide(slide, idx)}
                 </div>
               );
             })
@@ -241,11 +241,13 @@ export function UnifiedHero({
               {allSlides.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => goToSlide(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                  className={`h-1.5 rounded-full transition-all duration-300 focus-ring ${
                     i === activeIndex ? 'bg-[#C6A75E] w-4' : 'bg-white/40 w-1.5'
                   }`}
                   aria-label={`Go to slide ${i + 1}`}
+                  aria-current={i === activeIndex ? 'true' : undefined}
                 />
               ))}
             </div>

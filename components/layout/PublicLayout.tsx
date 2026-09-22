@@ -28,6 +28,9 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
     <CartProvider>
       <OverflowDebug />
       <SpaceBackdrop />
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <CornerNav siteSettings={siteSettings} />
       <PublicNavSpacer />
       <div
@@ -36,7 +39,9 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
           minHeight: 'calc(100dvh - var(--public-nav-height) - env(safe-area-inset-top, 0px))',
         }}
       >
-        <PageTransition className="flex flex-col min-h-0">{children}</PageTransition>
+        <main id="main-content" tabIndex={-1} className="flex flex-col min-h-0 flex-1 outline-none">
+          <PageTransition className="flex flex-col min-h-0">{children}</PageTransition>
+        </main>
         <Footer siteSettings={siteSettings} className="mt-auto shrink-0" />
       </div>
       <CartTrigger />

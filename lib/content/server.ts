@@ -29,10 +29,18 @@ import type {
   AboutContent,
   AboutPhoto,
   AboutTimelineItem,
+  JourneyBlock,
   SiteSettings,
   Release,
+  LegalPolicy,
+  LegalPolicySlug,
+  PressKit,
+  PresskitAsset,
+  PressRelease,
+  PresskitPerformance,
 } from '@/lib/types/content';
 import type { MediaPageVideo, GalleryForHub } from '@/lib/content/shared';
+import { sortCollectionStories } from '@/lib/content/shared';
 
 export type { PageSettings, HeroSection, HeroCarouselSlide, Event, Gallery, GalleryMedia, Product, MediaPageVideo, GalleryForHub, Release };
 
@@ -197,6 +205,28 @@ export async function getEvents(options?: { upcomingOnly?: boolean }): Promise<E
   return withResolvedThumbnails(events);
 }
 
+/**
+ * Powers /events. `getEvents` orders by display_order (homepage curation), which
+ * makes chronology unreadable once there are more than a handful of dates, so
+ * each half is re-sorted here: upcoming soonest-first, past most-recent-first.
+ * Cancelled dates stay in the upcoming list rather than vanishing — a date the
+ * audience already saw announced needs to be visibly cancelled, not missing.
+ */
+export async function getEventsSplitByDate(): Promise<{ upcoming: Event[]; past: Event[] }> {
+  const events = await getEvents();
+  const now = Date.now();
+  const time = (e: Event) => new Date(e.date).getTime();
+
+  const upcoming = events
+    .filter((e) => time(e) >= now)
+    .sort((a, b) => time(a) - time(b) || a.display_order - b.display_order);
+  const past = events
+    .filter((e) => time(e) < now)
+    .sort((a, b) => time(b) - time(a));
+
+  return { upcoming, past };
+}
+
 export async function getGalleries(): Promise<Gallery[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -220,60 +250,60 @@ export async function getGalleryMedia(galleryId: string): Promise<GalleryMedia[]
   return (data || []) as GalleryMedia[];
 }
 
-/** Public: ordered journey blocks for the /journey page. Returns [] gracefully if the table is missing. */
-export async function getJourneyBlocks(): Promise<
-  Array<{
-    id: string;
-    title: string | null;
-    body: string | null;
-    image_url: string | null;
-    resolved_image_url: string | null;
-    align: 'left' | 'right' | 'center';
-    display_order: number;
-  }>
-> {
+/** Public: published journey chapters for /journey. Returns [] if the table is missing. */
+export async function getJourneyBlocks(): Promise<JourneyBlock[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('journey_blocks')
     .select('*, external_image_asset:external_media_assets(id, preview_url)')
+    .eq('status', 'published')
     .order('display_order', { ascending: true });
   if (error || !data) return [];
   type Row = {
     id: string;
     title: string | null;
+    era_label?: string | null;
     body: string | null;
     image_url: string | null;
     external_image_asset_id?: string | null;
-    align: 'left' | 'right' | 'center';
+    align: JourneyBlock['align'];
     display_order: number;
+    status?: JourneyBlock['status'] | null;
     external_image_asset?: { id: string; preview_url: string | null } | null;
   };
-  return (data as Row[]).map((row) => ({
+  const rows = data as Row[];
+  const withStatus = rows.some((r) => r.status != null);
+  const visible = withStatus ? rows.filter((r) => r.status === 'published') : rows;
+  return visible.map((row) => ({
     id: row.id,
     title: row.title,
+    era_label: row.era_label ?? null,
     body: row.body,
     image_url: row.image_url,
     resolved_image_url: row.external_image_asset?.preview_url ?? row.image_url ?? null,
     align: row.align ?? 'left',
     display_order: row.display_order ?? 0,
+    status: row.status === 'published' ? 'published' : 'draft',
   }));
 }
 
-/** Public: a single legal policy by slug. */
-export async function getLegalPolicy(slug: 'privacy' | 'terms' | 'refund' | 'shipping'): Promise<{
-  slug: string;
-  title: string;
-  body_md: string;
-  updated_at: string;
-} | null> {
+/**
+ * Public: a single published legal policy by slug.
+ * RLS already hides drafts from anon; the status filter makes that contract
+ * explicit so a public page 404s instead of rendering unreviewed copy.
+ */
+export async function getLegalPolicy(slug: LegalPolicySlug): Promise<LegalPolicy | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('legal_policies')
-    .select('*')
+    .select('slug, title, body_md, updated_at, status, effective_date')
     .eq('slug', slug)
+    .eq('status', 'published')
     .maybeSingle();
   if (error || !data) return null;
-  return data as { slug: string; title: string; body_md: string; updated_at: string };
+  const row = data as LegalPolicy;
+  if (row.status !== 'published') return null;
+  return row;
 }
 
 export async function getMediaCarouselSlides(): Promise<
@@ -315,8 +345,9 @@ export async function getGalleriesForHub(): Promise<GalleryForHub[]> {
       return { ...g, resolved_cover_url, media_count };
     })
   );
-  // Only show collections that have at least one media item (deliberate empty-state choice)
-  return withResolved.filter((g) => (g as { media_count: number }).media_count > 0);
+  // Unpublished and empty stories stay off the public hub.
+  const visible = withResolved.filter((g) => (g as { media_count: number }).media_count > 0);
+  return sortCollectionStories(visible);
 }
 
 export async function getGalleriesWithMedia(): Promise<(Gallery & { gallery_media: GalleryMedia[] })[]> {
@@ -382,7 +413,10 @@ export async function getGalleryBySlug(
     })
   );
 
-  return { ...g, resolved_cover_url, gallery_media: resolvedMedia };
+  const visibleMedia = resolvedMedia.filter((m) => m.resolved_url);
+  if (visibleMedia.length === 0) return null;
+
+  return { ...g, resolved_cover_url, gallery_media: visibleMedia };
 }
 
 /** Resolve product_images so each has a displayable image_url (from image_url or external_media_asset_id). */
@@ -415,7 +449,7 @@ export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient();
   let query = supabase
     .from('products')
-    .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(id, name, price_cents, inventory_count)')
+    .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
     .order('display_order', { ascending: true });
   const { data, error } = await query;
   if (error) return [];
@@ -434,12 +468,12 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 /** Public product by slug: published only, with resolved product_images. */
-export async function getProductBySlug(slug: string): Promise<(Product & { product_variants?: { id: string; name: string; price_cents: number | null; inventory_count: number }[] }) | null> {
+export async function getProductBySlug(slug: string): Promise<(Product & { product_variants?: Product['product_variants'] }) | null> {
   const supabase = await createClient();
   const normalizedSlug = slug.trim().toLowerCase();
   const { data, error } = await supabase
     .from('products')
-    .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(id, name, price_cents, inventory_count, stripe_price_id)')
+    .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
     .eq('slug', normalizedSlug)
     .single();
   if (error || !data) return null;
@@ -448,7 +482,7 @@ export async function getProductBySlug(slug: string): Promise<(Product & { produ
   if (!('status' in p) && !p.is_active) return null;
   const raw = p.product_images ?? [];
   const resolved = await resolveProductImages(raw);
-  return { ...p, product_images: resolved.filter((r) => r.image_url) } as Product & { product_variants?: { id: string; name: string; price_cents: number | null; inventory_count: number; stripe_price_id?: string | null }[] };
+  return { ...p, product_images: resolved.filter((r) => r.image_url) } as Product;
 }
 
 export async function getBookingContent(): Promise<BookingContentSection[]> {
@@ -529,8 +563,10 @@ export async function getLibraryVideoAssets(): Promise<MediaPageVideo[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('external_media_assets')
-    .select('id, name, preview_url, thumbnail_url, mime_type')
+    .select('id, name, preview_url, thumbnail_url, mime_type, orientation')
     .eq('provider', 'supabase')
+    .eq('is_archived', false)
+    .eq('usage_type', 'public')
     .order('created_at', { ascending: false });
 
   if (error) return [];
@@ -606,6 +642,41 @@ export async function getLatestRelease(): Promise<Release | null> {
   return releases.find((r) => r.is_featured) ?? releases[0];
 }
 
+export interface PerformanceProof {
+  showCount: number;
+  cities: string[];
+  venues: string[];
+}
+
+/**
+ * Booking proof derived from the events table rather than hand-entered
+ * numbers. Brief section 9.2 requires factual, verifiable claims and section
+ * 30 forbids invented statistics, so these counts can only ever reflect
+ * events the admin actually published.
+ */
+export async function getPerformanceProof(): Promise<PerformanceProof> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select('city, venue, date, status');
+
+  if (error || !data) return { showCount: 0, cities: [], venues: [] };
+
+  const now = new Date();
+  const past = (data as { city: string | null; venue: string | null; date: string; status?: string }[])
+    .filter((e) => (e.status ? e.status === 'published' : true))
+    .filter((e) => new Date(e.date) < now);
+
+  const unique = (values: (string | null)[]) =>
+    Array.from(new Set(values.map((v) => v?.trim()).filter((v): v is string => Boolean(v)))).sort();
+
+  return {
+    showCount: past.length,
+    cities: unique(past.map((e) => e.city)),
+    venues: unique(past.map((e) => e.venue)),
+  };
+}
+
 export async function getSiteSettings(): Promise<SiteSettings | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -616,4 +687,52 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
 
   if (error || !data) return null;
   return data as SiteSettings;
+}
+
+export interface PressKitBundle {
+  kit: PressKit | null;
+  assets: PresskitAsset[];
+  releases: PressRelease[];
+  performances: PresskitPerformance[];
+}
+
+async function resolvePresskitAssets(rows: PresskitAsset[]): Promise<PresskitAsset[]> {
+  return Promise.all(
+    rows.map(async (row) => {
+      if (row.external_media_asset_id) {
+        const resolved = await resolveMediaUrl(null, row.external_media_asset_id);
+        if (resolved?.url) return { ...row, resolved_url: resolved.url };
+      }
+      const direct = row.url?.trim();
+      return { ...row, resolved_url: direct || null };
+    })
+  );
+}
+
+/** Public press kit: singleton row plus published releases and public child lists. */
+export async function getPressKitBundle(): Promise<PressKitBundle> {
+  const supabase = await createClient();
+  const [kitRes, assetsRes, releasesRes, performancesRes] = await Promise.all([
+    supabase.from('presskit').select('*').limit(1).maybeSingle(),
+    supabase.from('presskit_assets').select('*').order('display_order', { ascending: true }),
+    supabase
+      .from('press_releases')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('display_order', { ascending: true }),
+    supabase
+      .from('presskit_performances')
+      .select('*')
+      .order('display_order', { ascending: true })
+      .order('year', { ascending: false, nullsFirst: false }),
+  ]);
+
+  const assets = assetsRes.error || !assetsRes.data ? [] : await resolvePresskitAssets(assetsRes.data as PresskitAsset[]);
+  return {
+    kit: kitRes.error || !kitRes.data ? null : (kitRes.data as PressKit),
+    assets,
+    releases: releasesRes.error || !releasesRes.data ? [] : (releasesRes.data as PressRelease[]),
+    performances: performancesRes.error || !performancesRes.data ? [] : (performancesRes.data as PresskitPerformance[]),
+  };
 }

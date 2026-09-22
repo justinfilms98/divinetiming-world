@@ -1,8 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { getStripeSecretKey, ENV_ERROR_MESSAGES } from '@/lib/env';
 import { apiSuccess, apiError } from '@/lib/apiResponses';
+import { canFulfillQuantity } from '@/lib/shop/commerce';
+
+/**
+ * Stripe checkout — uses existing Price IDs on products/variants when present.
+ *
+ * STRIPE E2E STILL NEEDED BEFORE LAUNCH:
+ * A live card charge, webhook `checkout.session.completed`, order row, and
+ * inventory decrement have not been verified in this pass. Client must complete
+ * that with test-mode keys (not production) before selling real merch.
+ */
 
 type CartItem = { productId: string; variantId: string | null; quantity: number };
 
@@ -15,7 +25,7 @@ async function getOrCreateStripePrice(
   variantId: string | null
 ) {
   const priceCents = variant?.price_cents ?? product.price_cents;
-  let stripePriceId = variant?.stripe_price_id;
+  let stripePriceId = variant?.stripe_price_id || product.stripe_price_id;
 
   let stripeProductId = product.stripe_product_id;
   if (!stripeProductId) {
@@ -40,6 +50,8 @@ async function getOrCreateStripePrice(
         .from('product_variants')
         .update({ stripe_price_id: stripePriceId })
         .eq('id', variantId);
+    } else {
+      await supabase.from('products').update({ stripe_price_id: stripePriceId }).eq('id', productId);
     }
   }
 
@@ -81,6 +93,10 @@ export async function POST(request: NextRequest) {
       const variant = item.variantId
         ? product.product_variants?.find((v: any) => v.id === item.variantId)
         : null;
+
+      if (!canFulfillQuantity(product, item.variantId, item.quantity)) {
+        return apiError('That quantity is not available.', 409);
+      }
 
       const priceId = await getOrCreateStripePrice(
         supabase,

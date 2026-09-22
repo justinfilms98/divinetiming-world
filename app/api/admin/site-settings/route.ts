@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
     revalidatePath('/shop');
     revalidatePath('/booking');
     revalidatePath('/about');
+    revalidatePath('/presskit');
+    revalidatePath('/epk');
+    revalidatePath('/contact');
     return NextResponse.json({ settings: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';

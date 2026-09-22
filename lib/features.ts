@@ -16,3 +16,13 @@ function isTruthyFlag(value: string | undefined): boolean {
 export function isContentInboxEnabled(): boolean {
   return isTruthyFlag(process.env.NEXT_PUBLIC_CONTENT_INBOX_ENABLED);
 }
+
+/**
+ * Record label public presence. OFF by default so /label 404s and the
+ * footer does not mention the label. Set NEXT_PUBLIC_LABEL_PUBLIC_ENABLED=1
+ * only for a restrained coming-soon note — not a label marketing site.
+ * Catalogue rows stay hidden until status=published AND label_settings.public_enabled.
+ */
+export function isLabelPublicEnabled(): boolean {
+  return isTruthyFlag(process.env.NEXT_PUBLIC_LABEL_PUBLIC_ENABLED);
+}

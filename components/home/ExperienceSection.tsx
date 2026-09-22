@@ -38,7 +38,7 @@ export function ExperienceSection({ backgroundUrl }: ExperienceSectionProps) {
           </p>
           <div className="flex flex-wrap gap-4 mt-8">
             <SectionCta href="/events">See live dates</SectionCta>
-            <SectionCta href="/contact" variant="secondary">
+            <SectionCta href="/booking" variant="secondary">
               Book DIVINE:TIMING
             </SectionCta>
           </div>

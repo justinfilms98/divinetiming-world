@@ -126,6 +126,7 @@ export function ViewerModal({ items, currentIndex, onClose, onIndexChange }: Vie
                 alt={item.caption || 'Media'}
                 width={1200}
                 height={1200}
+                sizes="(max-width: 1200px) 100vw, 1200px"
                 className="max-w-full max-h-[80vh] w-auto h-auto object-contain"
                 placeholder="blur"
                 blurDataURL={BLUR_PLACEHOLDER}

@@ -7,8 +7,8 @@ import { getReleaseBySlug } from '@/lib/content/server';
 import { Container } from '@/components/ui/Container';
 import { Reveal } from '@/components/motion/Reveal';
 import { StreamingLinks } from '@/components/music/StreamingLinks';
-import { absoluteImageUrl, BASE_URL, SITE_NAME } from '@/lib/site';
-import type { Release } from '@/lib/types/content';
+import { breadcrumbJsonLd, releaseJsonLd } from '@/lib/seo/jsonld';
+import { absoluteImageUrl, BASE_URL, DEFAULT_OG_IMAGE, SITE_NAME } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const description =
     release.description?.slice(0, 160) ??
     `${release.title} — ${release.release_type} by ${SITE_NAME}.`;
-  const ogImage = absoluteImageUrl(release.resolved_cover_url ?? release.cover_image_url);
+  const ogImage = absoluteImageUrl(release.resolved_cover_url ?? release.cover_image_url) ?? DEFAULT_OG_IMAGE;
 
   return {
     title: release.title,
@@ -43,38 +43,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       description,
       url: path,
       type: 'music.song',
-      ...(ogImage && { images: [{ url: ogImage, width: 1200, height: 630, alt: release.title }] }),
+      images: [{ url: ogImage, width: 1200, height: 630, alt: release.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${release.title} | ${SITE_NAME}`,
       description,
-      ...(ogImage && { images: [ogImage] }),
+      images: [ogImage],
     },
-  };
-}
-
-/** Albums and EPs are MusicAlbum; everything else is a MusicRecording. */
-function releaseJsonLd(release: Release, cover: string | null) {
-  const isAlbum = release.release_type === 'album' || release.release_type === 'ep';
-  const sameAs = [
-    release.spotify_url,
-    release.apple_music_url,
-    release.youtube_url,
-    release.soundcloud_url,
-    release.beatport_url,
-  ].filter(Boolean);
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': isAlbum ? 'MusicAlbum' : 'MusicRecording',
-    name: release.title,
-    url: `${BASE_URL}/music/${release.slug}`,
-    ...(cover && { image: cover }),
-    ...(release.release_date && { datePublished: release.release_date }),
-    ...(release.description && { description: release.description }),
-    byArtist: { '@type': 'MusicGroup', name: SITE_NAME, url: BASE_URL },
-    ...(sameAs.length > 0 && { sameAs }),
   };
 }
 
@@ -86,13 +62,41 @@ export default async function ReleaseDetailPage({ params }: Params) {
   const cover = release.resolved_cover_url ?? release.cover_image_url ?? null;
   const absoluteCover = absoluteImageUrl(cover) ?? null;
   const embedId = youtubeEmbedId(release.video_url);
+  const shareUrl = `${BASE_URL}/music/${release.slug}`;
+  const structuredData = [
+    releaseJsonLd({
+      name: release.title,
+      url: shareUrl,
+      releaseType: release.release_type,
+      description: release.description,
+      image: absoluteCover,
+      datePublished: release.release_date,
+      sameAs: [
+        release.spotify_url,
+        release.apple_music_url,
+        release.youtube_url,
+        release.soundcloud_url,
+        release.beatport_url,
+      ],
+      artistName: SITE_NAME,
+      artistUrl: BASE_URL,
+    }),
+    breadcrumbJsonLd([
+      { name: SITE_NAME, url: BASE_URL },
+      { name: 'Music', url: `${BASE_URL}/music` },
+      { name: release.title, url: shareUrl },
+    ]),
+  ];
 
   return (
     <div className="flex flex-col w-full">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(releaseJsonLd(release, absoluteCover)) }}
-      />
+      {structuredData.map((data, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+        />
+      ))}
 
       <section className="band-night relative overflow-hidden">
         <div className="hero-grain" aria-hidden />

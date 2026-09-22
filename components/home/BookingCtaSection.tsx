@@ -19,7 +19,7 @@ export function BookingCtaSection({ bookingEmail }: BookingCtaSectionProps) {
             Festivals, clubs, private events and cultural experiences worldwide.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-8">
-            <SectionCta href="/contact">Book the act</SectionCta>
+            <SectionCta href="/booking">Book the act</SectionCta>
             <SectionCta href="/presskit" variant="secondary">
               Download press kit
             </SectionCta>

@@ -1,24 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
+
+function nullableText(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'string') return undefined;
+  return value.trim() || null;
+}
 
 export async function GET() {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
   const supabase = auth.supabase!;
 
-  const { data, error } = await supabase
-    .from('presskit')
-    .select('*')
-    .limit(1)
-    .single();
+  const [kitRes, assetsRes, releasesRes, performancesRes] = await Promise.all([
+    supabase.from('presskit').select('*').limit(1).maybeSingle(),
+    supabase.from('presskit_assets').select('*').order('display_order', { ascending: true }),
+    supabase.from('press_releases').select('*').order('display_order', { ascending: true }).order('created_at', { ascending: false }),
+    supabase.from('presskit_performances').select('*').order('display_order', { ascending: true }),
+  ]);
 
-  if (error && error.code !== 'PGRST116') {
+  if (kitRes.error && kitRes.error.code !== 'PGRST116') {
     return NextResponse.json({ error: 'Failed to load press kit' }, { status: 500 });
   }
-  if (!data) {
+  if (!kitRes.data) {
     return NextResponse.json({ error: 'Press kit not found' }, { status: 404 });
   }
-  return NextResponse.json(data);
+
+  return NextResponse.json({
+    presskit: kitRes.data,
+    assets: assetsRes.data ?? [],
+    releases: releasesRes.data ?? [],
+    performances: performancesRes.data ?? [],
+  });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -27,26 +42,39 @@ export async function PATCH(request: NextRequest) {
   const supabase = auth.supabase!;
 
   const body = await request.json().catch(() => ({}));
-  const {
-    title,
-    bio_text,
-    experience_text,
-    audience_text,
-    links_text,
-    tech_rider_text,
-    pdf_url,
-  } = body;
-
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (typeof title === 'string') updates.title = title;
-  if (typeof bio_text === 'string') updates.bio_text = bio_text;
-  if (typeof experience_text === 'string') updates.experience_text = experience_text;
-  if (audience_text !== undefined) updates.audience_text = audience_text == null ? null : String(audience_text);
-  if (links_text !== undefined) updates.links_text = links_text == null ? null : String(links_text);
-  if (tech_rider_text !== undefined) updates.tech_rider_text = tech_rider_text == null ? null : String(tech_rider_text);
-  if (pdf_url !== undefined) updates.pdf_url = pdf_url == null || pdf_url === '' ? null : String(pdf_url);
 
-  const { data: existing } = await supabase.from('presskit').select('id').limit(1).single();
+  const fields = [
+    'title',
+    'bio_text',
+    'short_bio',
+    'long_bio',
+    'experience_text',
+    'audience_text',
+    'links_text',
+    'tech_rider_text',
+    'tech_rider_url',
+    'hospitality_rider_text',
+    'hospitality_rider_url',
+    'performance_reel_url',
+    'booking_contact_name',
+    'booking_contact_email',
+    'booking_contact_phone',
+    'pdf_url',
+  ] as const;
+
+  for (const key of fields) {
+    if (!(key in body)) continue;
+    const parsed = nullableText(body[key]);
+    if (parsed === undefined && key !== 'title' && key !== 'bio_text' && key !== 'experience_text') continue;
+    if (key === 'title' || key === 'bio_text' || key === 'experience_text') {
+      if (typeof body[key] === 'string') updates[key] = body[key];
+      continue;
+    }
+    updates[key] = parsed ?? null;
+  }
+
+  const { data: existing } = await supabase.from('presskit').select('id').limit(1).maybeSingle();
   if (!existing?.id) {
     return NextResponse.json({ error: 'Press kit row not found' }, { status: 500 });
   }
@@ -61,5 +89,6 @@ export async function PATCH(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message || 'Update failed' }, { status: 500 });
   }
-  return NextResponse.json(data);
+  revalidatePath('/presskit');
+  return NextResponse.json({ presskit: data });
 }

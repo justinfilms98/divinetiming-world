@@ -10,11 +10,13 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 interface BlockRow {
   id: string;
   title: string | null;
+  era_label: string | null;
   body: string | null;
   image_url: string | null;
   external_image_asset_id: string | null;
   align: 'left' | 'right' | 'center';
   display_order: number;
+  status: 'draft' | 'published';
   external_image_asset?: { id: string; preview_url: string | null } | null;
 }
 
@@ -33,7 +35,13 @@ export default function AdminJourneyPage() {
     const res = await fetch('/api/admin/journey-blocks', { credentials: 'same-origin' });
     const body = await res.json().catch(() => ({}));
     if (res.ok && Array.isArray(body.blocks)) {
-      setBlocks(body.blocks as BlockRow[]);
+      setBlocks(
+        (body.blocks as BlockRow[]).map((b) => ({
+          ...b,
+          era_label: b.era_label ?? null,
+          status: b.status === 'published' ? 'published' : 'draft',
+        }))
+      );
     } else {
       setBlocks([]);
     }
@@ -50,9 +58,11 @@ export default function AdminJourneyPage() {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({
-        title: 'New block',
-        body: 'Write the story for this block.',
+        title: '',
+        era_label: '',
+        body: '',
         align: blocks.length % 2 === 0 ? 'left' : 'right',
+        status: 'draft',
       }),
     });
     if (!res.ok) {
@@ -76,11 +86,13 @@ export default function AdminJourneyPage() {
       body: JSON.stringify({
         id: block.id,
         title: block.title,
+        era_label: block.era_label,
         body: block.body,
         image_url: block.image_url,
         external_image_asset_id: block.external_image_asset_id,
         align: block.align,
         display_order: block.display_order,
+        status: block.status,
       }),
     });
     setSaving(null);
@@ -139,7 +151,7 @@ export default function AdminJourneyPage() {
   return (
     <AdminPage
       title="Journey"
-      subtitle="Story blocks for the public /journey page."
+      subtitle="Timeline chapters for the public /journey page. Drafts stay hidden until you publish."
       actions={
         <button
           type="button"
@@ -147,7 +159,7 @@ export default function AdminJourneyPage() {
           className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
         >
           <Plus className="w-4 h-4" />
-          New Block
+          New Chapter
         </button>
       }
     >
@@ -168,7 +180,7 @@ export default function AdminJourneyPage() {
         <AdminCard>
           <div className="text-center py-12">
             <p className="text-slate-600 mb-4">
-              No journey blocks yet. Create the first block to start building your story.
+              No journey chapters yet. Create the first chapter to start the timeline.
             </p>
             <button
               type="button"
@@ -176,7 +188,7 @@ export default function AdminJourneyPage() {
               className="admin-btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
             >
               <Plus className="w-4 h-4" />
-              Create First Block
+              Create First Chapter
             </button>
           </div>
         </AdminCard>
@@ -191,6 +203,15 @@ export default function AdminJourneyPage() {
                     <span className="text-xs text-slate-500 font-medium">#{index + 1}</span>
                     <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wider">
                       {block.align}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded uppercase tracking-wider ${
+                        block.status === 'published'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {block.status === 'published' ? 'Published' : 'Draft'}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -261,7 +282,19 @@ export default function AdminJourneyPage() {
                         value={block.title ?? ''}
                         onChange={(e) => updateLocal(block.id, { title: e.target.value })}
                         className="admin-input w-full px-3 py-2"
-                        placeholder="Block title"
+                        placeholder="Chapter title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-700 text-xs font-medium mb-1">
+                        Era / date label
+                      </label>
+                      <input
+                        type="text"
+                        value={block.era_label ?? ''}
+                        onChange={(e) => updateLocal(block.id, { era_label: e.target.value })}
+                        className="admin-input w-full px-3 py-2"
+                        placeholder="e.g. Formation · 2018"
                       />
                     </div>
                     <div>
@@ -275,17 +308,38 @@ export default function AdminJourneyPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <label className="text-slate-700 text-xs font-medium">Align:</label>
-                        <select
-                          value={block.align}
-                          onChange={(e) => updateLocal(block.id, { align: e.target.value as 'left' | 'right' | 'center' })}
-                          className="admin-input px-2 py-1.5 text-sm"
-                        >
-                          <option value="left">Image left</option>
-                          <option value="right">Image right</option>
-                          <option value="center">Centered (no side image)</option>
-                        </select>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <label className="text-slate-700 text-xs font-medium" htmlFor={`journey-align-${block.id}`}>
+                            Align
+                          </label>
+                          <select
+                            id={`journey-align-${block.id}`}
+                            value={block.align}
+                            onChange={(e) => updateLocal(block.id, { align: e.target.value as 'left' | 'right' | 'center' })}
+                            className="admin-input px-2 py-1.5 text-sm"
+                          >
+                            <option value="left">Image left</option>
+                            <option value="right">Image right</option>
+                            <option value="center">Centered (no side image)</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-slate-700 text-xs font-medium" htmlFor={`journey-status-${block.id}`}>
+                            Visibility
+                          </label>
+                          <select
+                            id={`journey-status-${block.id}`}
+                            value={block.status ?? 'draft'}
+                            onChange={(e) =>
+                              updateLocal(block.id, { status: e.target.value as 'draft' | 'published' })
+                            }
+                            className="admin-input px-2 py-1.5 text-sm"
+                          >
+                            <option value="draft">Draft (hidden)</option>
+                            <option value="published">Published</option>
+                          </select>
+                        </div>
                       </div>
                       <button
                         type="button"

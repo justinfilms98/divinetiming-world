@@ -2,6 +2,7 @@
 
 import { forwardRef } from 'react';
 import { cn } from '@/lib/ui/cn';
+import { SpiralLoader } from '@/components/brand/SpiralLoader';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'subtle' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -52,7 +53,7 @@ export const LuxuryButton = forwardRef<HTMLButtonElement, LuxuryButtonProps>(
         {...props}
       >
         {loading ? (
-          <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <SpiralLoader size={18} variant="spin" label="Loading" className="text-current" />
         ) : (
           children
         )}

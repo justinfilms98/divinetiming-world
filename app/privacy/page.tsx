@@ -14,5 +14,12 @@ export const metadata: Metadata = {
 export default async function PrivacyPage() {
   const policy = await getLegalPolicy('privacy');
   if (!policy) notFound();
-  return <LegalPageView title={policy.title} bodyMd={policy.body_md} updatedAt={policy.updated_at} />;
+  return (
+    <LegalPageView
+      title={policy.title}
+      bodyMd={policy.body_md}
+      updatedAt={policy.updated_at}
+      effectiveDate={policy.effective_date}
+    />
+  );
 }

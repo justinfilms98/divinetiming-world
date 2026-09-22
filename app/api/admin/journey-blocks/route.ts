@@ -27,18 +27,23 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, title, body: bodyText, image_url, external_image_asset_id, align, display_order } = body;
+    const { id, title, body: bodyText, image_url, external_image_asset_id, align, display_order, era_label } =
+      body;
+    const status = body.status === 'published' ? 'published' : 'draft';
+    const era = typeof era_label === 'string' && era_label.trim() ? era_label.trim() : null;
 
     if (id) {
       const { data, error } = await supabase
         .from('journey_blocks')
         .update({
           title: title ?? null,
+          era_label: era,
           body: bodyText ?? null,
           image_url: image_url ?? null,
           external_image_asset_id: external_image_asset_id ?? null,
           align: align ?? 'left',
           display_order: display_order ?? 0,
+          status,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -64,11 +69,13 @@ export async function POST(request: NextRequest) {
       .from('journey_blocks')
       .insert({
         title: title ?? null,
+        era_label: era,
         body: bodyText ?? null,
         image_url: image_url ?? null,
         external_image_asset_id: external_image_asset_id ?? null,
         align: align ?? 'left',
         display_order: order,
+        status,
       })
       .select()
       .single();

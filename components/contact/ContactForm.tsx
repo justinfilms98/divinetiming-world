@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { track } from '@/lib/analytics/track';
 
+const fieldClass =
+  'w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:border-[var(--accent)]/50 focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40 transition-colors duration-200';
+
 const BUDGET_OPTIONS = [
   'Under $1,000',
   '$1,000 - $5,000',
@@ -70,13 +73,20 @@ export function ContactForm() {
   return (
     <div className="min-w-0">
       {status === 'success' && (
-        <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--text)] text-center type-body">
+        <div
+          role="status"
+          className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--text)] text-center type-body"
+        >
           Thank you. Your message has been sent and we&apos;ll get back to you soon.
         </div>
       )}
 
       {status === 'error' && (
-        <div className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--text-muted)]/30 bg-white/5 text-[var(--text-muted)] text-center type-body">
+        <div
+          id="contact-form-error"
+          role="alert"
+          className="mb-6 p-5 rounded-[var(--radius-card)] border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--text)] text-center type-body"
+        >
           Something went wrong. Please try again or reach us by email or phone.
         </div>
       )}
@@ -91,9 +101,12 @@ export function ContactForm() {
               id="name"
               type="text"
               required
+              autoComplete="name"
               value={formData.name}
               onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              aria-invalid={status === 'error'}
+              aria-describedby={status === 'error' ? 'contact-form-error' : undefined}
+              className={fieldClass}
               placeholder="Your name"
             />
           </div>
@@ -106,9 +119,11 @@ export function ContactForm() {
               id="email"
               type="email"
               required
+              autoComplete="email"
               value={formData.email}
               onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              aria-invalid={status === 'error'}
+              className={fieldClass}
               placeholder="your@email.com"
             />
           </div>
@@ -120,9 +135,10 @@ export function ContactForm() {
             <input
               id="company"
               type="text"
+              autoComplete="organization"
               value={formData.company}
               onChange={(e) => setFormData((p) => ({ ...p, company: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              className={fieldClass}
               placeholder="Optional"
             />
           </div>
@@ -135,7 +151,7 @@ export function ContactForm() {
               id="eventType"
               value={formData.eventType}
               onChange={(e) => setFormData((p) => ({ ...p, eventType: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              className={fieldClass}
             >
               <option value="">Select type</option>
               <option value="Booking">Booking</option>
@@ -156,7 +172,7 @@ export function ContactForm() {
               value={formData.eventDate}
               onChange={(e) => setFormData((p) => ({ ...p, eventDate: e.target.value }))}
               min={new Date().toISOString().slice(0, 10)}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200 [color-scheme:light]"
+              className={`${fieldClass} [color-scheme:light]`}
             />
           </div>
 
@@ -169,7 +185,8 @@ export function ContactForm() {
               type="text"
               value={formData.location}
               onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
-              className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+              autoComplete="address-level2"
+              className={fieldClass}
               placeholder="City, country"
             />
           </div>
@@ -183,7 +200,7 @@ export function ContactForm() {
             id="budgetRange"
             value={formData.budgetRange}
             onChange={(e) => setFormData((p) => ({ ...p, budgetRange: e.target.value }))}
-            className="w-full min-h-[48px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] focus:outline-none focus:border-[var(--accent)]/50 transition-colors duration-200"
+            className={fieldClass}
           >
             <option value="">Select range</option>
             {BUDGET_OPTIONS.map((opt) => (
@@ -204,7 +221,7 @@ export function ContactForm() {
             rows={6}
             value={formData.message}
             onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-            className="w-full min-h-[140px] px-4 py-3 bg-white/5 border border-[var(--accent)]/10 rounded-[var(--radius-button)] text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50 resize-none transition-colors duration-200"
+            className={`${fieldClass} min-h-[140px] resize-none`}
             placeholder="Tell us what you have in mind..."
           />
         </div>

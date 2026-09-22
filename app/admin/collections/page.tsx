@@ -7,7 +7,7 @@ import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaThumb } from '@/components/admin/MediaThumb';
 import { createClient } from '@/lib/supabase/client';
-import { X, ImageIcon, Trash2 } from 'lucide-react';
+import { X, ImageIcon, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
 
 type GalleryStatus = 'draft' | 'published' | 'archived';
@@ -21,6 +21,8 @@ interface GalleryRow {
   external_cover_asset_id?: string | null;
   display_order: number;
   status?: GalleryStatus;
+  is_featured?: boolean;
+  theme?: string | null;
   gallery_media?: { id: string }[];
 }
 
@@ -29,17 +31,23 @@ interface GalleryMediaItem {
   id: string;
   preview_url: string | null;
   media_type: string;
+  caption: string | null;
+  display_order: number;
 }
 
 export default function AdminCollectionsPage() {
   const [galleries, setGalleries] = useState<GalleryRow[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [theme, setTheme] = useState('');
+  const [featured, setFeatured] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingGallery, setEditingGallery] = useState<GalleryRow | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editStatus, setEditStatus] = useState<GalleryStatus>('published');
+  const [editTheme, setEditTheme] = useState('');
+  const [editFeatured, setEditFeatured] = useState(false);
+  const [editStatus, setEditStatus] = useState<GalleryStatus>('draft');
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [addMediaPickerOpen, setAddMediaPickerOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -68,6 +76,8 @@ export default function AdminCollectionsPage() {
       external_cover_asset_id: (r.external_cover_asset_id as string | null | undefined) ?? null,
       display_order: (r.display_order as number | undefined) ?? 0,
       status: (r.status as GalleryStatus | undefined) ?? 'published',
+      is_featured: Boolean(r.is_featured),
+      theme: (r.theme as string | null | undefined) ?? null,
       gallery_media: (r.gallery_media as { id: string }[] | undefined) ?? [],
     })));
   }, [supabase]);
@@ -84,15 +94,23 @@ export default function AdminCollectionsPage() {
       const res = await fetch('/api/admin/galleries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+          theme: theme.trim() || null,
+          is_featured: featured,
+          status: 'draft',
+        }),
         credentials: 'same-origin',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       setName('');
       setDescription('');
+      setTheme('');
+      setFeatured(false);
       await load();
-      showToast('success', 'Collection created');
+      showToast('success', 'Story created as draft');
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to create collection');
     } finally {
@@ -119,7 +137,9 @@ export default function AdminCollectionsPage() {
     setEditingGallery(g);
     setEditName(g.name);
     setEditDescription(g.description ?? '');
-    setEditStatus((g.status as GalleryStatus) ?? 'published');
+    setEditTheme(g.theme ?? '');
+    setEditFeatured(Boolean(g.is_featured));
+    setEditStatus((g.status as GalleryStatus) ?? 'draft');
     setCoverPickerOpen(false);
   };
 
@@ -135,14 +155,16 @@ export default function AdminCollectionsPage() {
     try {
       const { data: mediaRows } = await supabase
         .from('gallery_media')
-        .select('id, url, thumbnail_url, external_media_asset_id, media_type')
+        .select('id, url, thumbnail_url, external_media_asset_id, media_type, caption, display_order')
         .eq('gallery_id', galleryId)
         .order('display_order', { ascending: true });
       if (!mediaRows?.length) {
-        setGalleryMediaDetail(mediaRows ? mediaRows.map((m: { id: string; url?: string | null; thumbnail_url?: string | null; media_type?: string }) => ({
+        setGalleryMediaDetail(mediaRows ? mediaRows.map((m: { id: string; url?: string | null; thumbnail_url?: string | null; media_type?: string; caption?: string | null; display_order?: number }) => ({
           id: m.id,
           preview_url: (m.url || m.thumbnail_url) ?? null,
           media_type: m.media_type || 'image',
+          caption: m.caption ?? null,
+          display_order: m.display_order ?? 0,
         })) : []);
         return;
       }
@@ -161,10 +183,12 @@ export default function AdminCollectionsPage() {
           }
         }
       }
-      const items: GalleryMediaItem[] = (mediaRows as { id: string; url?: string | null; thumbnail_url?: string | null; external_media_asset_id?: string | null; media_type?: string }[]).map((m) => ({
+      const items: GalleryMediaItem[] = (mediaRows as { id: string; url?: string | null; thumbnail_url?: string | null; external_media_asset_id?: string | null; media_type?: string; caption?: string | null; display_order?: number }[]).map((m) => ({
         id: m.id,
         preview_url: previewByAssetId[m.external_media_asset_id!] ?? m.url ?? m.thumbnail_url ?? null,
         media_type: m.media_type || 'image',
+        caption: m.caption ?? null,
+        display_order: m.display_order ?? 0,
       }));
       setGalleryMediaDetail(items);
     } finally {
@@ -215,6 +239,8 @@ export default function AdminCollectionsPage() {
           id: editingGallery.id,
           name: editName.trim(),
           description: editDescription.trim() || null,
+          theme: editTheme.trim() || null,
+          is_featured: editFeatured,
           status: editStatus,
         }),
       });
@@ -292,7 +318,7 @@ export default function AdminCollectionsPage() {
       .then((data) => {
         if (!data.error && data.media?.id) {
           const newId = data.media.id as string;
-          setGalleryMediaDetail((prev) => [...prev, { id: newId, preview_url: asset.preview_url, media_type: mediaType }]);
+          setGalleryMediaDetail((prev) => [...prev, { id: newId, preview_url: asset.preview_url, media_type: mediaType, caption: null, display_order: prev.length }]);
           setEditingGallery((prev) => prev ? { ...prev, gallery_media: [...(prev.gallery_media || []), { id: newId }] } : null);
           load();
           showToast('success', 'Media added to collection');
@@ -305,46 +331,119 @@ export default function AdminCollectionsPage() {
       });
   };
 
+  const moveStory = async (index: number, dir: 'up' | 'down') => {
+    const target = dir === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= galleries.length) return;
+    const a = galleries[index];
+    const b = galleries[target];
+    if (!a || !b) return;
+    const res = await fetch('/api/admin/galleries', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        items: [
+          { id: a.id, display_order: target },
+          { id: b.id, display_order: index },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      showToast('error', 'Reorder failed');
+      return;
+    }
+    await load();
+  };
+
+  const moveMedia = async (index: number, dir: 'up' | 'down') => {
+    const target = dir === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= galleryMediaDetail.length) return;
+    const next = [...galleryMediaDetail];
+    const [item] = next.splice(index, 1);
+    if (!item) return;
+    next.splice(target, 0, item);
+    const items = next.map((m, i) => ({ id: m.id, display_order: i }));
+    setGalleryMediaDetail(next.map((m, i) => ({ ...m, display_order: i })));
+    const res = await fetch('/api/admin/gallery-media', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) showToast('error', 'Could not reorder frames');
+  };
+
+  const saveCaption = async (id: string, caption: string) => {
+    setGalleryMediaDetail((prev) => prev.map((m) => (m.id === id ? { ...m, caption } : m)));
+    const res = await fetch('/api/admin/gallery-media', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ id, caption }),
+    });
+    if (!res.ok) showToast('error', 'Could not save caption');
+  };
+
   return (
-    <AdminPage title="Collections" subtitle="Galleries shown on the public Media page (Collections tab)">
+    <AdminPage title="Collections" subtitle="Curated visual stories on /collections. Unpublished and empty stories stay hidden.">
       <AdminCard className="mb-6">
-        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-4">
-          <div className="min-w-[200px]">
-            <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Elefantum24"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-            />
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Story title</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Title of the story"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Theme (optional)</label>
+              <input
+                type="text"
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+                placeholder="e.g. Festival, Studio, On the road"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              />
+            </div>
           </div>
-          <div className="min-w-[200px]">
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description (optional)</label>
-            <input
-              type="text"
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Editorial intro (optional)</label>
+            <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short description"
+              placeholder="A short intro that frames the story"
+              rows={3}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             />
           </div>
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
+            />
+            Feature this story on the Collections hub
+          </label>
           <button
             type="submit"
             disabled={loading || !name.trim()}
             className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
           >
-            {loading ? 'Adding…' : 'Add collection'}
+            {loading ? 'Adding…' : 'Add story (draft)'}
           </button>
         </form>
       </AdminCard>
 
       <p className="text-sm text-slate-600 mb-4">
-        Set a cover image for each collection so it appears on the public Media page. Add photos by editing a collection and choosing from the media library.
+        New stories start as drafts. Publish only when the title, intro, cover, and frames are ready. Empty or unpublished stories do not appear on the public site.
       </p>
 
       <div className="space-y-3">
-        {galleries.map((g) => (
+        {galleries.map((g, index) => (
           <AdminCard key={g.id} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
               {g.cover_image_url ? (
@@ -361,6 +460,9 @@ export default function AdminCollectionsPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium text-slate-800 truncate">{g.name}</p>
+                  {g.is_featured && (
+                    <span className="px-2 py-0.5 text-xs rounded bg-violet-500/20 text-violet-700">Featured</span>
+                  )}
                   {g.status === 'published' ? (
                     <span className="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-700">Published</span>
                   ) : g.status ? (
@@ -369,11 +471,11 @@ export default function AdminCollectionsPage() {
                     </span>
                   ) : null}
                 </div>
-                <p className="text-sm text-slate-500">{g.slug}</p>
+                <p className="text-sm text-slate-500">{g.theme ? `${g.theme} · ` : ''}{g.slug}</p>
                 <p className="text-xs text-slate-500">
-                  {(g.gallery_media?.length ?? 0)} items
+                  {(g.gallery_media?.length ?? 0)} frames
                   {g.slug ? (
-                    <> · <a href={`/media/galleries/${g.slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View on site</a></>
+                    <> · <a href={`/collections/${g.slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View on site</a></>
                   ) : (
                     <> · <span className="text-slate-400">No slug</span></>
                   )}
@@ -381,6 +483,24 @@ export default function AdminCollectionsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => moveStory(index, 'up')}
+                disabled={index === 0}
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30"
+                title="Move up"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveStory(index, 'down')}
+                disabled={index === galleries.length - 1}
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30"
+                title="Move down"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
               <button
                 type="button"
                 onClick={() => openEdit(g)}
@@ -406,12 +526,13 @@ export default function AdminCollectionsPage() {
           <div className="admin-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header flex items-center justify-between">
               <div>
-                <span className="font-medium">Edit collection</span>
+                <span className="font-medium">Edit story</span>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {editingGallery.gallery_media?.length ?? 0} items
+                  {editingGallery.gallery_media?.length ?? 0} frames
                   {' · '}
-                  {editStatus === 'published' ? 'Visible on Media page' : editStatus === 'draft' ? 'Draft (hidden)' : 'Archived (hidden)'}
+                  {editStatus === 'published' ? 'Visible on Collections' : editStatus === 'draft' ? 'Draft (hidden)' : 'Archived (hidden)'}
                   {editingGallery.cover_image_url ? ' · Cover set' : ' · No cover'}
+                  {editFeatured ? ' · Featured' : ''}
                 </p>
               </div>
               <button type="button" onClick={closeEdit} className="p-1 rounded hover:bg-slate-200" aria-label="Close">
@@ -420,7 +541,7 @@ export default function AdminCollectionsPage() {
             </div>
             <form id="edit-gallery-form" onSubmit={handleSaveEdit} className="admin-modal-body space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Story title</label>
                 <input
                   type="text"
                   value={editName}
@@ -429,14 +550,32 @@ export default function AdminCollectionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description (optional)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Theme (optional)</label>
                 <input
                   type="text"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
+                  value={editTheme}
+                  onChange={(e) => setEditTheme(e.target.value)}
+                  placeholder="Chapter or theme label"
                   className="admin-input w-full px-3 py-2"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Editorial intro (optional)</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={4}
+                  className="admin-input w-full px-3 py-2"
+                />
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={editFeatured}
+                  onChange={(e) => setEditFeatured(e.target.checked)}
+                />
+                Feature this story on the Collections hub
+              </label>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Visibility</label>
                 <select
@@ -444,15 +583,15 @@ export default function AdminCollectionsPage() {
                   onChange={(e) => setEditStatus(e.target.value as GalleryStatus)}
                   className="admin-input w-full px-3 py-2"
                 >
-                  <option value="published">Published (visible on Media page)</option>
+                  <option value="published">Published (visible on Collections)</option>
                   <option value="draft">Draft (hidden)</option>
                   <option value="archived">Archived (hidden)</option>
                 </select>
-                <p className="text-xs text-slate-500 mt-1">Only published collections appear on the public Media page.</p>
+                <p className="text-xs text-slate-500 mt-1">Only published stories with at least one frame appear on the public site.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Cover image</label>
-                <p className="text-xs text-slate-500 mb-2">Shown on the public Media page. Choose from library or clear.</p>
+                <p className="text-xs text-slate-500 mb-2">Shown as the story cover. Choose from library or clear.</p>
                 <div className="flex items-center gap-3 flex-wrap">
                   {editingGallery.cover_image_url ? (
                     <img src={editingGallery.cover_image_url} alt="" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
@@ -492,20 +631,40 @@ export default function AdminCollectionsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Media in collection</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Story frames</label>
                 <p className="text-xs text-slate-500 mb-2">
-                  {(editingGallery.gallery_media?.length ?? 0)} items. Add from library or remove below.
+                  {(editingGallery.gallery_media?.length ?? 0)} frames. Add from library, caption, reorder, or remove.
                 </p>
                 {loadingMediaDetail ? (
                   <p className="text-sm text-slate-500">Loading items…</p>
                 ) : galleryMediaDetail.length > 0 ? (
                   <div className="space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {galleryMediaDetail.map((item) => (
+                    <div className="space-y-2">
+                      {galleryMediaDetail.map((item, mediaIndex) => (
                         <div
                           key={item.id}
-                          className="relative group flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-2 pr-10"
+                          className="relative group flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-2 pr-10"
                         >
+                          <div className="flex flex-col gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveMedia(mediaIndex, 'up')}
+                              disabled={mediaIndex === 0}
+                              className="p-1 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+                              title="Move up"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveMedia(mediaIndex, 'down')}
+                              disabled={mediaIndex === galleryMediaDetail.length - 1}
+                              className="p-1 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+                              title="Move down"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                           <div className="w-14 h-14 flex-shrink-0 rounded overflow-hidden bg-slate-200">
                             <MediaThumb
                               src={item.preview_url}
@@ -515,12 +674,24 @@ export default function AdminCollectionsPage() {
                               className="!aspect-square w-full h-full rounded-none"
                             />
                           </div>
-                          <span className="text-xs text-slate-600 capitalize">{item.media_type}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs text-slate-600 capitalize">{item.media_type}</span>
+                            <input
+                              type="text"
+                              defaultValue={item.caption ?? ''}
+                              placeholder="Caption (optional)"
+                              className="mt-1 w-full px-2 py-1 text-sm border border-slate-200 rounded"
+                              onBlur={(e) => {
+                                const next = e.target.value;
+                                if (next !== (item.caption ?? '')) saveCaption(item.id, next);
+                              }}
+                            />
+                          </div>
                           <button
                             type="button"
                             onClick={() => handleRemoveMediaFromCollection(item.id)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded text-red-600 hover:bg-red-50"
-                            title="Remove from collection"
+                            className="absolute right-2 top-3 p-1.5 rounded text-red-600 hover:bg-red-50"
+                            title="Remove from story"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -652,7 +823,7 @@ export default function AdminCollectionsPage() {
       )}
       {galleries.length === 0 && (
         <AdminCard>
-          <p className="text-slate-500 text-center py-6">No collections yet. Add one above.</p>
+          <p className="text-slate-500 text-center py-6">No stories yet. Add one above — it will stay draft until you publish.</p>
         </AdminCard>
       )}
     </AdminPage>

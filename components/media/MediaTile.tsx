@@ -29,6 +29,7 @@ export function MediaTile({
     <button
       type="button"
       onClick={onClick}
+      aria-label={alt || caption || (type === 'video' ? 'Play video' : 'View image')}
       className={cn(
         'relative aspect-video w-full rounded-xl overflow-hidden border border-[var(--accent)]/20 shadow-[var(--shadow-card)]',
         'bg-[var(--bg-secondary)] group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] card-atmosphere',

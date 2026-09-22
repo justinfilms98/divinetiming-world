@@ -4,6 +4,8 @@ interface LegalPageViewProps {
   title: string;
   bodyMd: string;
   updatedAt: string;
+  /** Shown when the artist set an effective date independently of last-edit. */
+  effectiveDate?: string | null;
 }
 
 /**
@@ -18,20 +20,25 @@ interface LegalPageViewProps {
  * Intentionally minimal — no external dependency. If legal copy gets richer,
  * swap this out for a markdown library (react-markdown).
  */
-export function LegalPageView({ title, bodyMd, updatedAt }: LegalPageViewProps) {
-  const blocks = parseBlocks(bodyMd);
-  const updated = new Date(updatedAt).toLocaleDateString('en-US', {
+function formatLegalDate(value: string) {
+  return new Date(value).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+}
+
+export function LegalPageView({ title, bodyMd, updatedAt, effectiveDate }: LegalPageViewProps) {
+  const blocks = parseBlocks(bodyMd);
+  const updated = formatLegalDate(updatedAt);
+  const effective = effectiveDate ? formatLegalDate(effectiveDate) : null;
   return (
     <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip bg-[var(--bg)]">
-      <main className="flex-1 py-20 md:py-28">
+      <div className="flex-1 py-20 md:py-28">
         <article className="max-w-3xl mx-auto px-4 md:px-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 text-sm"
+            className="inline-flex items-center gap-2 text-[var(--accent)] hover:text-[var(--accent2)] transition-colors duration-200 mb-10 text-sm focus-ring rounded-sm"
           >
             ← Home
           </Link>
@@ -42,6 +49,7 @@ export function LegalPageView({ title, bodyMd, updatedAt }: LegalPageViewProps) 
             {title}
           </h1>
           <p className="text-[var(--text-muted)] text-xs uppercase tracking-[0.2em] mb-12">
+            {effective && <>Effective: {effective} · </>}
             Last updated: {updated}
           </p>
           <div className="space-y-5 text-[var(--text)] leading-relaxed type-body">
@@ -50,7 +58,7 @@ export function LegalPageView({ title, bodyMd, updatedAt }: LegalPageViewProps) 
             ))}
           </div>
         </article>
-      </main>
+      </div>
     </div>
   );
 }

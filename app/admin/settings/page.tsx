@@ -22,7 +22,7 @@ export default function AdminSettingsPage() {
 
   const loadSettings = async () => {
     const { data } = await supabase.from('site_settings').select('*').single();
-    setSettings(data as Record<string, unknown>);
+    setSettings((data as Record<string, unknown> | null) ?? {});
     setIsLoading(false);
   };
 
@@ -54,7 +54,17 @@ export default function AdminSettingsPage() {
       showToast('error', data.error || res.statusText);
     } else {
       if (data.settings) setSettings(data.settings);
-      await revalidatePaths(['/', '/events', '/media', '/shop', '/booking', '/about']);
+      await revalidatePaths([
+        '/',
+        '/events',
+        '/media',
+        '/shop',
+        '/booking',
+        '/about',
+        '/presskit',
+        '/epk',
+        '/contact',
+      ]);
       setSaved(true);
       showToast('success', 'Settings saved');
       setTimeout(() => setSaved(false), 3000);
@@ -78,34 +88,35 @@ export default function AdminSettingsPage() {
     >
       <form onSubmit={handleSave} className="space-y-6">
         <AdminCard>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Branding</h2>
+          <h2 className="text-lg font-semibold text-white mb-1">Branding</h2>
+          <p className="text-white/40 text-sm mb-4">Artist and member names shown across the public site.</p>
           <div className="space-y-4">
             <div>
-              <label className="block text-slate-700 text-sm font-medium mb-2">Artist Name</label>
+              <label className="block text-white/70 text-sm font-medium mb-2">Artist Name</label>
               <input
                 type="text"
                 value={(settings?.artist_name as string) || ''}
                 onChange={(e) => setSettings({ ...settings, artist_name: e.target.value })}
-                className="admin-input w-full px-4 py-2 text-slate-800"
+                className="admin-input w-full px-4 py-2"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-slate-700 text-sm font-medium mb-2">Member 1 Name</label>
+                <label className="block text-white/70 text-sm font-medium mb-2">Member 1 Name</label>
                 <input
                   type="text"
                   value={(settings?.member_1_name as string) || ''}
                   onChange={(e) => setSettings({ ...settings, member_1_name: e.target.value })}
-                  className="admin-input w-full px-4 py-2 text-slate-800"
+                  className="admin-input w-full px-4 py-2"
                 />
               </div>
               <div>
-                <label className="block text-slate-700 text-sm font-medium mb-2">Member 2 Name</label>
+                <label className="block text-white/70 text-sm font-medium mb-2">Member 2 Name</label>
                 <input
                   type="text"
                   value={(settings?.member_2_name as string) || ''}
                   onChange={(e) => setSettings({ ...settings, member_2_name: e.target.value })}
-                  className="admin-input w-full px-4 py-2 text-slate-800"
+                  className="admin-input w-full px-4 py-2"
                 />
               </div>
             </div>
@@ -113,7 +124,8 @@ export default function AdminSettingsPage() {
         </AdminCard>
 
         <AdminCard>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Social Links</h2>
+          <h2 className="text-lg font-semibold text-white mb-1">Social Links</h2>
+          <p className="text-white/40 text-sm mb-4">Used in the footer, listen row, and public contact surfaces.</p>
           <div className="space-y-4">
             {[
               { key: 'instagram_url', label: 'Instagram URL' },
@@ -122,12 +134,12 @@ export default function AdminSettingsPage() {
               { key: 'apple_music_url', label: 'Apple Music URL' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="block text-slate-700 text-sm font-medium mb-2">{label}</label>
+                <label className="block text-white/70 text-sm font-medium mb-2">{label}</label>
                 <input
                   type="url"
                   value={(settings?.[key] as string) || ''}
                   onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
-                  className="admin-input w-full px-4 py-2 text-slate-800"
+                  className="admin-input w-full px-4 py-2"
                 />
               </div>
             ))}
@@ -135,24 +147,37 @@ export default function AdminSettingsPage() {
         </AdminCard>
 
         <AdminCard>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Booking</h2>
+          <h2 className="text-lg font-semibold text-white mb-1">Booking contact</h2>
+          <p className="text-white/40 text-sm mb-4">
+            Shown on Booking and Contact. Press Kit uses these as fallback when its own contact fields are empty.
+          </p>
           <div className="space-y-4">
             <div>
-              <label className="block text-slate-700 text-sm font-medium mb-2">Booking Phone</label>
+              <label className="block text-white/70 text-sm font-medium mb-2" htmlFor="booking-email">
+                Booking Email
+              </label>
               <input
-                type="tel"
-                value={(settings?.booking_phone as string) || ''}
-                onChange={(e) => setSettings({ ...settings, booking_phone: e.target.value })}
-                className="admin-input w-full px-4 py-2 text-slate-800"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-700 text-sm font-medium mb-2">Booking Email</label>
-              <input
+                id="booking-email"
                 type="email"
                 value={(settings?.booking_email as string) || ''}
                 onChange={(e) => setSettings({ ...settings, booking_email: e.target.value })}
-                className="admin-input w-full px-4 py-2 text-slate-800"
+                className="admin-input w-full px-4 py-2"
+                placeholder="booking@example.com"
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2" htmlFor="booking-phone">
+                Booking Phone
+              </label>
+              <input
+                id="booking-phone"
+                type="tel"
+                value={(settings?.booking_phone as string) || ''}
+                onChange={(e) => setSettings({ ...settings, booking_phone: e.target.value })}
+                className="admin-input w-full px-4 py-2"
+                placeholder="+33 …"
+                autoComplete="tel"
               />
             </div>
           </div>

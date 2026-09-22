@@ -3,7 +3,13 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { apiSuccess, apiError } from '@/lib/apiResponses';
 import { withResolvedThumbnails } from '@/lib/eventMedia';
-import type { Event } from '@/lib/types/content';
+import {
+  EVENT_BOOKING_STATUSES,
+  EVENT_TYPES,
+  type Event,
+  type EventBookingStatus,
+  type EventType,
+} from '@/lib/types/content';
 
 /** Kebab-case, lowercase slug. Used for URLs. */
 function generateEventSlug(title: string | null, city: string | null, date: string | null): string {
@@ -15,6 +21,23 @@ function generateEventSlug(title: string | null, city: string | null, date: stri
 function toKebabSlug(s: string | null | undefined): string {
   if (!s || typeof s !== 'string') return '';
   return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
+}
+
+/** Empty strings from the admin form must become NULL, not '', so the public page can hide the field. */
+function toNullableText(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  return value.trim() || null;
+}
+
+/** Anything outside the migration 043 closed set becomes NULL rather than failing the CHECK. */
+function toEventType(value: unknown): EventType | null {
+  return EVENT_TYPES.includes(value as EventType) ? (value as EventType) : null;
+}
+
+function toBookingStatus(value: unknown): EventBookingStatus {
+  return EVENT_BOOKING_STATUSES.includes(value as EventBookingStatus)
+    ? (value as EventBookingStatus)
+    : 'announced';
 }
 
 /** List events (admin). Returns events with resolved_thumbnail_url. */
@@ -49,8 +72,14 @@ export async function POST(request: NextRequest) {
       id,
       date,
       city,
+      country,
       venue,
+      venue_url,
       ticket_url,
+      event_type,
+      booking_status,
+      gallery_url,
+      recap_video_url,
       is_featured,
       title,
       description,
@@ -68,8 +97,14 @@ export async function POST(request: NextRequest) {
     const eventData: Record<string, unknown> = {
       date: date ?? null,
       city: city ?? null,
+      country: toNullableText(country),
       venue: venue ?? null,
-      ticket_url: ticket_url || null,
+      venue_url: toNullableText(venue_url),
+      ticket_url: toNullableText(ticket_url),
+      event_type: toEventType(event_type),
+      booking_status: toBookingStatus(booking_status),
+      gallery_url: toNullableText(gallery_url),
+      recap_video_url: toNullableText(recap_video_url),
       is_featured: !!is_featured,
       title: title || null,
       description: description || null,

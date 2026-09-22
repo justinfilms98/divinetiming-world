@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Compiled Lua sources
 luac.out
 
@@ -41,7 +40,6 @@ luac.out
 *.hex
 
 node_modules
-=======
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -81,4 +79,6 @@ next-env.d.ts
 
 # prisma
 /prisma/migrations
->>>>>>> origin/preview/divine-timing-audit-1
+
+# local dev server logs
+*.log

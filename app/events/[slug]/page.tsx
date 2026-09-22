@@ -6,7 +6,9 @@ import { getEventBySlug, getEventMedia, getHeroSection } from '@/lib/content/ser
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { EventDetailCard } from '@/components/events/EventDetailCard';
 import { MediaMasonry, type MasonryItem } from '@/components/media/MediaMasonry';
-import { absoluteImageUrl, BASE_URL } from '@/lib/site';
+import { absoluteImageUrl, BASE_URL, DEFAULT_OG_IMAGE, SITE_NAME } from '@/lib/site';
+import { breadcrumbJsonLd, eventJsonLd } from '@/lib/seo/jsonld';
+import { eventPlace } from '@/lib/events/display';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -20,31 +22,29 @@ export async function generateMetadata({
   const event = await getEventBySlug(resolved.slug);
   if (!event) return { title: 'Event' };
   const title = event.title ?? event.city ?? 'Event';
-  const location = [event.venue, event.city].filter(Boolean).join(', ');
-  const description = location ? `${title} — ${location}` : undefined;
+  const location = [event.venue, eventPlace(event)].filter(Boolean).join(', ');
+  const description = location ? `${title} — ${location}` : title;
   const slugOrId = event.slug || event.id;
   const path = `/events/${slugOrId}`;
   const ogImage = event.resolved_thumbnail_url ?? event.thumbnail_url ?? null;
-  const ogImageUrl = absoluteImageUrl(ogImage);
+  const ogImageUrl = absoluteImageUrl(ogImage) ?? DEFAULT_OG_IMAGE;
 
   return {
     title,
-    description: description ?? undefined,
+    description,
     alternates: { canonical: path },
     openGraph: {
       title: `${title} | Divine Timing`,
-      description: description ?? undefined,
+      description,
       url: path,
       type: 'website',
-      ...(ogImageUrl && {
-        images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
-      }),
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${title} | Divine Timing`,
-      description: description ?? undefined,
-      ...(ogImageUrl && { images: [ogImageUrl] }),
+      description,
+      images: [ogImageUrl],
     },
   };
 }
@@ -70,7 +70,7 @@ export default async function EventDetailPage({
 
   const eventMedia = await getEventMedia(event.id);
 
-  const location = [event.venue, event.city].filter(Boolean).join(' · ');
+  const location = [event.venue, eventPlace(event)].filter(Boolean).join(' · ');
   const title = event.title ?? event.city;
   const imageUrl = event.resolved_thumbnail_url ?? event.thumbnail_url ?? null;
   const heroMediaUrl = imageUrl ?? eventsHero?.mediaFinalUrl ?? undefined;
@@ -93,28 +93,37 @@ export default async function EventDetailPage({
       posterUrl: m.thumbnail_url,
     }));
 
-  const eventStructuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Event',
+  const eventStructuredData = eventJsonLd({
     name: title,
     startDate: event.date,
-    ...(event.description && { description: event.description }),
-    ...(imageUrl && { image: absoluteImageUrl(imageUrl) }),
-    ...((event.venue || event.city) && {
-      location: {
-        '@type': 'Place',
-        name: event.venue || event.city || undefined,
-        address: event.city ? { '@type': 'PostalAddress', addressLocality: event.city } : undefined,
-      },
-    }),
+    description: event.description ?? undefined,
+    image: absoluteImageUrl(imageUrl),
+    location: {
+      name: event.venue,
+      city: event.city,
+      country: event.country,
+      url: event.venue_url,
+    },
+    bookingStatus: event.booking_status,
+    ticketUrl: event.ticket_url,
+    performerName: SITE_NAME,
     url: `${BASE_URL}${sharePath}`,
-  };
+  });
+  const crumbs = breadcrumbJsonLd([
+    { name: SITE_NAME, url: BASE_URL },
+    { name: 'Live', url: `${BASE_URL}/events` },
+    { name: title, url: `${BASE_URL}${sharePath}` },
+  ]);
 
   return (
     <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }}
       />
 
       {/* Full-bleed hero with event title centered */}
@@ -128,7 +137,7 @@ export default async function EventDetailPage({
         heightPreset="standard"
       />
 
-      <main className="flex-1 pt-8 md:pt-12 pb-20 min-w-0">
+      <div className="flex-1 pt-8 md:pt-12 pb-20 min-w-0">
         <ContentRail>
           <div className="w-full max-w-6xl mx-auto">
             <Link
@@ -148,7 +157,6 @@ export default async function EventDetailPage({
                       fill
                       className="object-cover"
                       sizes="(max-width: 1024px) 100vw, 60vw"
-                      priority
                     />
                   </div>
                 )}
@@ -188,7 +196,7 @@ export default async function EventDetailPage({
             )}
           </div>
         </ContentRail>
-      </main>
+      </div>
     </div>
   );
 }

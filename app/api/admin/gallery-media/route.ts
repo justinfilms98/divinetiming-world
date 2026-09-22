@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
+    revalidatePath('/collections');
     return NextResponse.json({ media: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
@@ -59,7 +60,27 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { items } = body as { items?: { id: string; display_order: number }[] };
+    const { items, id, caption, display_order } = body as {
+      items?: { id: string; display_order: number }[];
+      id?: string;
+      caption?: string | null;
+      display_order?: number;
+    };
+
+    if (id && (caption !== undefined || display_order !== undefined)) {
+      const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (caption !== undefined) updates.caption = typeof caption === 'string' ? caption.trim() || null : null;
+      if (display_order !== undefined) updates.display_order = display_order;
+      const { error } = await supabase.from('gallery_media').update(updates).eq('id', id);
+      if (error) {
+        console.error('Admin gallery-media PATCH item error:', error);
+        return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
+      }
+      revalidatePath('/media');
+      revalidatePath('/collections');
+      return NextResponse.json({ ok: true });
+    }
+
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'items array required' }, { status: 400 });
     }
@@ -70,6 +91,7 @@ export async function PATCH(request: NextRequest) {
         .eq('id', item.id);
     }
     revalidatePath('/media');
+    revalidatePath('/collections');
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
@@ -93,6 +115,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
     revalidatePath('/media');
+    revalidatePath('/collections');
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';

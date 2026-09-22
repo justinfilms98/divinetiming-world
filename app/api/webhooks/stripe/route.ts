@@ -94,9 +94,16 @@ export async function POST(request: NextRequest) {
         price_cents: lineItem.price?.unit_amount || 0,
       });
 
+      // Decrement only on this paid-webhook path, and only when tracking is on
+      // (SQL functions no-op otherwise). Stripe e2e of this path is still needed.
       if (variantId) {
         await supabase.rpc('decrement_inventory', {
           variant_id: variantId,
+          quantity,
+        });
+      } else if (productId) {
+        await supabase.rpc('decrement_product_inventory', {
+          p_product_id: productId,
           quantity,
         });
       }

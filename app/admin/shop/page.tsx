@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
@@ -10,12 +10,30 @@ import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X, AlertTriangle } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { SHOP_CATEGORY_SUGGESTIONS } from '@/lib/shop/commerce';
+import {
+  ProductVariantEditor,
+  type VariantDraft,
+} from '@/components/admin/shop/ProductVariantEditor';
 
 interface ProductImage {
   id: string;
   image_url: string | null;
   display_order: number;
   external_media_asset_id?: string | null;
+}
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  price_cents: number | null;
+  inventory_count: number | null;
+  sku?: string | null;
+  size?: string | null;
+  color?: string | null;
+  shipping_weight_grams?: number | null;
+  track_inventory?: boolean | null;
+  stripe_price_id?: string | null;
 }
 
 interface Product {
@@ -29,7 +47,43 @@ interface Product {
   is_active: boolean;
   badge?: string | null;
   display_order: number;
+  sku?: string | null;
+  category?: string | null;
+  shipping_weight_grams?: number | null;
+  is_preorder?: boolean | null;
+  preorder_ships_at?: string | null;
+  sale_starts_at?: string | null;
+  sale_ends_at?: string | null;
+  track_inventory?: boolean | null;
+  inventory_count?: number | null;
+  stripe_price_id?: string | null;
+  status?: string;
   product_images?: ProductImage[];
+  product_variants?: ProductVariant[];
+}
+
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function variantsToDrafts(variants: ProductVariant[] | undefined): VariantDraft[] {
+  return (variants ?? []).map((v) => ({
+    key: v.id,
+    id: v.id,
+    name: v.name ?? '',
+    size: v.size ?? '',
+    color: v.color ?? '',
+    sku: v.sku ?? '',
+    price: v.price_cents != null ? (v.price_cents / 100).toFixed(2) : '',
+    inventory: v.inventory_count != null ? String(v.inventory_count) : '',
+    track_inventory: v.track_inventory === true,
+    shipping_weight_grams: v.shipping_weight_grams != null ? String(v.shipping_weight_grams) : '',
+    stripe_price_id: v.stripe_price_id ?? '',
+  }));
 }
 
 function slugify(text: string): string {
@@ -51,6 +105,7 @@ export default function AdminShopPage() {
   const [uploadInProgress, setUploadInProgress] = useState(false);
   const [saving, setSaving] = useState(false);
   const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
+  const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const { showToast } = useAdminToast();
   const supabase = createClient();
 
@@ -68,7 +123,7 @@ export default function AdminShopPage() {
   const loadProducts = async () => {
     const { data } = await supabase
       .from('products')
-      .select('*, product_images(id, image_url, display_order, external_media_asset_id)')
+      .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
     const sorted = (data || []).map((p: any) => ({
@@ -109,11 +164,13 @@ export default function AdminShopPage() {
   const openCreate = () => {
     setEditingProduct(null);
     setPendingImages([]);
+    setVariantDrafts([]);
     setModalOpen(true);
   };
 
   const openEdit = (product: Product) => {
     setEditingProduct(product);
+    setVariantDrafts(variantsToDrafts(product.product_variants));
     setModalOpen(true);
   };
 
@@ -121,6 +178,7 @@ export default function AdminShopPage() {
     setModalOpen(false);
     setEditingProduct(null);
     setPendingImages([]);
+    setVariantDrafts([]);
   };
 
   const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -158,7 +216,29 @@ export default function AdminShopPage() {
           is_featured: formData.get('is_featured') === 'on',
           badge: (formData.get('badge') as string) || null,
           status: (formData.get('status') as string) || 'published',
+          sku: (formData.get('sku') as string)?.trim() || null,
+          category: (formData.get('category') as string)?.trim() || null,
+          shipping_weight_grams: (formData.get('shipping_weight_grams') as string) || null,
+          is_preorder: formData.get('is_preorder') === 'on',
+          preorder_ships_at: (formData.get('preorder_ships_at') as string) || null,
+          sale_starts_at: (formData.get('sale_starts_at') as string) || null,
+          sale_ends_at: (formData.get('sale_ends_at') as string) || null,
+          track_inventory: formData.get('track_inventory') === 'on',
+          inventory_count: (formData.get('inventory_count') as string) || null,
+          stripe_price_id: (formData.get('stripe_price_id') as string)?.trim() || null,
           images,
+          variants: variantDrafts.map((v) => ({
+            id: v.id,
+            name: v.name,
+            size: v.size,
+            color: v.color,
+            sku: v.sku,
+            price: v.price === '' ? null : parseFloat(v.price),
+            inventory_count: v.inventory === '' ? null : parseInt(v.inventory, 10),
+            track_inventory: v.track_inventory,
+            shipping_weight_grams: v.shipping_weight_grams === '' ? null : parseInt(v.shipping_weight_grams, 10),
+            stripe_price_id: v.stripe_price_id.trim() || null,
+          })),
         }),
       });
 
@@ -231,7 +311,7 @@ export default function AdminShopPage() {
     await revalidatePaths(productSlug ? ['/shop', `/shop/${productSlug}`] : ['/shop']);
     const { data: d } = await supabase
       .from('products')
-      .select('*, product_images(id, image_url, display_order, external_media_asset_id)')
+      .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
       .eq('id', productId)
       .single();
     if (d) setEditingProduct({ ...d, product_images: (d.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
@@ -259,7 +339,7 @@ export default function AdminShopPage() {
     await revalidatePaths(productSlug ? ['/shop', `/shop/${productSlug}`] : ['/shop']);
     const { data: d } = await supabase
       .from('products')
-      .select('*, product_images(id, image_url, display_order, external_media_asset_id)')
+      .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
       .eq('id', productId)
       .single();
     if (d) setEditingProduct({ ...d, product_images: (d.product_images || []).sort((a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)) } as Product);
@@ -401,6 +481,26 @@ export default function AdminShopPage() {
                         {product.badge}
                       </span>
                     )}
+                    {product.category && (
+                      <span className="px-2 py-0.5 text-xs rounded-md bg-white/10 text-white/70">
+                        {product.category}
+                      </span>
+                    )}
+                    {product.is_preorder && (
+                      <span className="px-2 py-0.5 text-xs rounded-md bg-sky-500/20 text-sky-300">
+                        Preorder
+                      </span>
+                    )}
+                    {product.sku && (
+                      <span className="px-2 py-0.5 text-xs rounded-md text-white/50">
+                        SKU {product.sku}
+                      </span>
+                    )}
+                    {(product.product_variants?.length ?? 0) > 0 && (
+                      <span className="px-2 py-0.5 text-xs rounded-md text-white/50">
+                        {product.product_variants!.length} variant{product.product_variants!.length === 1 ? '' : 's'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </AdminCard>
@@ -527,6 +627,132 @@ export default function AdminShopPage() {
                   placeholder="0.00"
                 />
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">SKU</label>
+                  <input
+                    type="text"
+                    name="sku"
+                    defaultValue={editingProduct?.sku ?? ''}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                    placeholder="Optional catalog SKU"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">Category</label>
+                  <input
+                    type="text"
+                    name="category"
+                    list="shop-category-suggestions"
+                    defaultValue={editingProduct?.category ?? ''}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                    placeholder="Apparel, Vinyl…"
+                  />
+                  <datalist id="shop-category-suggestions">
+                    {SHOP_CATEGORY_SUGGESTIONS.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Shipping weight (grams)</label>
+                <input
+                  type="number"
+                  name="shipping_weight_grams"
+                  min="0"
+                  step="1"
+                  defaultValue={editingProduct?.shipping_weight_grams ?? ''}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  placeholder="Leave empty if unknown — do not guess"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">Stripe Price ID</label>
+                <input
+                  type="text"
+                  name="stripe_price_id"
+                  defaultValue={editingProduct?.stripe_price_id ?? ''}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  placeholder="price_… (existing Stripe price; leave blank to create later)"
+                />
+                <p className="text-white/50 text-xs mt-1">Must start with price_. Never paste a secret key.</p>
+              </div>
+
+              <div className="rounded-lg border border-white/10 p-4 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="is_preorder"
+                    defaultChecked={editingProduct?.is_preorder === true}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-white/70 text-sm">Preorder</span>
+                </label>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1">Ships on (optional)</label>
+                  <input
+                    type="datetime-local"
+                    name="preorder_ships_at"
+                    defaultValue={toLocalInput(editingProduct?.preorder_ships_at)}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">Sale starts</label>
+                  <input
+                    type="datetime-local"
+                    name="sale_starts_at"
+                    defaultValue={toLocalInput(editingProduct?.sale_starts_at)}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm font-medium mb-2">Sale ends</label>
+                  <input
+                    type="datetime-local"
+                    name="sale_ends_at"
+                    defaultValue={toLocalInput(editingProduct?.sale_ends_at)}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  />
+                </div>
+              </div>
+              <p className="text-white/50 text-xs -mt-2">Sale badge only — change the price field if the amount should change. Leave dates empty if not on sale.</p>
+
+              <div className="rounded-lg border border-white/10 p-4 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="track_inventory"
+                    defaultChecked={editingProduct?.track_inventory === true}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-white/70 text-sm">Track inventory for this product (no variants)</span>
+                </label>
+                <p className="text-white/50 text-xs">
+                  Off by default. Only enable when you have a real count. Variants have their own tracking below.
+                </p>
+                <div>
+                  <label className="block text-white/60 text-xs mb-1">Quantity on hand</label>
+                  <input
+                    type="number"
+                    name="inventory_count"
+                    min="0"
+                    step="1"
+                    defaultValue={editingProduct?.inventory_count ?? ''}
+                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                    placeholder="Leave empty unless tracking"
+                  />
+                </div>
+              </div>
+
+              <ProductVariantEditor variants={variantDrafts} onChange={setVariantDrafts} />
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Description</label>

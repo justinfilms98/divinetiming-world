@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import NextLink from 'next/link';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -17,7 +18,9 @@ import {
 } from 'lucide-react';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { AdminPage } from '@/components/admin/AdminPage';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { revalidatePaths } from '@/lib/revalidate';
 
 const extensions = [
   StarterKit.configure({
@@ -35,6 +38,8 @@ const extensions = [
 
 export default function AdminAboutPage() {
   const [initialHtml, setInitialHtml] = useState<string>('');
+  const [shortBio, setShortBio] = useState('');
+  const [longBio, setLongBio] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -46,12 +51,29 @@ export default function AdminAboutPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/admin/about-content', { credentials: 'same-origin' });
-        const data = await res.json().catch(() => ({}));
+        const [aboutRes, kitRes] = await Promise.all([
+          fetch('/api/admin/about-content', { credentials: 'same-origin' }),
+          fetch('/api/admin/presskit', { credentials: 'same-origin' }),
+        ]);
+        const data = await aboutRes.json().catch(() => ({}));
+        const kitJson = await kitRes.json().catch(() => ({}));
         if (cancelled) return;
-        if (res.ok && data?.bio_html != null && data.bio_html !== '') {
+
+        const kit = kitJson?.presskit;
+        if (kitRes.ok && kit) {
+          setShortBio(typeof kit.short_bio === 'string' ? kit.short_bio : '');
+          setLongBio(
+            typeof kit.long_bio === 'string' && kit.long_bio.trim()
+              ? kit.long_bio
+              : typeof kit.bio_text === 'string'
+                ? kit.bio_text
+                : ''
+          );
+        }
+
+        if (aboutRes.ok && data?.bio_html != null && data.bio_html !== '') {
           setInitialHtml(data.bio_html);
-        } else if (res.ok && data?.bio_text) {
+        } else if (aboutRes.ok && data?.bio_text) {
           const fallback = String(data.bio_text)
             .split('\n\n')
             .filter(Boolean)
@@ -88,31 +110,47 @@ export default function AdminAboutPage() {
   );
 
   const handleSave = useCallback(async () => {
-    if (!editor) return;
     setSaving(true);
     setSaved(false);
     try {
-      const html = editor.getHTML();
-      const res = await fetch('/api/admin/about-content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ bio_html: html }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      const html = editor?.getHTML() ?? '';
+      const [kitRes, aboutRes] = await Promise.all([
+        fetch('/api/admin/presskit', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            short_bio: shortBio,
+            long_bio: longBio,
+          }),
+        }),
+        fetch('/api/admin/about-content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ bio_html: html }),
+        }),
+      ]);
+      const kitData = await kitRes.json().catch(() => ({}));
+      const aboutData = await aboutRes.json().catch(() => ({}));
+      if (kitRes.ok && aboutRes.ok) {
+        await revalidatePaths(['/about', '/presskit']);
         setSaved(true);
         showToast('success', 'About page saved');
         setTimeout(() => setSaved(false), 2500);
       } else {
-        showToast('error', (data?.error as string) ?? res.statusText);
+        const message =
+          (!kitRes.ok ? (kitData?.error as string) : null) ||
+          (!aboutRes.ok ? (aboutData?.error as string) : null) ||
+          'Save failed';
+        showToast('error', message);
       }
     } catch (e) {
       showToast('error', e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }
-  }, [editor]);
+  }, [editor, shortBio, longBio]);
 
   const handleAddImage = useCallback(
     (files: UploadedFile[]) => {
@@ -133,8 +171,47 @@ export default function AdminAboutPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-6">About — Bio</h1>
+    <AdminPage
+      title="About"
+      subtitle="Short bio is the public /about copy. Long bio is the press bio — same fields as /admin/presskit."
+    >
+      <AdminCard>
+        <h2 className="text-lg font-semibold text-slate-800 mb-1">Short public bio</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Featured on /about. One or two sentences. Leave blank to hide the public bio section — do
+          not invent copy.
+        </p>
+        <textarea
+          value={shortBio}
+          onChange={(e) => setShortBio(e.target.value)}
+          className="admin-input w-full px-4 py-2 text-slate-800 min-h-[90px]"
+          placeholder="Short public bio"
+        />
+      </AdminCard>
+
+      <AdminCard>
+        <h2 className="text-lg font-semibold text-slate-800 mb-1">Long press bio</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Full press bio. Shown on the press kit, not as the featured About copy.{' '}
+          <NextLink href="/admin/presskit" className="underline">
+            Edit other press-kit fields
+          </NextLink>
+          .
+        </p>
+        <textarea
+          value={longBio}
+          onChange={(e) => setLongBio(e.target.value)}
+          className="admin-input w-full px-4 py-2 text-slate-800 min-h-[180px]"
+          placeholder="Long-form press bio"
+        />
+      </AdminCard>
+
+      <div>
+        <h2 className="text-lg font-semibold text-slate-800 mb-1">Optional extra story</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Extra about-page copy. Only appears on /about after a short public bio is set, so the
+          press bio is never the only About content.
+        </p>
       <AdminCard className="p-0">
         {/* Toolbar: single row, consistent height and border */}
         <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50/80 px-2 py-2 rounded-t-xl">
@@ -242,9 +319,10 @@ export default function AdminAboutPage() {
         </div>
       </AdminCard>
       <p className="mt-3 text-sm text-slate-500">
-        Content is sanitized on save. Only paragraphs, bold, italic, links, lists, and images from
+        Extra story is sanitized on save. Only paragraphs, bold, italic, links, lists, and images from
         the CDN are allowed.
       </p>
-    </div>
+      </div>
+    </AdminPage>
   );
 }

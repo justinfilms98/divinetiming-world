@@ -6,6 +6,7 @@ import { eventDetailHref } from '@/lib/eventDetailHref';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 import { motion } from 'framer-motion';
 import { track } from '@/lib/analytics/track';
+import { eventLocationLine, eventProofLinks, eventTypeLabel, ticketState } from '@/lib/events/display';
 
 interface EventCardProps {
   event: Event;
@@ -41,13 +42,16 @@ function EventCardPlaceholder({ monthLabel }: { monthLabel: string }) {
 }
 
 export function EventCard({ event, isPast = false }: EventCardProps) {
-  const location = [event.venue, event.city].filter(Boolean).join(' · ');
+  const location = eventLocationLine(event);
   const title = event.title ?? event.city;
   const imageUrl = event.resolved_thumbnail_url ?? event.thumbnail_url ?? null;
   const href = eventDetailHref(event);
   const monthLabel = formatMonth(event.date);
   const dayLabel = formatDay(event.date);
   const yearLabel = formatYear(event.date);
+  const typeLabel = eventTypeLabel(event.event_type);
+  const tickets = ticketState(event, isPast);
+  const proofLinks = eventProofLinks(event);
 
   const handleClick = () => {
     track({ event_name: 'event_card_click', entity_type: 'event', entity_id: event.id });
@@ -88,6 +92,27 @@ export function EventCard({ event, isPast = false }: EventCardProps) {
           <span className="text-[10px] tracking-wider opacity-70">{yearLabel}</span>
         </div>
 
+        {/* Event type / ticket status badges. Omitted entirely when unknown. */}
+        {(typeLabel || tickets.kind === 'sold_out' || tickets.kind === 'cancelled') && (
+          <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-1.5">
+            {typeLabel && (
+              <span className="px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-white text-[10px] font-semibold uppercase tracking-[0.16em]">
+                {typeLabel}
+              </span>
+            )}
+            {tickets.kind === 'sold_out' && (
+              <span className="px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white text-[10px] font-semibold uppercase tracking-[0.16em]">
+                Sold out
+              </span>
+            )}
+            {tickets.kind === 'cancelled' && (
+              <span className="px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-red-400/50 text-red-200 text-[10px] font-semibold uppercase tracking-[0.16em]">
+                Cancelled
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Bottom gradient for legibility if needed */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" aria-hidden />
       </Link>
@@ -113,14 +138,15 @@ export function EventCard({ event, isPast = false }: EventCardProps) {
         </Link>
 
         <div className="flex items-center gap-3 pt-2 flex-wrap">
-          {!isPast && event.ticket_url && (
+          {tickets.kind === 'available' && (
             <a
-              href={event.ticket_url}
+              href={tickets.url}
               target="_blank"
               rel="noopener noreferrer"
               className="min-h-[44px] px-5 py-2.5 inline-flex items-center justify-center rounded-[var(--radius-button)] bg-[var(--accent)] text-[var(--text)] font-medium type-button hover:bg-[var(--accent-hover)] transition-all duration-200 glow focus-ring"
             >
-              Get Tickets
+              Get tickets
+              <span className="sr-only"> for {title}</span>
             </a>
           )}
           <Link
@@ -128,8 +154,22 @@ export function EventCard({ event, isPast = false }: EventCardProps) {
             onClick={handleClick}
             className="min-h-[44px] px-5 py-2.5 inline-flex items-center justify-center rounded-[var(--radius-button)] border border-[var(--accent)]/40 text-[var(--text)] font-medium type-button hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-all duration-200 focus-ring"
           >
-            {isPast ? 'View Recap' : 'Details'}
+            {isPast ? 'View recap' : 'Details'}
+            <span className="sr-only"> for {title}</span>
           </Link>
+          {/* Post-show proof: only rendered for links the artist actually filled in. */}
+          {proofLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[44px] inline-flex items-center type-button font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors duration-200 focus-ring rounded"
+            >
+              {link.label}
+              <span className="sr-only"> from {title}</span>
+            </a>
+          ))}
         </div>
       </div>
     </motion.article>

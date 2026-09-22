@@ -1,5 +1,9 @@
 /**
- * Client-side analytics tracking. Posts to /api/analytics/track.
+ * Client-side analytics tracking. Posts to first-party /api/analytics/track.
+ * Session id lives in sessionStorage (`dt_sid`), not a cookie. No IP, no
+ * advertising pixels, no third-party analytics SDKs. A cookie-consent banner
+ * is not required for this tracker; YouTube embeds elsewhere are a separate
+ * question and should stay load-on-click if EU consent is later required.
  * Fails silently so UI is never blocked.
  */
 

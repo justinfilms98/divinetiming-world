@@ -1,5 +1,4 @@
-'use client';
-
+import { SpiralMark } from '@/components/brand/SpiralMark';
 import { cn } from '@/lib/ui/cn';
 
 interface SignatureDividerProps {
@@ -7,18 +6,18 @@ interface SignatureDividerProps {
 }
 
 /**
- * Phase 33: Site signature element — thin gradient line with soft center highlight.
- * Left fade → center highlight → right fade; very subtle glow. No animation.
- * Appears on Home, Booking, Media, Shop, EPK between major sections.
+ * Brand signature between major sections: hairline fade with the tribal spiral
+ * nestled in the centre — the necklace sub-logo as a quiet pause, not decoration.
  */
 export function SignatureDivider({ className }: SignatureDividerProps) {
   return (
     <div
-      className={cn(
-        'signature-divider-line max-w-2xl mx-auto my-12 md:my-16',
-        className
-      )}
+      className={cn('flex items-center justify-center gap-4 max-w-2xl mx-auto my-12 md:my-16 px-6', className)}
       aria-hidden
-    />
+    >
+      <div className="signature-divider-line flex-1" />
+      <SpiralMark size={22} className="shrink-0 opacity-90" />
+      <div className="signature-divider-line flex-1" />
+    </div>
   );
 }

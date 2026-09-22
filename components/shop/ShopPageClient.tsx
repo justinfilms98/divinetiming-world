@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useCart } from './CartContext';
 import { track } from '@/lib/analytics/track';
 import type { Product } from '@/lib/types/content';
+import { getProductCommerceState } from '@/lib/shop/commerce';
 
 interface ShopPageClientProps {
   products: Product[];
@@ -19,6 +20,16 @@ function formatPrice(cents: number) {
 
 export function ShopPageClient({ products }: ShopPageClientProps) {
   const { addItem } = useCart();
+  const [category, setCategory] = useState<string | null>(null);
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const product of products) {
+      const c = product.category?.trim();
+      if (c) set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+  const visible = category ? products.filter((p) => p.category?.trim() === category) : products;
 
   return (
     <div className="w-full max-w-full">
@@ -26,7 +37,37 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
         Official merchandise and music.
       </p>
 
-      {products.length > 0 ? (
+      {categories.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2 mb-12">
+          <button
+            type="button"
+            onClick={() => setCategory(null)}
+            className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] border transition-colors ${
+              category == null
+                ? 'border-[var(--accent)] text-[var(--accent)]'
+                : 'border-[var(--text)]/20 text-[var(--text-muted)] hover:border-[var(--text)]/40'
+            }`}
+          >
+            All
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] border transition-colors ${
+                category === c
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-[var(--text)]/20 text-[var(--text-muted)] hover:border-[var(--text)]/40'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {visible.length > 0 ? (
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-12 md:gap-x-6 md:gap-y-16 w-full max-w-7xl mx-auto"
           initial="hidden"
@@ -36,7 +77,7 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
             hidden: {},
           }}
         >
-          {products.map((product) => {
+          {visible.map((product) => {
             const images = product.product_images as { image_url: string; display_order: number }[] | undefined;
             const sortedImages = images?.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
             const primary = sortedImages?.[0]?.image_url;
@@ -55,7 +96,9 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
       ) : (
         <div className="py-24 md:py-32 text-center">
           <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">
-            No products yet. Check back soon.
+            {products.length === 0
+              ? 'No products yet. Check back soon.'
+              : 'No products in this category.'}
           </p>
         </div>
       )}
@@ -74,7 +117,8 @@ function EditorialProductCard({ product, primaryImage, secondaryImage, onAddToCa
   const [imageError, setImageError] = useState(false);
   const showImage = primaryImage && !imageError;
   const variants = product.product_variants ?? [];
-  const soldOut = variants.length > 0 && variants.every((v) => (v.inventory_count ?? 0) <= 0);
+  const commerce = getProductCommerceState(product);
+  const soldOut = commerce.soldOut;
   const hasVariants = variants.length > 0;
 
   return (
@@ -137,6 +181,16 @@ function EditorialProductCard({ product, primaryImage, secondaryImage, onAddToCa
               {product.badge}
             </span>
           )}
+          {commerce.saleActive && (
+            <span className="px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.15em] font-medium bg-black/70 text-[var(--accent)] backdrop-blur-sm">
+              On Sale
+            </span>
+          )}
+          {commerce.isPreorder && !soldOut && (
+            <span className="px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.15em] font-medium bg-black/70 text-white backdrop-blur-sm">
+              Preorder
+            </span>
+          )}
           {soldOut && (
             <span className="px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.15em] font-medium bg-black/70 text-[var(--text-muted)] backdrop-blur-sm">
               Sold Out
@@ -165,6 +219,9 @@ function EditorialProductCard({ product, primaryImage, secondaryImage, onAddToCa
         </Link>
         {product.subtitle && (
           <p className="type-small text-[var(--text-muted)] line-clamp-1">{product.subtitle}</p>
+        )}
+        {commerce.category && (
+          <p className="type-small text-[var(--text-muted)]/80 uppercase tracking-[0.16em] text-[10px]">{commerce.category}</p>
         )}
         <p className="text-[var(--text)] font-medium tabular-nums mt-1">{formatPrice(product.price_cents)}</p>
 
@@ -198,7 +255,7 @@ function EditorialProductCard({ product, primaryImage, secondaryImage, onAddToCa
               }}
               className="inline-flex h-10 items-center px-4 text-xs uppercase tracking-[0.2em] text-[var(--text)] border-b border-[var(--text)]/40 hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
             >
-              Add to Cart
+              {commerce.isPreorder ? 'Preorder' : 'Add to Cart'}
             </button>
           )}
         </div>

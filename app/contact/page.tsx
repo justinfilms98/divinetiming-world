@@ -2,26 +2,15 @@ import { getSiteSettings, getHeroSection } from '@/lib/content/server';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
 import { ContactForm } from '@/components/contact/ContactForm';
 import { Mail, Phone } from 'lucide-react';
-import type { Metadata } from 'next';
+import { publicPageMetadata } from '@/lib/seo/pageMetadata';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: 'Contact',
   description: 'Get in touch with Divine Timing for bookings, press, and collaborations.',
-  alternates: { canonical: '/contact' },
-  openGraph: {
-    title: 'Contact | Divine Timing',
-    description: 'Get in touch with Divine Timing for bookings, press, and collaborations.',
-    url: '/contact',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Contact | Divine Timing',
-    description: 'Get in touch with Divine Timing for bookings, press, and collaborations.',
-  },
-};
+  path: '/contact',
+});
 
 export default async function ContactPage() {
   // Inherit the booking hero's media only (overlayed video/image). Headline and
@@ -52,7 +41,7 @@ export default async function ContactPage() {
         heightPreset="compact"
       />
 
-      <main className="flex-1 py-16 md:py-24">
+      <div className="flex-1 py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           {/* Header block */}
           <header className="text-center mb-14 md:mb-20 max-w-2xl mx-auto">
@@ -119,7 +108,7 @@ export default async function ContactPage() {
             <ContactForm />
           </section>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

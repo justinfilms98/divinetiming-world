@@ -38,6 +38,7 @@ export function FilmsSection({ videos }: FilmsSectionProps) {
                       src={video.resolved_thumbnail_url}
                       alt={video.title}
                       fill
+                      loading="lazy"
                       sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                     />

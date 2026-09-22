@@ -8,8 +8,10 @@ import {
   CalendarDays,
   Disc3,
   ShoppingBag,
+  Package,
   Settings2,
   Clapperboard,
+  Video,
   FileText,
   FolderOpen,
   Mail,
@@ -18,6 +20,7 @@ import {
   UserCircle,
   Inbox,
   Plug,
+  Building2,
 } from 'lucide-react';
 import { isContentInboxEnabled } from '@/lib/features';
 import type { LucideIcon } from 'lucide-react';
@@ -42,14 +45,17 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Music', href: '/admin/releases', icon: Disc3 },
   { label: 'Events', href: '/admin/events', icon: CalendarDays },
   { label: 'Media Library', href: '/admin/media', icon: ImagePlay },
+  { label: 'Videos', href: '/admin/videos', icon: Video },
   { label: 'Collections', href: '/admin/collections', icon: FolderOpen },
   { label: 'Shop', href: '/admin/shop', icon: ShoppingBag },
+  { label: 'Orders', href: '/admin/orders', icon: Package },
   { label: 'Journey', href: '/admin/journey', icon: Compass },
   { label: 'Inquiries', href: '/admin/booking-inquiries', icon: Mail },
   { label: 'Press Kit', href: '/admin/presskit', icon: FileText },
   { label: 'About', href: '/admin/about', icon: UserCircle },
   { label: 'Legal Policies', href: '/admin/policies', icon: Scale },
   { label: 'Site Settings', href: '/admin/settings', icon: Settings2 },
+  { label: 'Label', href: '/admin/label', icon: Building2 },
 ];
 
 interface AdminNavProps {

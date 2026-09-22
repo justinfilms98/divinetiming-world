@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useCart } from './CartContext';
 import { useReducedMotion } from '@/lib/ui/reducedMotion';
+import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 
 export function CartSlideOut() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalCents, clearCart } = useCart();
   const reduce = useReducedMotion();
+  const panelRef = useFocusTrap(isOpen, closeCart);
   const slideTransition = reduce ? { duration: 0.01 } : { duration: 0.2, ease: [0.4, 0, 0.2, 1] as const };
 
   const handleCheckout = async () => {
@@ -31,10 +33,10 @@ export function CartSlideOut() {
         closeCart();
         window.location.href = data.data.url;
       } else {
-        alert(data?.error || 'Checkout is temporarily unavailable. Please try again later or contact us.');
+        alert(data?.error || 'Checkout is not enabled yet. You can still browse and add items to your cart.');
       }
     } catch {
-      alert('Checkout is temporarily unavailable. Please try again later or contact us.');
+      alert('Checkout is not enabled yet. You can still browse and add items to your cart.');
     }
   };
 
@@ -50,7 +52,11 @@ export function CartSlideOut() {
             onClick={closeCart}
             className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
           />
-          <motion.aside
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -61,7 +67,7 @@ export function CartSlideOut() {
               <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Cart</h2>
               <button
                 onClick={closeCart}
-                className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 p-2 rounded-lg hover:bg-[var(--bg-secondary)]/80"
+                className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 p-2 min-w-[44px] min-h-[44px] rounded-lg hover:bg-[var(--bg-secondary)]/80 focus-ring"
                 aria-label="Close cart"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,6 +100,7 @@ export function CartSlideOut() {
                             src={item.imageUrl}
                             alt={item.productName}
                             fill
+                            sizes="80px"
                             className="object-cover"
                           />
                         ) : (
@@ -153,13 +160,13 @@ export function CartSlideOut() {
                 </div>
                 <button
                   onClick={handleCheckout}
-                  className="w-full py-4 bg-[var(--accent)] text-[var(--text)] rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-bold"
+                  className="w-full min-h-[48px] py-4 bg-[var(--accent)] text-[#0B0B0C] rounded-lg hover:bg-[var(--accent-hover)] transition-colors font-bold focus-ring"
                 >
                   Checkout
                 </button>
               </div>
             )}
-          </motion.aside>
+          </motion.div>
         </>
       )}
     </AnimatePresence>

@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { cn } from '@/lib/ui/cn';
 import { ContentRail } from '@/components/layout/ContentRail';
+import { SpiralMark } from '@/components/brand/SpiralMark';
 import { getPlatformLinks, PlatformIcon } from '@/lib/platformLinks';
 import type { PlatformId } from '@/lib/platformLinks';
 import type { SiteSettings } from '@/lib/types/content';
+import { isLabelPublicEnabled } from '@/lib/features';
 
 const SITEMAP_LINKS = [
   { label: 'Music', href: '/music' },
@@ -13,6 +15,7 @@ const SITEMAP_LINKS = [
   { label: 'Media', href: '/media' },
   { label: 'Shop', href: '/shop' },
   { label: 'Journey', href: '/journey' },
+  { label: 'Book', href: '/booking' },
   { label: 'Contact', href: '/contact' },
   { label: 'Press Kit', href: '/presskit' },
 ] as const;
@@ -58,12 +61,15 @@ export function Footer({
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-8 md:gap-x-10 md:gap-y-10 lg:gap-12">
             {/* Brand — spans full width on mobile, single col on desktop */}
             <div className="col-span-2 lg:col-span-1">
-              <p
-                className="text-base font-semibold tracking-[0.18em] uppercase text-[var(--text)]"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Divine Timing
-              </p>
+              <div className="flex items-center gap-3">
+                <SpiralMark size={28} className="shrink-0" title="DIVINE:TIMING spiral" />
+                <p
+                  className="text-base font-semibold tracking-[0.18em] uppercase text-[var(--text)]"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Divine Timing
+                </p>
+              </div>
               {byline && (
                 <p className="text-xs text-[var(--text-muted)] tracking-wide mt-2">{byline}</p>
               )}
@@ -82,7 +88,7 @@ export function Footer({
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200"
+                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 focus-ring rounded-sm"
                     >
                       {item.label}
                     </Link>
@@ -101,7 +107,7 @@ export function Footer({
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200"
+                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 focus-ring rounded-sm"
                     >
                       {item.label}
                     </Link>
@@ -150,9 +156,19 @@ export function Footer({
             <p className="text-[11px] md:text-xs text-[var(--text-muted)] tracking-wide text-center sm:text-left">
               © {year} Divine Timing. All rights reserved.
             </p>
-            <p className="text-[11px] md:text-xs text-[var(--text-muted)]/70 tracking-wider uppercase">
+            <div className="flex items-center gap-4">
+              {isLabelPublicEnabled() && (
+                <Link
+                  href="/label"
+                  className="text-[11px] md:text-xs text-[var(--text-muted)]/70 tracking-wider hover:text-[var(--text-muted)] transition-colors duration-200"
+                >
+                  Label — coming soon
+                </Link>
+              )}
+            <p className="text-[11px] md:text-xs text-[var(--text-muted)] tracking-wider uppercase">
               Made with care
             </p>
+            </div>
           </div>
         </div>
       </ContentRail>

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "audit:admin": "node scripts/admin-audit.mjs",
     "assert:hero-logo": "node scripts/assert-hero-logo-validation.mjs",
     "assert:bio-sanitize": "node scripts/assert-bio-sanitize.mjs"
@@ -43,6 +44,7 @@
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

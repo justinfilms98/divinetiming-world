@@ -5,12 +5,13 @@ import { Section } from '@/components/ui/Section';
 import {
   getGalleriesForHub,
   getVideos,
-  getLibraryVideoAssets,
   getHeroSection,
   getPageSettings,
 } from '@/lib/content/server';
+import { getPublicLibraryVideoAssets } from '@/lib/media/publicLibraryVideos';
 import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
 import { ContentRail } from '@/components/layout/ContentRail';
+import { DEFAULT_OG_IMAGE } from '@/lib/site';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -24,11 +25,13 @@ export const metadata: Metadata = {
     description: 'Videos, photo galleries, and press from Divine Timing.',
     url: '/media',
     type: 'website',
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: 'Divine Timing' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Media | Divine Timing',
     description: 'Videos, photo galleries, and press from Divine Timing.',
+    images: [DEFAULT_OG_IMAGE],
   },
 };
 
@@ -36,7 +39,7 @@ export default async function MediaPage() {
   const [galleries, youtubeVideos, libraryVideos, heroSection, pageSettings] = await Promise.all([
     getGalleriesForHub(),
     getVideos(),
-    getLibraryVideoAssets(),
+    getPublicLibraryVideoAssets(),
     getHeroSection('media'),
     getPageSettings('media'),
   ]);

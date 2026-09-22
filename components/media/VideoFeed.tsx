@@ -5,7 +5,7 @@ import type { MediaPageVideo } from '@/lib/content/shared';
 
 /** Safe embed URL: 11-char ID only. No autoplay to avoid multi-video clutter. */
 function embedUrl(youtubeId: string): string {
-  return `https://www.youtube.com/embed/${youtubeId}?modestbranding=1&rel=0`;
+  return `https://www.youtube.com/embed/${youtubeId}?modestbranding=1&rel=0&cc_load_policy=1`;
 }
 
 const SWIPE_THRESHOLD_PX = 50;

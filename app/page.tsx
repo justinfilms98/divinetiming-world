@@ -21,7 +21,9 @@ import {
   getLatestRelease,
 } from '@/lib/content/server';
 import { getHeroSingleSource, getHeroAllSlots } from '@/lib/content/heroSingleSource';
-import { DEFAULT_OG_IMAGE } from '@/lib/site';
+import { getPlatformLinks } from '@/lib/platformLinks';
+import { musicGroupJsonLd } from '@/lib/seo/jsonld';
+import { absoluteImageUrl, BASE_URL, DEFAULT_OG_IMAGE, SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 import type { Metadata } from 'next';
 
 // Dynamic: fetch from DB on every request for immediate admin reflection
@@ -109,16 +111,30 @@ export default async function HomePage() {
         ctaText={primaryCtaText}
         ctaUrl={primaryCtaUrl}
         secondaryCtaText="Book the act"
-        secondaryCtaUrl="/contact"
+        secondaryCtaUrl="/booking"
       />
       <HeroPlatformRow overrides={siteSettings ?? undefined} delay={0.5} />
     </div>
   );
 
   const heroVideoUrl = mediaType === 'video' && mediaUrl ? mediaUrl : null;
+  const musicGroup = musicGroupJsonLd({
+    name: siteSettings?.artist_name?.trim() || SITE_NAME,
+    url: BASE_URL,
+    description: SITE_TAGLINE,
+    image: absoluteImageUrl(DEFAULT_OG_IMAGE),
+    sameAs: getPlatformLinks(siteSettings ?? undefined).map((link) => link.href),
+    members: [siteSettings?.member_1_name, siteSettings?.member_2_name]
+      .filter((name): name is string => Boolean(name?.trim()))
+      .map((name) => ({ name: name.trim() })),
+  });
 
   return (
     <div className="relative flex flex-col w-full max-w-[100vw] overflow-x-clip bg-black">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(musicGroup) }}
+      />
       {heroVideoUrl && (
         <link rel="preload" href={heroVideoUrl} as="fetch" crossOrigin="anonymous" />
       )}
@@ -138,7 +154,7 @@ export default async function HomePage() {
         Band rhythm alternates cinematic near-black against warm sand so the
         dark sections read as contrast rather than a second theme.
       */}
-      <main className="flex flex-col w-full">
+      <div className="flex flex-col w-full">
         <NowPlayingSection release={latestRelease} />
         <ExperienceSection backgroundUrl={experienceBackdrop} />
         <UpcomingEventsSection events={featuredEvents} />
@@ -147,7 +163,7 @@ export default async function HomePage() {
         <TribeSection />
         <ShopHighlightSection products={featuredProducts} />
         <BookingCtaSection bookingEmail={siteSettings?.booking_email ?? null} />
-      </main>
+      </div>
     </div>
   );
 }

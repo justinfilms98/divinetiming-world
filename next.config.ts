@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
     return [
       { source: '/tour', destination: '/events', permanent: true },
       { source: '/epk', destination: '/presskit', permanent: true },
-      { source: '/booking', destination: '/contact', permanent: true },
       { source: '/admin/booking', destination: '/admin/journey', permanent: false },
     ];
   },
@@ -22,6 +21,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'drive.google.com', pathname: '/**' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
       { protocol: 'https', hostname: '**.supabase.co', pathname: '/**' },
+      { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'img.youtube.com', pathname: '/**' },
     ],
   },
 };

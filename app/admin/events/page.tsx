@@ -11,6 +11,14 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 import { EventMediaManager } from '@/components/admin/events/EventMediaManager';
+import {
+  EVENT_BOOKING_STATUSES,
+  EVENT_BOOKING_STATUS_LABELS,
+  EVENT_TYPES,
+  EVENT_TYPE_LABELS,
+  type EventBookingStatus,
+  type EventType,
+} from '@/lib/types/content';
 
 type EventStatus = 'draft' | 'published' | 'archived';
 
@@ -19,8 +27,14 @@ interface Event {
   slug?: string | null;
   date: string;
   city: string;
+  country?: string | null;
   venue: string;
+  venue_url?: string | null;
   ticket_url: string | null;
+  event_type?: EventType | null;
+  booking_status?: EventBookingStatus | null;
+  gallery_url?: string | null;
+  recap_video_url?: string | null;
   is_featured: boolean;
   title: string | null;
   description: string | null;
@@ -31,6 +45,8 @@ interface Event {
   status?: EventStatus;
   resolved_thumbnail_url?: string | null;
 }
+
+const FIELD_CLASS = 'w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white';
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -123,9 +139,15 @@ export default function AdminEventsPage() {
     const payload: Record<string, unknown> = {
       date: formData.get('date') as string,
       city: formData.get('city') as string,
+      country: (formData.get('country') as string) || null,
       venue: formData.get('venue') as string,
+      venue_url: (formData.get('venue_url') as string) || null,
       status: (formData.get('status') as EventStatus) || 'published',
+      event_type: (formData.get('event_type') as string) || null,
+      booking_status: (formData.get('booking_status') as string) || 'announced',
       ticket_url: (formData.get('ticket_url') as string) || null,
+      gallery_url: (formData.get('gallery_url') as string) || null,
+      recap_video_url: (formData.get('recap_video_url') as string) || null,
       is_featured: formData.get('is_featured') === 'on',
       title: (formData.get('title') as string) || null,
       description: (formData.get('description') as string) || null,
@@ -320,9 +342,19 @@ export default function AdminEventsPage() {
                           Featured
                         </span>
                       )}
+                      {event.event_type && (
+                        <span className="px-2 py-0.5 bg-white/10 text-white/70 text-xs rounded">
+                          {EVENT_TYPE_LABELS[event.event_type]}
+                        </span>
+                      )}
+                      {event.booking_status && event.booking_status !== 'announced' && (
+                        <span className={`px-2 py-0.5 text-xs rounded ${event.booking_status === 'cancelled' ? 'bg-red-500/20 text-red-400' : event.booking_status === 'sold_out' ? 'bg-slate-500/20 text-slate-300' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                          {EVENT_BOOKING_STATUS_LABELS[event.booking_status]}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-xl font-semibold text-white truncate" style={{ fontFamily: 'var(--font-display)' }} title={event.title || event.city || 'Untitled'}>{event.title || event.city || 'Untitled'}</h3>
-                    <p className="text-white/50 text-sm tracking-wide truncate">{[event.venue, event.city].filter(Boolean).join(' · ') || '—'}</p>
+                    <p className="text-white/50 text-sm tracking-wide truncate">{[event.venue, event.city, event.country].filter(Boolean).join(' · ') || '—'}</p>
                     {event.description && (
                       <p className="text-white/60 text-sm mt-1 line-clamp-2">{event.description}</p>
                     )}
@@ -564,47 +596,136 @@ export default function AdminEventsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-white/70 text-sm font-medium mb-2">City</label>
+                  <label htmlFor="event-city" className="block text-white/70 text-sm font-medium mb-2">City</label>
                   <input
                     type="text"
+                    id="event-city"
                     name="city"
                     defaultValue={editingEvent?.city || ''}
                     required
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                    className={FIELD_CLASS}
                   />
                 </div>
                 <div>
-                  <label className="block text-white/70 text-sm font-medium mb-2">Venue</label>
+                  <label htmlFor="event-country" className="block text-white/70 text-sm font-medium mb-2">Country</label>
                   <input
                     type="text"
-                    name="venue"
-                    defaultValue={editingEvent?.venue || ''}
-                    required
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                    id="event-country"
+                    name="country"
+                    defaultValue={editingEvent?.country || ''}
+                    placeholder="e.g. Spain"
+                    className={FIELD_CLASS}
                   />
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="event-venue" className="block text-white/70 text-sm font-medium mb-2">Venue</label>
+                  <input
+                    type="text"
+                    id="event-venue"
+                    name="venue"
+                    defaultValue={editingEvent?.venue || ''}
+                    required
+                    className={FIELD_CLASS}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="event-venue-url" className="block text-white/70 text-sm font-medium mb-2">Venue website</label>
+                  <input
+                    type="url"
+                    id="event-venue-url"
+                    name="venue_url"
+                    defaultValue={editingEvent?.venue_url || ''}
+                    placeholder="https://..."
+                    className={FIELD_CLASS}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="event-type" className="block text-white/70 text-sm font-medium mb-2">Event type</label>
+                  <select
+                    id="event-type"
+                    name="event_type"
+                    defaultValue={editingEvent?.event_type ?? ''}
+                    className={FIELD_CLASS}
+                  >
+                    <option value="">Not specified</option>
+                    {EVENT_TYPES.map((type) => (
+                      <option key={type} value={type}>{EVENT_TYPE_LABELS[type]}</option>
+                    ))}
+                  </select>
+                  <p className="text-white/50 text-xs mt-1">Shown as a badge on the public events page.</p>
+                </div>
+                <div>
+                  <label htmlFor="event-booking-status" className="block text-white/70 text-sm font-medium mb-2">Ticket status</label>
+                  <select
+                    id="event-booking-status"
+                    name="booking_status"
+                    defaultValue={editingEvent?.booking_status ?? 'announced'}
+                    className={FIELD_CLASS}
+                  >
+                    {EVENT_BOOKING_STATUSES.map((s) => (
+                      <option key={s} value={s}>{EVENT_BOOKING_STATUS_LABELS[s]}</option>
+                    ))}
+                  </select>
+                  <p className="text-white/50 text-xs mt-1">
+                    “Sold out” and “Cancelled” replace the ticket button with a status badge.
+                  </p>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-white/70 text-sm font-medium mb-2">Description</label>
+                <label htmlFor="event-description" className="block text-white/70 text-sm font-medium mb-2">Description</label>
                 <textarea
+                  id="event-description"
                   name="description"
                   defaultValue={editingEvent?.description || ''}
                   rows={3}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
+                  className={`${FIELD_CLASS} resize-none`}
                   placeholder="Optional event description"
                 />
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm font-medium mb-2">Ticket URL</label>
+                <label htmlFor="event-ticket-url" className="block text-white/70 text-sm font-medium mb-2">Ticket URL</label>
                 <input
                   type="url"
+                  id="event-ticket-url"
                   name="ticket_url"
                   defaultValue={editingEvent?.ticket_url || ''}
                   placeholder="https://..."
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                  className={FIELD_CLASS}
                 />
+              </div>
+
+              {/* After the show: these two turn a past date into visible proof of touring history. */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="event-gallery-url" className="block text-white/70 text-sm font-medium mb-2">Photo gallery link</label>
+                  <input
+                    type="url"
+                    id="event-gallery-url"
+                    name="gallery_url"
+                    defaultValue={editingEvent?.gallery_url || ''}
+                    placeholder="https://..."
+                    className={FIELD_CLASS}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="event-recap-url" className="block text-white/70 text-sm font-medium mb-2">Recap video link</label>
+                  <input
+                    type="url"
+                    id="event-recap-url"
+                    name="recap_video_url"
+                    defaultValue={editingEvent?.recap_video_url || ''}
+                    placeholder="https://..."
+                    className={FIELD_CLASS}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-2">

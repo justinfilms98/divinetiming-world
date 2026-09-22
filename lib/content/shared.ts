@@ -121,3 +121,19 @@ export interface MediaPageVideo {
 
 /** Gallery for hub: cover only, no media items (client receives this from server) */
 export type GalleryForHub = Gallery & { resolved_cover_url: string | null; media_count: number };
+
+/** Public URL for a curated visual story. */
+export function collectionStoryHref(slug: string): string {
+  return `/collections/${slug}`;
+}
+
+/** Featured stories first, then artist display_order. */
+export function sortCollectionStories<T extends { is_featured?: boolean | null; display_order?: number | null }>(
+  rows: T[]
+): T[] {
+  return [...rows].sort((a, b) => {
+    const featuredDelta = (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+    if (featuredDelta !== 0) return featuredDelta;
+    return (a.display_order ?? 0) - (b.display_order ?? 0);
+  });
+}

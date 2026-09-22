@@ -5,16 +5,19 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { X, Upload, Check } from 'lucide-react';
 import { MediaThumb } from '@/components/admin/MediaThumb';
+import type { MediaLibraryAsset } from '@/lib/media/types';
 
 const LEGACY_STORAGE_KEY = 'dt_admin_media_include_legacy';
 
-export interface LibraryAsset {
-  id: string;
-  provider?: string | null;
-  preview_url: string;
-  thumbnail_url: string | null;
-  mime_type: string | null;
-  name: string | null;
+/** Picker payload. Extra metadata fields are optional so existing CMS consumers stay typed. */
+export type LibraryAsset = MediaLibraryAsset;
+
+function unwrapLibrary(payload: unknown): LibraryAsset[] {
+  if (Array.isArray(payload)) return payload as LibraryAsset[];
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: LibraryAsset[] }).data;
+  }
+  return [];
 }
 
 interface MediaLibraryPickerProps {
@@ -59,11 +62,20 @@ export function MediaLibraryPicker({
     setLoading(true);
     (async () => {
       try {
-        const { data } = await supabase
-          .from('external_media_assets')
-          .select('id, provider, preview_url, thumbnail_url, mime_type, name')
-          .order('created_at', { ascending: false });
-        if (!cancelled) setAssets((data || []) as LibraryAsset[]);
+        const res = await fetch('/api/admin/media-library', { credentials: 'same-origin' });
+        const payload = await res.json().catch(() => ({}));
+        if (!cancelled) {
+          if (res.ok) {
+            setAssets(unwrapLibrary(payload.data ?? payload));
+          } else {
+            const { data } = await supabase
+              .from('external_media_assets')
+              .select('id, provider, preview_url, thumbnail_url, mime_type, name, is_archived')
+              .eq('is_archived', false)
+              .order('created_at', { ascending: false });
+            setAssets((data || []) as LibraryAsset[]);
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
