@@ -189,7 +189,7 @@ export default function AdminVideosPage() {
   };
 
   return (
-    <AdminPage title="Videos" subtitle="Videos shown on the public Media page (Videos tab). Use unlisted YouTube links.">
+    <AdminPage title="YouTube Videos" subtitle="Videos shown on the public Media page (Videos tab). Use unlisted YouTube links.">
       <AdminCard className="mb-6">
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-4">
           <div className="min-w-[200px]">

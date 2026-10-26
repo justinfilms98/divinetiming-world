@@ -258,7 +258,7 @@ export default function AdminMediaPage() {
 
   return (
     <AdminPage
-      title="Media"
+      title="Media Library"
       subtitle="Upload and manage media library. Set tags, usage, and archive state. Video uploads also appear in the public Media → Videos tab when usage is public."
       actions={
         <UniversalUploader

@@ -84,7 +84,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: 'Community',
     icon: HeartHandshake,
     items: [
-      { label: 'Inquiries', href: '/admin/booking-inquiries', icon: Mail, description: 'Booking and contact form messages' },
+      { label: 'Booking Inquiries', href: '/admin/booking-inquiries', icon: Mail, description: 'Booking and contact form messages' },
       { label: 'Subscribers', href: '/admin/subscribers', icon: Users, description: 'Newsletter list', comingSoon: true },
     ],
   },
@@ -95,7 +95,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { label: 'Shop', href: '/admin/shop', icon: ShoppingBag, description: 'Products and stock' },
       { label: 'Orders', href: '/admin/orders', icon: Package, description: 'Shop orders and fulfilment' },
-      { label: 'Legal', href: '/admin/policies', icon: Scale, description: 'Privacy, terms, refund, shipping' },
+      { label: 'Legal Policies', href: '/admin/policies', icon: Scale, description: 'Privacy, terms, refund, shipping' },
       { label: 'Settings', href: '/admin/settings', icon: Settings2, description: 'Artist name, links, booking contact' },
       { label: 'Label', href: '/admin/label', icon: Building2, description: 'Record label (not public yet)' },
       ...(isContentInboxEnabled()

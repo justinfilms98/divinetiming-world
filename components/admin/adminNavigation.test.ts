@@ -50,7 +50,7 @@ describe('admin navigation', () => {
     expect(findActiveNav('/admin')?.group.id).toBe('home');
     expect(findActiveNav('/admin/events')?.group.id).toBe('content');
     expect(findActiveNav('/admin/media')?.group.id).toBe('media');
-    expect(findActiveNav('/admin/booking-inquiries')?.item.label).toBe('Inquiries');
+    expect(findActiveNav('/admin/booking-inquiries')?.item.label).toBe('Booking Inquiries');
     expect(findActiveNav('/admin/eventsx')).toBeNull();
   });
 });
