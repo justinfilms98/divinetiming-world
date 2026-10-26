@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createClient } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 import { getStripeSecretKey } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
@@ -27,7 +27,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  let supabase: ReturnType<typeof getServiceClient>;
+  try {
+    supabase = getServiceClient();
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Webhook not configured' }, { status: 503 });
+  }
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
