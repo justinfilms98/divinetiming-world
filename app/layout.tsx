@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Playfair_Display, Inter } from 'next/font/google';
 import { getSiteSettings } from '@/lib/content/server';
-import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from '@/lib/site';
+import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE, IS_PRODUCTION_SITE } from '@/lib/site';
 
 const playfairDisplay = Playfair_Display({
   weight: ['400', '600', '700'],
@@ -43,8 +43,7 @@ export const metadata: Metadata = {
     description: DEFAULT_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
-  robots: { index: true, follow: true },
-  icons: { icon: '/favicon.ico' },
+  robots: IS_PRODUCTION_SITE ? { index: true, follow: true } : { index: false, follow: false },
 };
 
 export default async function RootLayout({
