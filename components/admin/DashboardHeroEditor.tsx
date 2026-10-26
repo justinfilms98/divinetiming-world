@@ -11,6 +11,7 @@ import { revalidatePaths } from '@/lib/revalidate';
 import { resolveHeroMediaUrl, resolveHeroLogoUrl, resolveHeroSlotVideoUrl, resolveHeroSlotImageUrl } from '@/lib/storageUrls';
 import { Save, Check, Copy, ImageIcon, Video, Upload, HelpCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/ui/cn';
+import { useAdminToast } from '@/components/admin/AdminToast';
 import { compressImage } from '@/lib/utils/compressMedia';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
 
@@ -58,7 +59,7 @@ interface HeroSection {
 function HeroEclipseFallback() {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-slate-900/80 to-black/60">
-      <div className="w-64 h-64 rounded-full border-2 border-white/20" />
+      <div className="w-40 h-40 sm:w-64 sm:h-64 rounded-full border-2 border-white/20" />
     </div>
   );
 }
@@ -94,7 +95,7 @@ function AdminHeroMediaPreview({
             <button
               type="button"
               onClick={copyUrl}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-600 text-white text-xs font-medium hover:bg-slate-500"
+              className="admin-tap flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-600 text-white text-xs font-medium hover:bg-slate-500"
             >
               <Copy className="w-3 h-3" /> Copy URL
             </button>
@@ -138,7 +139,7 @@ function AdminHeroLogoPreview({ url }: { url: string }) {
       <div className="flex flex-col items-center justify-center gap-1.5 w-32 h-16 bg-slate-200 rounded-lg p-2">
         <ImageIcon className="w-6 h-6 text-slate-400" />
         <p className="text-slate-500 text-xs truncate max-w-full" title={url}>Source: {url}</p>
-        <button type="button" onClick={copyUrl} className="flex items-center gap-1 px-2 py-1 rounded bg-slate-300 text-slate-700 text-xs hover:bg-slate-400">
+        <button type="button" onClick={copyUrl} className="admin-tap flex items-center gap-1 px-2 py-1 rounded bg-slate-300 text-slate-700 text-xs hover:bg-slate-400">
           <Copy className="w-3 h-3" /> Copy
         </button>
       </div>
@@ -166,6 +167,7 @@ export function DashboardHeroEditor() {
   const [posterStoragePath, setPosterStoragePath] = useState<string | null>(null);
   const [ctaError, setCtaError] = useState<string | null>(null);
   const supabase = createClient();
+  const { showToast } = useAdminToast();
 
   useEffect(() => {
     loadHeroes();
@@ -202,7 +204,7 @@ export function DashboardHeroEditor() {
       e.target.value = '';
       if (!file || !selectedPage) return;
       if (!file.type.startsWith('image/')) {
-        alert('Poster must be an image (PNG, JPEG, or WebP).');
+        showToast('error', 'Poster must be an image (PNG, JPEG, or WebP).');
         return;
       }
       setPosterUploading(true);
@@ -231,12 +233,12 @@ export function DashboardHeroEditor() {
         if (uploadErr) throw new Error(uploadErr.message || 'Storage upload failed');
         setPosterStoragePath(path);
       } catch (err) {
-        alert(err instanceof Error ? err.message : 'Poster upload failed');
+        showToast('error', err instanceof Error ? err.message : 'Poster upload failed');
       } finally {
         setPosterUploading(false);
       }
     },
-    [selectedPage]
+    [selectedPage, showToast]
   );
 
   const handleReplaceMedia = (files: UploadedFile[]) => {
@@ -346,7 +348,7 @@ export function DashboardHeroEditor() {
           setCtaError(msg);
           return;
         }
-        alert('Error saving: ' + msg);
+        showToast('error', 'Error saving: ' + msg);
         return;
       }
       if (data.hero && typeof data.hero === 'object' && !Array.isArray(data.hero)) {
@@ -371,8 +373,8 @@ export function DashboardHeroEditor() {
 
   return (
     <AdminCard className="mb-8">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-4 mb-4">
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-white tracking-tight mb-1">Page hero</h2>
           <p className="text-white/50 text-sm">
             Choose a page, then edit media, overlay, label, headline, and primary CTA.
@@ -381,7 +383,7 @@ export function DashboardHeroEditor() {
         <button
           type="button"
           onClick={() => setHelpOpen((o) => !o)}
-          className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 hover:text-slate-700"
+          className="admin-tap flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 hover:text-slate-700"
           aria-expanded={helpOpen}
         >
           <HelpCircle className="w-3.5 h-3.5" />
@@ -411,7 +413,7 @@ export function DashboardHeroEditor() {
               role="tab"
               aria-selected={selectedPage === key}
               onClick={() => setSelectedPage(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`admin-tap px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 selectedPage === key
                   ? 'bg-[#C6A75E] text-[#0a0a0a] font-semibold'
                   : 'text-white/50 hover:text-white hover:bg-white/5'
@@ -472,7 +474,7 @@ export function DashboardHeroEditor() {
                   <button
                     type="button"
                     onClick={handleRemoveMedia}
-                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200"
+                    className="admin-tap px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200"
                     title="Remove hero media and use default"
                   >
                     Remove hero media
@@ -494,10 +496,10 @@ export function DashboardHeroEditor() {
                   <div className="relative rounded-lg overflow-hidden bg-slate-100 border border-slate-200 w-32 h-16 flex items-center justify-center">
                     <AdminHeroLogoPreview url={heroLogoDisplayUrl ?? hero.hero_logo_url!} />
                   </div>
-                  <p className="text-xs text-slate-500 truncate max-w-xs" title={heroLogoDisplayUrl ?? hero.hero_logo_url ?? undefined}>
+                  <p className="text-xs text-slate-500 truncate min-w-0 max-w-full sm:max-w-xs" title={heroLogoDisplayUrl ?? hero.hero_logo_url ?? undefined}>
                     Source: {hero.hero_logo_storage_path ? `Storage: ${hero.hero_logo_storage_path}` : hero.hero_logo_url}
                   </p>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 w-full sm:w-auto">
                     <UniversalUploader
                       acceptedTypes={['image']}
                       acceptOverride="image/png"
@@ -514,7 +516,7 @@ export function DashboardHeroEditor() {
                     <button
                       type="button"
                       onClick={() => updateHero({ hero_logo_url: null, hero_logo_storage_path: null })}
-                      className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200 w-fit"
+                      className="admin-tap px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200 w-fit"
                     >
                       Remove logo
                     </button>
@@ -541,8 +543,8 @@ export function DashboardHeroEditor() {
           {/* Carousel Slots (home only) */}
           {selectedPage === 'home' && (
             <div className="mt-8 pt-6 border-t border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div className="min-w-0">
                   <h3 className="text-white font-semibold text-sm">Carousel Slots</h3>
                   <p className="text-white/50 text-xs mt-0.5">
                     Upload 2–3 videos to enable cycling. Videos advance every 10 seconds with a cinematic transition.
@@ -637,7 +639,7 @@ export function DashboardHeroEditor() {
                               setSaved(true);
                               setTimeout(() => setSaved(false), 3000);
                             } else {
-                              alert('Failed to save slot');
+                              showToast('error', 'Failed to save slot');
                             }
                           }}
                           buttonLabel={slotUrl ? 'Replace' : 'Upload'}
@@ -657,7 +659,7 @@ export function DashboardHeroEditor() {
                               });
                               await loadHeroes();
                             }}
-                            className="text-red-400/70 hover:text-red-400 text-xs"
+                            className="admin-tap px-2 -mx-2 text-red-400/70 hover:text-red-400 text-xs"
                           >
                             Remove
                           </button>
@@ -727,7 +729,7 @@ export function DashboardHeroEditor() {
                         type="button"
                         onClick={() => posterFileInputRef.current?.click()}
                         disabled={posterUploading}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 w-fit"
+                        className="admin-tap inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 w-fit"
                       >
                         <Upload className="w-3 h-3" /> {posterUrl ? 'Replace poster' : 'Upload poster'}
                       </button>
@@ -735,7 +737,7 @@ export function DashboardHeroEditor() {
                         <button
                           type="button"
                           onClick={() => setPosterStoragePath(null)}
-                          className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200 w-fit"
+                          className="admin-tap px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200 w-fit"
                         >
                           Remove poster
                         </button>
@@ -824,12 +826,15 @@ export function DashboardHeroEditor() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="admin-sticky-actions admin-sticky-actions--page items-center">
+            {saved && (
+              <span className="w-full sm:w-auto text-sm text-green-600 font-medium">Changes saved. Refresh the public page to confirm.</span>
+            )}
             <button
               type="button"
               onClick={handleSave}
               disabled={saving || uploadInProgress}
-              className="admin-btn-primary flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium text-sm disabled:opacity-50 text-white"
+              className="admin-btn-primary admin-tap flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-medium text-sm disabled:opacity-50 text-white"
               aria-live="polite"
               aria-busy={saving || uploadInProgress}
               title={uploadInProgress ? 'Wait for upload to finish' : undefined}
@@ -846,9 +851,6 @@ export function DashboardHeroEditor() {
                 </>
               )}
             </button>
-            {saved && (
-              <span className="text-sm text-green-600 font-medium">Changes saved. Refresh the public page to confirm.</span>
-            )}
           </div>
         </div>
       )}

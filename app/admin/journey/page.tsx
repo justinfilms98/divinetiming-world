@@ -5,6 +5,7 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Plus, Trash2, ChevronUp, ChevronDown, ExternalLink, Save } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 
 interface BlockRow {
@@ -29,6 +30,7 @@ export default function AdminJourneyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,7 +113,13 @@ export default function AdminJourneyPage() {
   };
 
   const deleteBlock = async (id: string) => {
-    if (!window.confirm('Delete this block permanently?')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this chapter?',
+      message: 'The journey block will be deleted permanently. This cannot be undone.',
+      confirmLabel: 'Delete chapter',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/journey-blocks?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -156,7 +164,7 @@ export default function AdminJourneyPage() {
         <button
           type="button"
           onClick={createBlock}
-          className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+          className="admin-btn-primary admin-tap flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
         >
           <Plus className="w-4 h-4" />
           New Chapter
@@ -185,7 +193,7 @@ export default function AdminJourneyPage() {
             <button
               type="button"
               onClick={createBlock}
-              className="admin-btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+              className="admin-btn-primary admin-tap inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
             >
               <Plus className="w-4 h-4" />
               Create First Chapter
@@ -198,8 +206,8 @@ export default function AdminJourneyPage() {
             const img = resolveImg(block);
             return (
               <AdminCard key={block.id}>
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
                     <span className="text-xs text-slate-500 font-medium">#{index + 1}</span>
                     <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wider">
                       {block.align}
@@ -214,13 +222,14 @@ export default function AdminJourneyPage() {
                       {block.status === 'published' ? 'Published' : 'Draft'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 ml-auto">
                     <button
                       type="button"
                       onClick={() => move(index, 'up')}
                       disabled={index === 0}
-                      className="p-1.5 text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="admin-icon-btn text-slate-500 hover:text-slate-800 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Move up"
+                      aria-label="Move chapter up"
                     >
                       <ChevronUp className="w-4 h-4" />
                     </button>
@@ -228,16 +237,18 @@ export default function AdminJourneyPage() {
                       type="button"
                       onClick={() => move(index, 'down')}
                       disabled={index === blocks.length - 1}
-                      className="p-1.5 text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="admin-icon-btn text-slate-500 hover:text-slate-800 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Move down"
+                      aria-label="Move chapter down"
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteBlock(block.id)}
-                      className="p-1.5 text-red-500 hover:text-red-700"
+                      className="admin-icon-btn text-red-500 hover:text-red-700 hover:bg-red-500/10"
                       title="Delete"
+                      aria-label="Delete chapter"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -247,11 +258,11 @@ export default function AdminJourneyPage() {
                 <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-4">
                   <div>
                     {img ? (
-                      <div className="relative aspect-[4/5] w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                      <div className="relative aspect-[4/5] w-full max-h-[40svh] md:max-h-none rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
                         <img src={img} alt="" className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <div className="aspect-[4/5] w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 text-xs">
+                      <div className="aspect-[4/5] w-full max-h-[25svh] md:max-h-none rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 text-xs">
                         No image
                       </div>
                     )}
@@ -266,7 +277,7 @@ export default function AdminJourneyPage() {
                         <button
                           type="button"
                           onClick={() => updateLocal(block.id, { image_url: null, external_image_asset_id: null })}
-                          className="text-xs text-red-600 hover:text-red-800"
+                          className="admin-tap inline-flex items-center justify-center rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-600 hover:text-red-800 hover:bg-red-500/10"
                         >
                           Remove image
                         </button>
@@ -307,9 +318,9 @@ export default function AdminJourneyPage() {
                         placeholder="Tell this part of the story…"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
                           <label className="text-slate-700 text-xs font-medium" htmlFor={`journey-align-${block.id}`}>
                             Align
                           </label>
@@ -317,14 +328,14 @@ export default function AdminJourneyPage() {
                             id={`journey-align-${block.id}`}
                             value={block.align}
                             onChange={(e) => updateLocal(block.id, { align: e.target.value as 'left' | 'right' | 'center' })}
-                            className="admin-input px-2 py-1.5 text-sm"
+                            className="admin-input admin-tap w-full sm:w-auto min-w-0 px-2 py-1.5 text-sm"
                           >
                             <option value="left">Image left</option>
                             <option value="right">Image right</option>
                             <option value="center">Centered (no side image)</option>
                           </select>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
                           <label className="text-slate-700 text-xs font-medium" htmlFor={`journey-status-${block.id}`}>
                             Visibility
                           </label>
@@ -334,7 +345,7 @@ export default function AdminJourneyPage() {
                             onChange={(e) =>
                               updateLocal(block.id, { status: e.target.value as 'draft' | 'published' })
                             }
-                            className="admin-input px-2 py-1.5 text-sm"
+                            className="admin-input admin-tap w-full sm:w-auto min-w-0 px-2 py-1.5 text-sm"
                           >
                             <option value="draft">Draft (hidden)</option>
                             <option value="published">Published</option>
@@ -345,7 +356,7 @@ export default function AdminJourneyPage() {
                         type="button"
                         onClick={() => saveBlock(block)}
                         disabled={saving === block.id}
-                        className="admin-btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+                        className="admin-btn-primary admin-tap inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm w-full sm:w-auto"
                       >
                         {saving === block.id ? 'Saving…' : <><Save className="w-4 h-4" /> Save</>}
                       </button>

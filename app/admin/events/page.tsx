@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/admin/EmptyState';
 import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
@@ -47,6 +48,8 @@ interface Event {
 }
 
 const FIELD_CLASS = 'w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white';
+const SECTION_HEADING_CLASS = 'pt-4 border-t border-white/10 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C6A75E]/80';
+const SECONDARY_BTN_CLASS = 'admin-tap px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors';
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -59,6 +62,7 @@ export default function AdminEventsPage() {
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [uploadInProgress, setUploadInProgress] = useState(false);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   useEffect(() => {
     loadEvents();
@@ -198,7 +202,13 @@ export default function AdminEventsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this event?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/events?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -360,14 +370,15 @@ export default function AdminEventsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex flex-col">
+                  <div className="flex flex-wrap items-center gap-1 md:gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex md:flex-col">
                       <button
                         type="button"
                         onClick={() => handleMove(index, 'up')}
                         disabled={index === 0}
-                        className="p-1.5 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
                         title="Move up"
+                        aria-label="Move up"
                       >
                         <ChevronUp className="w-4 h-4" />
                       </button>
@@ -375,8 +386,9 @@ export default function AdminEventsPage() {
                         type="button"
                         onClick={() => handleMove(index, 'down')}
                         disabled={index === events.length - 1}
-                        className="p-1.5 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
                         title="Move down"
+                        aria-label="Move down"
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
@@ -386,8 +398,9 @@ export default function AdminEventsPage() {
                         href={event.ticket_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-lg"
+                        className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/5 rounded-lg"
                         title="View tickets"
+                        aria-label="View tickets"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
@@ -395,16 +408,18 @@ export default function AdminEventsPage() {
                     <button
                       type="button"
                       onClick={() => openEdit(event)}
-                      className="p-2 text-white/70 hover:text-white hover:bg-white/5 rounded-lg"
+                      className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/5 rounded-lg"
                       title="Edit"
+                      aria-label="Edit event"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(event.id)}
-                      className="p-2 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+                      className="admin-icon-btn text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
                       title="Delete"
+                      aria-label="Delete event"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -418,14 +433,14 @@ export default function AdminEventsPage() {
 
       {/* Edit/Create Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-xl shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-[#0f0c10] z-10">
-              <h2 className="text-xl font-semibold text-white">
+          <div className="relative w-full sm:max-w-2xl max-h-[100svh] sm:max-h-[90svh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-white/10 bg-[#0f0c10]">
+              <h2 className="text-xl font-semibold text-white truncate">
                 {editingEvent ? 'Edit Event' : 'Create Event'}
               </h2>
-              <button onClick={closeModal} className="p-2 text-white/70 hover:text-white rounded-lg">
+              <button type="button" onClick={closeModal} className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/5 rounded-lg" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -454,6 +469,8 @@ export default function AdminEventsPage() {
                   </div>
                 );
               })()}
+
+              <h3 className={SECTION_HEADING_CLASS}>Basics</h3>
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
@@ -492,11 +509,13 @@ export default function AdminEventsPage() {
                 <p className="text-white/50 text-xs mt-1">Used in event links (e.g. /events/my-event). Use lowercase with hyphens.</p>
               </div>
 
+              <h3 className={SECTION_HEADING_CLASS}>Photo</h3>
+
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Thumbnail</label>
                 {(previewThumbnail || editingEvent?.thumbnail_url || editingEvent?.resolved_thumbnail_url) ? (
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-white/5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-white/5">
                       <img
                         src={previewThumbnail || editingEvent?.thumbnail_url || editingEvent?.resolved_thumbnail_url || ''}
                         alt=""
@@ -510,7 +529,7 @@ export default function AdminEventsPage() {
                       />
                       <div className="absolute inset-0 hidden flex items-center justify-center bg-white/5 text-white/40 text-xs">Preview</div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-start gap-2 min-w-0 flex-1">
                       <UniversalUploader
                         acceptedTypes={['image']}
                         acceptOverride="image/*"
@@ -518,12 +537,11 @@ export default function AdminEventsPage() {
                         onUploadingChange={setUploadInProgress}
                         buttonLabel="Replace thumbnail"
                         hideStorageTip
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setLibraryPickerOpen(true)}
-                        className="px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
+                        className={SECONDARY_BTN_CLASS}
                       >
                         Choose from library
                       </button>
@@ -535,14 +553,14 @@ export default function AdminEventsPage() {
                           setPreviewThumbnail(null);
                           if (editingEvent) setEditingEvent({ ...editingEvent, thumbnail_url: null, external_thumbnail_asset_id: null });
                         }}
-                        className="text-red-400/80 hover:text-red-400 text-sm"
+                        className="admin-tap px-3 py-2.5 rounded-lg text-red-400/80 hover:text-red-400 hover:bg-red-400/10 text-sm"
                       >
                         Remove
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-start gap-2">
                     <UniversalUploader
                       acceptedTypes={['image']}
                       acceptOverride="image/*"
@@ -550,12 +568,11 @@ export default function AdminEventsPage() {
                       onUploadingChange={setUploadInProgress}
                       buttonLabel="Upload thumbnail"
                       hideStorageTip
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
+                      className={SECONDARY_BTN_CLASS}
                     >
                       Choose from library
                     </button>
@@ -571,7 +588,9 @@ export default function AdminEventsPage() {
                 title="Choose thumbnail from library"
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className={SECTION_HEADING_CLASS}>Date &amp; place</h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-white/70 text-sm font-medium mb-2">Date & Time</label>
                   <input
@@ -594,7 +613,7 @@ export default function AdminEventsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="event-city" className="block text-white/70 text-sm font-medium mb-2">City</label>
                   <input
@@ -619,7 +638,7 @@ export default function AdminEventsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="event-venue" className="block text-white/70 text-sm font-medium mb-2">Venue</label>
                   <input
@@ -644,7 +663,9 @@ export default function AdminEventsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <h3 className={SECTION_HEADING_CLASS}>Details</h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="event-type" className="block text-white/70 text-sm font-medium mb-2">Event type</label>
                   <select
@@ -690,6 +711,8 @@ export default function AdminEventsPage() {
                 />
               </div>
 
+              <h3 className={SECTION_HEADING_CLASS}>Tickets &amp; links</h3>
+
               <div>
                 <label htmlFor="event-ticket-url" className="block text-white/70 text-sm font-medium mb-2">Ticket URL</label>
                 <input
@@ -703,7 +726,7 @@ export default function AdminEventsPage() {
               </div>
 
               {/* After the show: these two turn a past date into visible proof of touring history. */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="event-gallery-url" className="block text-white/70 text-sm font-medium mb-2">Photo gallery link</label>
                   <input
@@ -747,16 +770,16 @@ export default function AdminEventsPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2">
+              <div className="admin-sticky-actions -mx-4 -mb-4 mt-6 px-4">
+                <button type="button" onClick={closeModal} className="admin-tap px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={uploadInProgress}
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
+                  className="admin-tap px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {uploadInProgress ? 'Uploading…' : editingEvent ? 'Update' : 'Create'}
-                </button>
-                <button type="button" onClick={closeModal} className="px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
-                  Cancel
                 </button>
               </div>
             </form>

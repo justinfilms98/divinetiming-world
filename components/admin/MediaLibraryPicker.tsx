@@ -112,15 +112,15 @@ export function MediaLibraryPicker({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-xl bg-white border border-slate-200 shadow-xl">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
+      <div className="relative w-full sm:max-w-2xl max-h-[100svh] sm:max-h-[85vh] overflow-hidden flex flex-col rounded-t-2xl sm:rounded-2xl bg-white border border-slate-200 shadow-xl">
+        <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-800 min-w-0 truncate">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-500 hover:text-slate-800 rounded-lg"
+            className="admin-icon-btn text-slate-500 hover:text-slate-800 rounded-lg"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -136,11 +136,11 @@ export function MediaLibraryPicker({
                 onChange={(e) => handleIncludeLegacyChange(e.target.checked)}
                 className="rounded border-slate-300"
               />
-              <label htmlFor="picker-include-legacy" className="text-sm text-slate-600">Include legacy items</label>
+              <label htmlFor="picker-include-legacy" className="admin-tap inline-flex items-center text-sm text-slate-600">Include legacy items</label>
             </div>
           )}
           {selectedAsset && (
-            <div className="mb-4 p-3 rounded-lg border-2 border-slate-300 bg-slate-50 flex items-center gap-3">
+            <div className="mb-4 p-3 rounded-lg border-2 border-slate-300 bg-slate-50 flex flex-wrap items-center gap-3">
               <div className="w-14 h-14 flex-shrink-0 overflow-hidden rounded-lg">
                 <MediaThumb
                   src={selectedAsset.thumbnail_url || selectedAsset.preview_url || null}
@@ -154,18 +154,18 @@ export function MediaLibraryPicker({
                 <p className="text-sm font-medium text-slate-800 truncate">{selectedAsset.name || 'Untitled'}</p>
                 <p className="text-xs text-slate-500">Selected — confirm below</p>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setSelectedAsset(null)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors duration-200"
+                  className="admin-tap flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors duration-200"
                 >
                   Choose another
                 </button>
                 <button
                   type="button"
                   onClick={confirmSelection}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors duration-200"
+                  className="admin-tap flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors duration-200"
                 >
                   <Check className="w-4 h-4" />
                   Use this
@@ -181,14 +181,14 @@ export function MediaLibraryPicker({
               <Link
                 href="/admin/media"
                 onClick={() => onClose()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors duration-200"
+                className="admin-tap inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors duration-200"
               >
                 <Upload className="w-4 h-4" />
                 Upload media
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
               {filtered.map((asset) => {
                 const thumb = asset.thumbnail_url || asset.preview_url;
                 const isImage = (asset.mime_type || '').startsWith('image/');

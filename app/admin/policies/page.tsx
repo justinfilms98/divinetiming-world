@@ -5,6 +5,7 @@ import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Save, ExternalLink, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import type { LegalPolicySlug, LegalPolicyStatus } from '@/lib/types/content';
 
 const ORDER: { slug: LegalPolicySlug; label: string }[] = [
@@ -42,6 +43,7 @@ export default function AdminPoliciesPage() {
   const [saving, setSaving] = useState<LegalPolicySlug | null>(null);
   const [loading, setLoading] = useState(true);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,9 +90,13 @@ export default function AdminPoliciesPage() {
       return;
     }
     if (p.status === 'published' && looksUnreviewed(p.body_md)) {
-      const ok = window.confirm(
-        'This copy still has [BRACKET] placeholders or the unreviewed-draft banner. Placeholder text is not legally binding. Publish only after a lawyer has reviewed the finished document. Continue?'
-      );
+      const ok = await dialog.confirm({
+        title: 'Publish with placeholders?',
+        message:
+          'This copy still has [BRACKET] placeholders or the unreviewed-draft banner. Placeholder text is not legally binding. Publish only after a lawyer has reviewed the finished document.',
+        confirmLabel: 'Publish anyway',
+        tone: 'default',
+      });
       if (!ok) return;
     }
     setSaving(slug);
@@ -146,15 +152,15 @@ export default function AdminPoliciesPage() {
             const isOpen = open === slug;
             const isPublished = policy?.status === 'published';
             return (
-              <AdminCard key={slug} className="p-0 overflow-hidden">
+              <AdminCard key={slug} className="p-0 overflow-clip">
                 <button
                   type="button"
                   onClick={() => setOpen(isOpen ? null : slug)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                  className="admin-tap w-full flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    {isOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
-                    <span className="font-medium text-slate-800">{label}</span>
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    {isOpen ? <ChevronDown className="w-4 h-4 shrink-0 text-slate-500" /> : <ChevronRight className="w-4 h-4 shrink-0 text-slate-500" />}
+                    <span className="font-medium text-slate-800 min-w-0">{label}</span>
                     {policy && (
                       <span
                         className={`px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded ${
@@ -165,7 +171,7 @@ export default function AdminPoliciesPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 ml-6 sm:ml-0">
                     {policy ? (
                       isPublished ? (
                         <a
@@ -173,7 +179,7 @@ export default function AdminPoliciesPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="text-xs text-slate-500 hover:text-slate-800 inline-flex items-center gap-1"
+                          className="admin-tap text-xs text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 px-2 -mx-2 rounded"
                         >
                           View <ExternalLink className="w-3 h-3" />
                         </a>
@@ -249,17 +255,17 @@ export default function AdminPoliciesPage() {
                             Supported: <code>## heading</code>, <code>&gt; blockquote</code>, <code>- bullet</code>, <code>**bold**</code>, blank-line paragraphs.
                           </p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-slate-500">
-                            Last updated: {new Date(policy.updated_at).toLocaleString()}
-                          </p>
+                        <p className="text-xs text-slate-500">
+                          Last updated: {new Date(policy.updated_at).toLocaleString()}
+                        </p>
+                        <div className="admin-sticky-actions admin-sticky-actions--page">
                           <button
                             type="button"
                             onClick={() => save(slug)}
                             disabled={saving === slug}
-                            className="admin-btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+                            className="admin-btn-primary admin-tap inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm"
                           >
-                            {saving === slug ? 'Saving…' : <><Save className="w-4 h-4" /> Save</>}
+                            {saving === slug ? 'Saving…' : <><Save className="w-4 h-4" /> Save {label}</>}
                           </button>
                         </div>
                       </>

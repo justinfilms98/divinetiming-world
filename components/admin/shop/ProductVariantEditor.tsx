@@ -43,12 +43,12 @@ export function ProductVariantEditor({ variants, onChange }: ProductVariantEdito
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <label className="block text-white/70 text-sm font-medium">Variants (sizes / colors)</label>
         <button
           type="button"
           onClick={() => onChange([...variants, emptyVariantDraft()])}
-          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-white/80 border border-white/20 rounded-lg hover:border-[#C6A75E] hover:text-[#C6A75E]"
+          className="admin-tap inline-flex items-center gap-1 px-3 py-1.5 text-xs text-white/80 border border-white/20 rounded-lg hover:border-[#C6A75E] hover:text-[#C6A75E]"
         >
           <Plus className="w-3.5 h-3.5" />
           Add variant
@@ -70,8 +70,9 @@ export function ProductVariantEditor({ variants, onChange }: ProductVariantEdito
                 <button
                   type="button"
                   onClick={() => onChange(variants.filter((v) => v.key !== variant.key))}
-                  className="p-1.5 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+                  className="admin-icon-btn text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
                   title="Remove variant"
+                  aria-label={`Remove variant ${index + 1}`}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

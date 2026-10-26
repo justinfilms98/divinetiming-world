@@ -183,11 +183,11 @@ export default function AdminSettingsPage() {
           </div>
         </AdminCard>
 
-        <div className="flex justify-end">
+        <div className="admin-sticky-actions admin-sticky-actions--page">
           <button
             type="submit"
             disabled={isSaving}
-            className="admin-btn-primary flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium text-white disabled:opacity-50"
+            className="admin-btn-primary admin-tap flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-medium text-white disabled:opacity-50"
           >
             {saved ? (
               <>

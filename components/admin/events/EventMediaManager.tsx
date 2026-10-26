@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { Trash2, ChevronUp, ChevronDown, Video } from 'lucide-react';
 
 interface EventMediaRow {
@@ -30,6 +31,7 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,7 +76,13 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Remove this item from the event?')) return;
+    const ok = await dialog.confirm({
+      title: 'Remove this item from the event?',
+      message: 'It will no longer appear on the public event page.',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/event-media?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -162,14 +170,15 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
                     No preview
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 p-1.5 flex items-center justify-between gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="flex items-center gap-0.5">
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
+                  <div className="flex items-center">
                     <button
                       type="button"
                       onClick={() => handleMove(i, 'up')}
                       disabled={i === 0}
-                      className="p-1 text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="admin-icon-btn text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Move up"
+                      aria-label="Move up"
                     >
                       <ChevronUp className="w-4 h-4" />
                     </button>
@@ -177,8 +186,9 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
                       type="button"
                       onClick={() => handleMove(i, 'down')}
                       disabled={i === media.length - 1}
-                      className="p-1 text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="admin-icon-btn text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Move down"
+                      aria-label="Move down"
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
@@ -186,8 +196,9 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
                   <button
                     type="button"
                     onClick={() => handleDelete(m.id)}
-                    className="p-1 text-red-400/90 hover:text-red-400"
+                    className="admin-icon-btn text-red-400/90 hover:text-red-400"
                     title="Remove"
+                    aria-label="Remove media"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -99,15 +99,15 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-white border border-slate-200 shadow-xl">
+      <div className="relative w-full sm:max-w-lg max-h-[100svh] sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white border border-slate-200 shadow-xl">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold text-slate-800">Edit media</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-500 hover:text-slate-800 rounded-lg"
+            className="admin-icon-btn text-slate-500 hover:text-slate-800 rounded-lg"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -154,7 +154,7 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="media-photographer" className={labelClass}>
                 Photographer
@@ -179,7 +179,7 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="media-date" className={labelClass}>
                 Date
@@ -212,7 +212,7 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="media-category" className={labelClass}>
                 Category
@@ -291,11 +291,11 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 p-4 border-t border-slate-200 sticky bottom-0 bg-white">
+        <div className="flex flex-wrap justify-end gap-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4 border-t border-slate-200 sticky bottom-0 bg-white">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50"
+            className="admin-tap flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50"
           >
             Cancel
           </button>
@@ -303,7 +303,7 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 disabled:opacity-60"
+            className="admin-tap flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 disabled:opacity-60"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>

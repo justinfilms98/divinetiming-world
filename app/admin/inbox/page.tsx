@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { isContentInboxEnabled } from '@/lib/features';
 import type { InboxItem, DraftStatus, DraftType } from '@/lib/content-engine/types';
 import { ExternalLink, X } from 'lucide-react';
@@ -46,6 +47,7 @@ const inputClass =
 export default function AdminInboxPage() {
   const enabled = isContentInboxEnabled();
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const [items, setItems] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,7 +137,13 @@ export default function AdminInboxPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this draft? The source record is kept.')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this draft?',
+      message: 'The source record is kept. This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/inbox/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -191,7 +199,7 @@ export default function AdminInboxPage() {
       {/* Manual import */}
       <AdminCard className="mb-6">
         <form onSubmit={handleImport} className="flex flex-wrap items-end gap-4">
-          <div className="min-w-[280px] flex-1">
+          <div className="w-full sm:w-auto sm:min-w-[280px] flex-1">
             <label className="block text-sm font-medium text-white/70 mb-1">Source URL (optional)</label>
             <input
               type="text"
@@ -201,7 +209,7 @@ export default function AdminInboxPage() {
               className={inputClass}
             />
           </div>
-          <div className="min-w-[200px] flex-1">
+          <div className="w-full sm:w-auto sm:min-w-[200px] flex-1">
             <label className="block text-sm font-medium text-white/70 mb-1">Title (optional)</label>
             <input
               type="text"
@@ -211,7 +219,7 @@ export default function AdminInboxPage() {
               className={inputClass}
             />
           </div>
-          <div className="min-w-[160px]">
+          <div className="w-full sm:w-auto sm:min-w-[160px]">
             <label className="block text-sm font-medium text-white/70 mb-1">Type</label>
             <select
               value={importType}
@@ -229,7 +237,7 @@ export default function AdminInboxPage() {
           <button
             type="submit"
             disabled={importing || (!importUrl.trim() && !importTitle.trim())}
-            className="px-4 py-2 rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50"
+            className="admin-tap w-full sm:w-auto px-4 py-2 rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50"
           >
             {importing ? 'Importing…' : 'Add to inbox'}
           </button>
@@ -243,7 +251,7 @@ export default function AdminInboxPage() {
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+            className={`admin-tap px-3 py-1.5 rounded-lg text-sm border transition-colors ${
               tab === t.key
                 ? 'border-[#C6A75E] text-[#C6A75E] bg-[#C6A75E]/10'
                 : 'border-white/10 text-white/60 hover:text-white hover:border-white/30'
@@ -272,7 +280,7 @@ export default function AdminInboxPage() {
               item.status === 'published' || item.status === 'rejected' || item.status === 'ignored';
             return (
               <AdminCard key={item.id} className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-60">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className={`px-2 py-0.5 text-xs rounded ${STATUS_BADGE[item.status] ?? 'bg-white/10 text-white/70'}`}>
                       {item.status.replace(/_/g, ' ')}
@@ -292,7 +300,7 @@ export default function AdminInboxPage() {
                       href={item.source.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-white/50 hover:text-white/80 truncate"
+                      className="inline-flex max-w-full min-w-0 items-center gap-1 text-sm text-white/50 hover:text-white/80 truncate"
                     >
                       <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{item.source.source_url}</span>
@@ -303,7 +311,7 @@ export default function AdminInboxPage() {
                   <button
                     type="button"
                     onClick={() => openEdit(item)}
-                    className="px-3 py-1.5 text-sm rounded-lg border border-white/15 text-white/80 hover:bg-white/10"
+                    className="admin-tap px-4 py-1.5 text-sm rounded-lg border border-white/15 text-white/80 hover:bg-white/10"
                   >
                     Edit
                   </button>
@@ -311,7 +319,7 @@ export default function AdminInboxPage() {
                     <button
                       type="button"
                       onClick={() => patchItem(item.id, { action: 'approve' }, 'Approved')}
-                      className="px-3 py-1.5 text-sm rounded-lg border border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10"
+                      className="admin-tap px-4 py-1.5 text-sm rounded-lg border border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10"
                     >
                       Approve
                     </button>
@@ -320,7 +328,7 @@ export default function AdminInboxPage() {
                     <button
                       type="button"
                       onClick={() => patchItem(item.id, { action: 'publish' }, 'Published')}
-                      className="px-3 py-1.5 text-sm rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90"
+                      className="admin-tap px-4 py-1.5 text-sm rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90"
                       title="Publish into the site (YouTube video drafts only in this phase)"
                     >
                       Publish
@@ -331,14 +339,14 @@ export default function AdminInboxPage() {
                       <button
                         type="button"
                         onClick={() => patchItem(item.id, { action: 'reject' }, 'Rejected')}
-                        className="px-3 py-1.5 text-sm rounded-lg border border-red-400/30 text-red-300 hover:bg-red-400/10"
+                        className="admin-tap px-4 py-1.5 text-sm rounded-lg border border-red-400/30 text-red-300 hover:bg-red-400/10"
                       >
                         Reject
                       </button>
                       <button
                         type="button"
                         onClick={() => patchItem(item.id, { action: 'ignore' }, 'Ignored')}
-                        className="px-3 py-1.5 text-sm rounded-lg border border-white/15 text-white/60 hover:bg-white/10"
+                        className="admin-tap px-4 py-1.5 text-sm rounded-lg border border-white/15 text-white/60 hover:bg-white/10"
                       >
                         Ignore
                       </button>
@@ -347,7 +355,7 @@ export default function AdminInboxPage() {
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
-                    className="px-3 py-1.5 text-sm rounded-lg text-red-400 hover:bg-red-500/10"
+                    className="admin-tap px-4 py-1.5 text-sm rounded-lg text-red-400 hover:bg-red-500/10"
                   >
                     Delete
                   </button>
@@ -360,11 +368,11 @@ export default function AdminInboxPage() {
 
       {/* Edit modal */}
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" aria-modal="true" role="dialog">
-          <div className="bg-[#141014] border border-white/10 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 sm:p-4" aria-modal="true" role="dialog">
+          <div className="bg-[#141014] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[100svh] sm:max-h-[90svh] overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-white/10 bg-[#141014]">
               <h3 className="text-lg font-semibold text-white">Edit draft</h3>
-              <button type="button" onClick={() => setEditing(null)} className="p-2 text-white/50 hover:text-white rounded-lg" aria-label="Close">
+              <button type="button" onClick={() => setEditing(null)} className="admin-icon-btn text-white/50 hover:text-white hover:bg-white/5 rounded-lg" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -387,12 +395,12 @@ export default function AdminInboxPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={savingEdit} className="px-4 py-2 rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50">
-                  {savingEdit ? 'Saving…' : 'Save'}
-                </button>
-                <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg border border-white/15 text-white/80 hover:bg-white/10">
+              <div className="admin-sticky-actions -mx-4 -mb-4 mt-6 px-4">
+                <button type="button" onClick={() => setEditing(null)} className="admin-tap px-4 py-2 rounded-lg border border-white/15 text-white/80 hover:bg-white/10">
                   Cancel
+                </button>
+                <button type="submit" disabled={savingEdit} className="admin-tap px-4 py-2 rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50">
+                  {savingEdit ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </form>

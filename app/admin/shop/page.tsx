@@ -10,6 +10,7 @@ import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X, AlertTriangle } from 'lucide-react';
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { SHOP_CATEGORY_SUGGESTIONS } from '@/lib/shop/commerce';
 import {
   ProductVariantEditor,
@@ -107,6 +108,7 @@ export default function AdminShopPage() {
   const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
   const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
   const supabase = createClient();
 
   useEffect(() => {
@@ -285,7 +287,13 @@ export default function AdminShopPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this product?',
+      message: 'It will be removed permanently. This cannot be undone.',
+      confirmLabel: 'Delete product',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/products?id=${id}`, { method: 'DELETE', credentials: 'same-origin' });
     const data = await res.json();
     if (!res.ok) {
@@ -362,7 +370,7 @@ export default function AdminShopPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="admin-btn-primary flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+          className="admin-btn-primary admin-tap flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
         >
           <Plus className="w-4 h-4" />
           New Product
@@ -446,16 +454,20 @@ export default function AdminShopPage() {
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
+                        type="button"
                         onClick={() => openEdit(product)}
-                        className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                        className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                         title="Edit product"
+                        aria-label="Edit product"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDelete(product.id)}
-                        className="p-2.5 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                        className="admin-icon-btn text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                         title="Delete"
+                        aria-label="Delete product"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -511,14 +523,19 @@ export default function AdminShopPage() {
 
       {/* Edit/Create Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-2xl shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0f0c10] z-10">
-              <h2 className="text-lg font-semibold text-white" style={{ fontFamily: 'var(--font-display)' }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 sm:p-4">
+          <div className="absolute inset-0" onClick={closeModal} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="shop-product-modal-title"
+            className="relative w-full sm:max-w-2xl max-h-[100svh] sm:max-h-[90svh] overflow-y-auto overscroll-contain bg-[#0f0c10] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-3 sm:py-4 border-b border-white/10 bg-[#0f0c10]">
+              <h2 id="shop-product-modal-title" className="text-lg font-semibold text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>
                 {editingProduct ? 'Edit Product' : 'Create Product'}
               </h2>
-              <button onClick={closeModal} className="p-2 text-white/70 hover:text-white rounded-lg">
+              <button type="button" onClick={closeModal} className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/10 rounded-lg" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -532,16 +549,16 @@ export default function AdminShopPage() {
                 return (
                   <div className="w-full">
                     {previewUrl ? (
-                      <div className="w-full aspect-[4/5] rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                      <div className="w-full aspect-[4/5] max-h-[45svh] sm:max-h-none rounded-xl overflow-hidden border border-white/10 bg-white/5">
                         <img
                           src={previewUrl}
                           alt="Cover image"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain sm:object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       </div>
                     ) : (
-                      <div className="w-full aspect-[4/5] rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-2 text-white/40">
+                      <div className="w-full aspect-[4/5] max-h-[30svh] sm:max-h-none rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-2 text-white/40">
                         <ShoppingBag className="w-10 h-10" />
                         <span className="text-sm">No images yet — upload below</span>
                       </div>
@@ -550,6 +567,8 @@ export default function AdminShopPage() {
                   </div>
                 );
               })()}
+
+              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C6A75E]/80">Basics</h3>
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
@@ -613,6 +632,8 @@ export default function AdminShopPage() {
                 </select>
                 <p className="text-white/50 text-xs mt-1">Sold out is shown automatically when out of stock.</p>
               </div>
+
+              <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#C6A75E]/80">Pricing &amp; stock</h3>
 
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Price ($)</label>
@@ -754,6 +775,8 @@ export default function AdminShopPage() {
 
               <ProductVariantEditor variants={variantDrafts} onChange={setVariantDrafts} />
 
+              <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#C6A75E]/80">Details &amp; images</h3>
+
               <div>
                 <label className="block text-white/70 text-sm font-medium mb-2">Description</label>
                 <textarea
@@ -789,7 +812,8 @@ export default function AdminShopPage() {
                         <button
                           type="button"
                           onClick={() => setPendingImages((p) => p.filter((_, j) => j !== i))}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="admin-icon-btn absolute -top-2 -right-2 bg-black/80 border border-white/20 text-white hover:bg-red-500 focus-visible:bg-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 md:focus-visible:opacity-100 transition-opacity"
+                          aria-label="Remove image"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -807,7 +831,7 @@ export default function AdminShopPage() {
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:border-[#C6A75E] hover:text-[#C6A75E] transition-colors"
+                      className="admin-tap px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:border-[#C6A75E] hover:text-[#C6A75E] transition-colors"
                     >
                       Add from library
                     </button>
@@ -846,7 +870,8 @@ export default function AdminShopPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(editingProduct.id, img.id, editingProduct.slug)}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="admin-icon-btn absolute -top-2 -right-2 bg-black/80 border border-white/20 text-white hover:bg-red-500 focus-visible:bg-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 md:focus-visible:opacity-100 transition-opacity"
+                          aria-label="Remove image"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -857,14 +882,14 @@ export default function AdminShopPage() {
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:border-[#C6A75E] hover:text-[#C6A75E] transition-colors"
+                      className="admin-tap px-4 py-2 border border-white/20 rounded-lg text-sm text-white/80 hover:border-[#C6A75E] hover:text-[#C6A75E] transition-colors"
                     >
                       Add from library
                     </button>
                     <input
                       type="url"
                       placeholder="https://..."
-                      className="flex-1 min-w-[200px] px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+                      className="w-full min-w-0 sm:w-auto sm:flex-1 sm:min-w-[200px] px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
                       id="edit-image-url"
                     />
                     <button
@@ -877,7 +902,7 @@ export default function AdminShopPage() {
                           input.value = '';
                         }
                       }}
-                      className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 text-sm"
+                      className="admin-tap px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 text-sm"
                     >
                       Add URL
                     </button>
@@ -896,8 +921,8 @@ export default function AdminShopPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="admin-tap flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     name="is_featured"
@@ -908,15 +933,15 @@ export default function AdminShopPage() {
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="admin-sticky-actions -mx-5 -mb-5 mt-6 px-5">
                 <button
                   type="submit"
                   disabled={uploadInProgress || saving}
-                  className="px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
+                  className="admin-tap px-6 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent2)] font-medium disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {saving ? 'Saving…' : uploadInProgress ? 'Uploading…' : editingProduct ? 'Update' : 'Create'}
                 </button>
-                <button type="button" onClick={closeModal} className="px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
+                <button type="button" onClick={closeModal} className="admin-tap px-6 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10">
                   Cancel
                 </button>
               </div>

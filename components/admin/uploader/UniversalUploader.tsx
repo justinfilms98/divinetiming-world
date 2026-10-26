@@ -313,11 +313,11 @@ export function UniversalUploader({
   };
 
   return (
-    <div className={`inline-flex flex-col gap-3 ${className}`}>
+    <div className={`inline-flex flex-col gap-3 w-full sm:w-auto max-w-full min-w-0 ${className}`}>
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-          <span className="flex-1 min-w-0">{error.length > 120 ? `${error.slice(0, 120)}…` : error}</span>
-          <button type="button" onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded shrink-0" aria-label="Dismiss">
+          <span className="flex-1 min-w-0 break-words">{error.length > 120 ? `${error.slice(0, 120)}…` : error}</span>
+          <button type="button" onClick={() => setError(null)} className="admin-icon-btn hover:bg-red-100 rounded shrink-0" aria-label="Dismiss">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -332,10 +332,10 @@ export function UniversalUploader({
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-slate-600 text-sm">
             <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
-            <span>{statusLabel ?? 'Uploading…'}</span>
+            <span className="min-w-0 break-words">{statusLabel ?? 'Uploading…'}</span>
           </div>
           {progress != null && (
-            <div className="h-1.5 w-full max-w-[200px] rounded-full bg-slate-200 overflow-hidden">
+            <div className="h-1.5 w-full sm:max-w-[200px] rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full bg-slate-600 transition-all duration-300"
                 style={{ width: `${Math.min(100, progress)}%` }}
@@ -346,7 +346,7 @@ export function UniversalUploader({
       )}
       <div className="flex flex-wrap items-center gap-2">
         {!children && (
-          <span className="text-slate-600 text-sm whitespace-nowrap">
+          <span className="text-slate-600 text-sm">
             {buttonLabel}
           </span>
         )}
@@ -374,7 +374,7 @@ export function UniversalUploader({
             }
           }}
           className={`
-            flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg text-sm font-medium
+            flex items-center justify-center text-center gap-2 px-4 py-3 min-h-[56px] w-full sm:w-auto sm:min-h-0 border-2 border-dashed rounded-lg text-sm font-medium
             transition-colors cursor-pointer
             ${isDragging
               ? 'border-slate-500 bg-slate-100 text-slate-800'

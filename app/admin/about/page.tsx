@@ -20,6 +20,7 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { AdminCard } from '@/components/admin/AdminCard';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { revalidatePaths } from '@/lib/revalidate';
 
 const extensions = [
@@ -46,6 +47,7 @@ export default function AdminAboutPage() {
   const [uploading, setUploading] = useState(false);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   useEffect(() => {
     let cancelled = false;
@@ -218,7 +220,7 @@ export default function AdminAboutPage() {
           <button
             type="button"
             onClick={() => editor?.chain().focus().toggleBold().run()}
-            className={`h-8 w-8 flex items-center justify-center rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('bold') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
+            className={`admin-icon-btn rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('bold') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
             title="Bold"
             aria-pressed={editor?.isActive('bold')}
           >
@@ -227,7 +229,7 @@ export default function AdminAboutPage() {
           <button
             type="button"
             onClick={() => editor?.chain().focus().toggleItalic().run()}
-            className={`h-8 w-8 flex items-center justify-center rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('italic') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
+            className={`admin-icon-btn rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('italic') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
             title="Italic"
             aria-pressed={editor?.isActive('italic')}
           >
@@ -235,12 +237,18 @@ export default function AdminAboutPage() {
           </button>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const prev = editor?.getAttributes('link').href;
-              const url = window.prompt('Link URL:', prev || 'https://');
+              const url = await dialog.prompt({
+                title: 'Add link',
+                inputType: 'url',
+                defaultValue: prev || 'https://',
+                placeholder: 'https://',
+                confirmLabel: 'Apply',
+              });
               if (url) editor?.chain().focus().setLink({ href: url }).run();
             }}
-            className={`h-8 w-8 flex items-center justify-center rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('link') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
+            className={`admin-icon-btn rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('link') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
             title="Link"
             aria-pressed={editor?.isActive('link')}
           >
@@ -250,7 +258,7 @@ export default function AdminAboutPage() {
           <button
             type="button"
             onClick={() => editor?.chain().focus().toggleBulletList().run()}
-            className={`h-8 w-8 flex items-center justify-center rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('bulletList') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
+            className={`admin-icon-btn rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('bulletList') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
             title="Bullet list"
             aria-pressed={editor?.isActive('bulletList')}
           >
@@ -259,7 +267,7 @@ export default function AdminAboutPage() {
           <button
             type="button"
             onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-            className={`h-8 w-8 flex items-center justify-center rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('orderedList') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
+            className={`admin-icon-btn rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900 ${editor?.isActive('orderedList') ? 'border-slate-300 bg-slate-200 text-slate-900' : ''}`}
             title="Numbered list"
             aria-pressed={editor?.isActive('orderedList')}
           >
@@ -270,13 +278,14 @@ export default function AdminAboutPage() {
             <button
               type="button"
               onClick={() => setImagePickerOpen((o) => !o)}
-              className="h-8 w-8 flex items-center justify-center rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900"
+              className="admin-icon-btn rounded border border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900"
               title="Insert image"
+              aria-label="Insert image"
             >
               <ImagePlus className="w-4 h-4" />
             </button>
             {imagePickerOpen && (
-              <div className="absolute left-0 top-full mt-1 z-10 bg-white border border-slate-200 rounded-lg shadow-lg p-3 min-w-[260px]">
+              <div className="absolute right-0 sm:right-auto sm:left-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-lg shadow-lg p-3 w-[min(260px,calc(100vw-2rem))] sm:w-auto sm:min-w-[260px]">
                 <UniversalUploader
                   acceptedTypes={['image']}
                   multiple={false}
@@ -291,37 +300,37 @@ export default function AdminAboutPage() {
         <div className="rounded-b-xl overflow-hidden">
           <EditorContent editor={editor} />
         </div>
-        <div className="flex items-center gap-3 px-4 py-3 border-t border-slate-200 bg-slate-50/50">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || uploading}
-            className="flex items-center gap-2 h-9 px-4 rounded-lg border border-slate-300 bg-slate-800 text-white font-medium hover:bg-slate-700 disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-            ) : saved ? (
-              <>
-                <span className="text-green-300">Saved ✓</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" aria-hidden />
-                Save
-              </>
-            )}
-          </button>
-          {(saving || uploading) && !saved && (
-            <span className="text-sm text-slate-500">
-              {uploading ? 'Uploading…' : 'Saving…'}
-            </span>
-          )}
-        </div>
       </AdminCard>
       <p className="mt-3 text-sm text-slate-500">
         Extra story is sanitized on save. Only paragraphs, bold, italic, links, lists, and images from
         the CDN are allowed.
       </p>
+      </div>
+      <div className="admin-sticky-actions admin-sticky-actions--page items-center">
+        {(saving || uploading) && !saved && (
+          <span className="inline-flex items-center text-sm text-slate-500">
+            {uploading ? 'Uploading…' : 'Saving…'}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || uploading}
+          className="admin-tap flex items-center justify-center gap-2 h-9 px-4 rounded-lg border border-slate-300 bg-slate-800 text-white font-medium hover:bg-slate-700 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+          ) : saved ? (
+            <>
+              <span className="text-green-300">Saved ✓</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" aria-hidden />
+              Save
+            </>
+          )}
+        </button>
       </div>
     </AdminPage>
   );
