@@ -46,7 +46,7 @@ export function TribeSection() {
   };
 
   return (
-    <section className="band-dune">
+    <section id="tribe" className="band-dune scroll-mt-[var(--public-nav-height)]">
       <Container className="section-padding">
         <Reveal className="max-w-xl mx-auto text-center">
           <p className="section-label mb-3">Community</p>

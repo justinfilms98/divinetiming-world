@@ -1,6 +1,5 @@
 import { MediaPageClient } from '@/components/media/MediaPageClient';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
-import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { Section } from '@/components/ui/Section';
 import {
   getGalleriesForHub,
@@ -63,16 +62,9 @@ export default async function MediaPage() {
         heightPreset="compact"
       />
 
-      <div className="mt-20" />
-
-      <SignatureDivider className="my-14 md:my-16" />
-
-      <Section className="section-lift py-14 md:py-20">
+      <Section padded={false} className="section-lift page-body">
         <ContentRail>
           <div className="w-full">
-            <p className="text-center text-[var(--text-muted)] type-body mb-12 md:mb-14 max-w-[45ch] mx-auto leading-relaxed">
-              Browse photo collections and videos.
-            </p>
             <MediaPageClient
               galleries={galleries}
               videos={videos}

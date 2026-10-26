@@ -88,17 +88,21 @@ export default async function HomePage() {
         </p>
       )}
       {heroSection?.logoFinalUrl ? (
-        <HeroLogo
-          url={heroSection.logoFinalUrl}
-          alt="Divine Timing logo"
-          fallback={
-            <DivineTimingIntro
-              artistName={artistName}
-              animationType={animationType}
-              animationEnabled={animationEnabled}
-            />
-          }
-        />
+        <>
+          {/* The image logo is the visual title; DivineTimingIntro renders its own h1. */}
+          <h1 className="sr-only">{artistName}</h1>
+          <HeroLogo
+            url={heroSection.logoFinalUrl}
+            alt="Divine Timing logo"
+            fallback={
+              <DivineTimingIntro
+                artistName={artistName}
+                animationType={animationType}
+                animationEnabled={animationEnabled}
+              />
+            }
+          />
+        </>
       ) : (
         <DivineTimingIntro
           artistName={artistName}
@@ -117,7 +121,6 @@ export default async function HomePage() {
     </div>
   );
 
-  const heroVideoUrl = mediaType === 'video' && mediaUrl ? mediaUrl : null;
   const musicGroup = musicGroupJsonLd({
     name: siteSettings?.artist_name?.trim() || SITE_NAME,
     url: BASE_URL,
@@ -135,9 +138,6 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(musicGroup) }}
       />
-      {heroVideoUrl && (
-        <link rel="preload" href={heroVideoUrl} as="fetch" crossOrigin="anonymous" />
-      )}
       <UnifiedHero
         mediaUrl={mediaUrl}
         mediaType={mediaType}

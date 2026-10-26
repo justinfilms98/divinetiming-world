@@ -187,7 +187,7 @@ export async function getEventMedia(eventId: string): Promise<EventMedia[]> {
 /** Public list: only published events (or all if status column not yet present). */
 export async function getEvents(options?: { upcomingOnly?: boolean }): Promise<Event[]> {
   const supabase = await createClient();
-  let query = supabase
+  const query = supabase
     .from('events')
     .select('*')
     .order('display_order', { ascending: true })
@@ -392,7 +392,8 @@ export async function getGalleryBySlug(
   const normalizedSlug = slug.trim().toLowerCase();
   const { data, error } = await supabase
     .from('galleries')
-    .select('*, gallery_media(*)')
+    // Asset dimensions (when recorded) let full-gallery frames reserve their true aspect ratio.
+    .select('*, gallery_media(*, asset:external_media_assets(width, height))')
     .eq('slug', normalizedSlug)
     .single();
 
@@ -447,7 +448,7 @@ async function resolveProductImages<T extends { image_url?: string | null; exter
 /** Public list: only published products (or is_active if status column not yet present). Returns products with resolved product_images (displayable image_url). */
 export async function getProducts(): Promise<Product[]> {
   const supabase = await createClient();
-  let query = supabase
+  const query = supabase
     .from('products')
     .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
     .order('display_order', { ascending: true });
@@ -556,32 +557,6 @@ export async function getVideos(): Promise<MediaPageVideo[]> {
       resolved_thumbnail_url: resolveVideoThumbnailUrl(row),
     };
   });
-}
-
-/** Library video assets (Supabase-uploaded MP4 etc.) for Media Videos tab. Option B: show alongside YouTube. */
-export async function getLibraryVideoAssets(): Promise<MediaPageVideo[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('external_media_assets')
-    .select('id, name, preview_url, thumbnail_url, mime_type, orientation')
-    .eq('provider', 'supabase')
-    .eq('is_archived', false)
-    .eq('usage_type', 'public')
-    .order('created_at', { ascending: false });
-
-  if (error) return [];
-  const rows = (data || []) as { id: string; name?: string | null; preview_url?: string | null; thumbnail_url?: string | null; mime_type?: string | null }[];
-  return rows
-    .filter((r) => (r.mime_type || '').toLowerCase().startsWith('video/'))
-    .map((r) => ({
-      id: `lib-${r.id}`,
-      title: (r.name || 'Video').trim() || 'Video',
-      video_url: (r.preview_url || '').trim() || undefined,
-      thumbnail_url: (r.thumbnail_url || r.preview_url || '').trim() || null,
-      resolved_thumbnail_url: (r.thumbnail_url || r.preview_url || '').trim() || '',
-      caption: null,
-      is_vertical: false,
-    }));
 }
 
 async function resolveReleaseCover(release: Release): Promise<Release> {

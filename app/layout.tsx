@@ -1,22 +1,25 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { PublicLayout } from '@/components/layout/PublicLayout';
-import { Playfair_Display, Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import { getSiteSettings } from '@/lib/content/server';
 import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE, IS_PRODUCTION_SITE } from '@/lib/site';
 
-const playfairDisplay = Playfair_Display({
-  weight: ['400', '600', '700'],
-  subsets: ['latin'],
+// Self-hosted (OFL) variable fonts, Latin subset. next/font/google fetches CSS from Google at
+// build time, and Vercel builds failed when Google returned `/l/font?kit=…&skey=…` URLs that
+// Turbopack's font loader rejects ("next/font/google queries have exactly one entry").
+const playfairDisplay = localFont({
+  src: [{ path: './fonts/PlayfairDisplay-Variable-latin.woff2', weight: '400 700', style: 'normal' }],
   display: 'swap',
   variable: '--font-playfair-display',
+  fallback: ['Georgia', 'serif'],
 });
 
-const inter = Inter({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
+const inter = localFont({
+  src: [{ path: './fonts/Inter-Variable-latin.woff2', weight: '400 700', style: 'normal' }],
   display: 'swap',
   variable: '--font-body',
+  fallback: ['system-ui', 'sans-serif'],
 });
 
 const DEFAULT_DESCRIPTION = 'Live, evolving, in motion.';
@@ -55,10 +58,6 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
       <body className={`min-h-screen antialiased ${playfairDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
         <PublicLayout siteSettings={siteSettings}>{children}</PublicLayout>
       </body>

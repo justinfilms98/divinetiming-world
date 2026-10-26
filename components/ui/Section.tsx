@@ -9,6 +9,8 @@ interface SectionProps extends React.HTMLAttributes<HTMLElement> {
   title?: string;
   /** Optional subtitle below title. */
   subtitle?: string;
+  /** Default vertical padding. Disable when the caller supplies its own (e.g. `page-body`). */
+  padded?: boolean;
 }
 
 /**
@@ -20,11 +22,12 @@ export function Section({
   className,
   title,
   subtitle,
+  padded = true,
   ...rest
 }: SectionProps) {
   return (
     <section
-      className={cn('py-12 md:py-16', className)}
+      className={cn(padded && 'py-12 md:py-16', className)}
       {...rest}
     >
       {(title || subtitle) && (

@@ -179,6 +179,18 @@ body {
   }
 }
 
+/* Hero focal point: separate crop anchors for phones and larger screens (set inline per asset). */
+.hero-focal { --hero-pos: var(--hero-pos-m, 50% 30%); }
+@media (min-width: 768px) {
+  .hero-focal { --hero-pos: var(--hero-pos-d, 50% 30%); }
+}
+
+/* First content block after a page header: one rhythm for every page. */
+.page-body {
+  padding-top: clamp(2.5rem, 6vw, 4.5rem);
+  padding-bottom: clamp(3.5rem, 8vw, 6.5rem);
+}
+
 .content-width {
   max-width: var(--content-max-width);
   margin-left: auto;
