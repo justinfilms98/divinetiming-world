@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 import { getStripeSecretKey, ENV_ERROR_MESSAGES } from '@/lib/env';
 import { apiSuccess, apiError } from '@/lib/apiResponses';
 import { canFulfillQuantity } from '@/lib/shop/commerce';
@@ -17,7 +18,7 @@ import { canFulfillQuantity } from '@/lib/shop/commerce';
 type CartItem = { productId: string; variantId: string | null; quantity: number };
 
 async function getOrCreateStripePrice(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof getServiceClient>,
   stripe: Stripe,
   product: any,
   variant: any,
@@ -74,7 +75,9 @@ export async function POST(request: NextRequest) {
       return apiError('No items', 400);
     }
 
+    // Reads stay on the anon client so RLS limits checkout to published, active products.
     const supabase = await createClient();
+    const writer = getServiceClient();
     const lineItems: { price: string; quantity: number }[] = [];
     let cancelSlug = 'shop';
 
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest) {
       }
 
       const priceId = await getOrCreateStripePrice(
-        supabase,
+        writer,
         stripe,
         product,
         variant,
