@@ -27,12 +27,36 @@ interface MediaAssetRendererProps {
   errorFallback?: React.ReactNode;
   /** For video: poster image URL to show before play (improves LCP and perceived load) */
   poster?: string | null;
+  /**
+   * Hero video only. false = keep the element ready (metadata preloaded) but paused,
+   * e.g. the next carousel slide or a paused slideshow. Default true.
+   */
+  playing?: boolean;
+  /** Hero video only. Default true; carousels turn it off so `onEnded` can advance. */
+  loop?: boolean;
+  onEnded?: () => void;
+  /** Hero video only: buffering exceeded the stall timeout while playing. */
+  onStalled?: () => void;
 }
 
 const STALL_TIMEOUT_MS = 8000;
 
 /** Retry muted autoplay — mobile Safari often needs an explicit play() call. */
-function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, url: string | null) {
+function useMutedAutoplay(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  url: string | null,
+  shouldPlay: boolean,
+  onStalled?: () => void
+) {
+  const onStalledRef = useRef(onStalled);
+  useEffect(() => {
+    onStalledRef.current = onStalled;
+  }, [onStalled]);
+  const shouldPlayRef = useRef(shouldPlay);
+  useEffect(() => {
+    shouldPlayRef.current = shouldPlay;
+  }, [shouldPlay]);
+
   const [playing, setPlaying] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(true);
@@ -58,14 +82,22 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
   }, [videoRef, url]);
 
   useEffect(() => {
-    if (!buffering) return;
-    const timer = window.setTimeout(() => setStalled(true), STALL_TIMEOUT_MS);
+    // A paused/standby video is not "stalled" however long it waits.
+    if (!buffering || !shouldPlay) return;
+    const timer = window.setTimeout(() => {
+      setStalled(true);
+      onStalledRef.current?.();
+    }, STALL_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [buffering]);
+  }, [buffering, shouldPlay]);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !url) return;
+    if (!shouldPlay) {
+      v.pause();
+      return;
+    }
     attemptPlay();
     const raf = requestAnimationFrame(() => attemptPlay());
     const timer = window.setTimeout(() => {
@@ -78,7 +110,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
     };
-  }, [url, attemptPlay, videoRef]);
+  }, [url, attemptPlay, videoRef, shouldPlay]);
 
   const onPlaying = useCallback(() => {
     setPlaying(true);
@@ -94,7 +126,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
   const onCanPlay = useCallback(() => {
     setBuffering(false);
     setStalled(false);
-    attemptPlay();
+    if (shouldPlayRef.current) attemptPlay();
   }, [attemptPlay]);
 
   const onTapPlay = useCallback(() => {
@@ -114,6 +146,10 @@ interface HeroAutoplayVideoProps {
   objectPosition?: string;
   priority?: boolean;
   onError?: () => void;
+  playing?: boolean;
+  loop?: boolean;
+  onEnded?: () => void;
+  onStalled?: () => void;
 }
 
 function BufferedVideo({
@@ -165,12 +201,19 @@ function HeroAutoplayVideo({
   fill = true,
   objectFit = 'cover',
   objectPosition,
-  priority = false,
   onError,
+  playing: playingProp,
+  loop = true,
+  onEnded,
+  onStalled,
 }: HeroAutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const shouldPlay = playingProp !== false;
   const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
-    useMutedAutoplay(videoRef, url);
+    useMutedAutoplay(videoRef, url, shouldPlay, onStalled);
+  const maybePlay = () => {
+    if (shouldPlay) attemptPlay();
+  };
 
   return (
     <div className={fill ? 'absolute inset-0' : 'relative w-full h-full'}>
@@ -178,14 +221,14 @@ function HeroAutoplayVideo({
         ref={videoRef}
         key={url}
         src={url}
-        autoPlay
-        loop
+        autoPlay={shouldPlay}
+        loop={loop}
         muted
         playsInline
         webkit-playsinline=""
         x5-playsinline=""
-        // Only the first slide downloads eagerly; later carousel slides fetch metadata first.
-        preload={priority ? 'auto' : 'metadata'}
+        // Standby slides (next in the carousel) fetch metadata only; the showing slide downloads.
+        preload={shouldPlay ? 'auto' : 'metadata'}
         poster={posterUrl ?? undefined}
         disablePictureInPicture
         disableRemotePlayback
@@ -193,12 +236,13 @@ function HeroAutoplayVideo({
         className={`hero-autoplay-video w-full h-full ${className}`}
         style={fill ? { position: 'absolute', inset: 0, objectFit, objectPosition } : { objectFit, objectPosition }}
         onError={onError}
-        onLoadedMetadata={attemptPlay}
-        onLoadedData={attemptPlay}
+        onLoadedMetadata={maybePlay}
+        onLoadedData={maybePlay}
         onCanPlay={onCanPlay}
         onCanPlayThrough={onCanPlay}
         onPlaying={onPlaying}
         onWaiting={onWaiting}
+        onEnded={onEnded}
       />
       {posterUrl && (!playing || stalled) && (
         <img
@@ -209,10 +253,10 @@ function HeroAutoplayVideo({
           style={{ objectPosition }}
         />
       )}
-      <div className="spiral-buffer" data-visible={buffering && !needsTap && !stalled ? 'true' : 'false'}>
+      <div className="spiral-buffer" data-visible={shouldPlay && buffering && !needsTap && !stalled ? 'true' : 'false'}>
         <SpiralLoader size="md" variant="spin" label="Buffering video" />
       </div>
-      {needsTap && (
+      {shouldPlay && needsTap && (
         <button
           type="button"
           onClick={onTapPlay}
@@ -273,6 +317,10 @@ function MediaAssetRendererInner({
   fallback = HeroEclipseFallback,
   errorFallback = MediaUnavailableFallback,
   poster: posterUrl = null,
+  playing,
+  loop,
+  onEnded,
+  onStalled,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
@@ -351,6 +399,10 @@ function MediaAssetRendererInner({
         objectPosition={objectPosition}
         priority={priority}
         onError={handleError}
+        playing={playing}
+        loop={loop}
+        onEnded={onEnded}
+        onStalled={onStalled}
       />
     );
   }

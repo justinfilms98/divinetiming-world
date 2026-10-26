@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { Pause, Play } from 'lucide-react';
+import {
+  createHeroCarousel,
+  HERO_IMAGE_HOLD_MS,
+  HERO_VIDEO_MAX_MS,
+  type HeroCarousel,
+  type HeroSlideKind,
+} from '@/lib/hero/heroCarousel';
 import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
 import { motion } from 'framer-motion';
 import type { HeroSingleSource } from '@/lib/content/heroSingleSource';
@@ -69,48 +77,71 @@ export function UnifiedHero({
   const opacity = Math.max(0, Math.min(1, overlayOpacity));
 
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
+  const slideCount = allSlides.length;
+  const isCarousel = slideCount > 1;
+  const kindsKey = allSlides.map((s) => (s.mediaType === 'video' || s.mediaType === 'image' ? s.mediaType : 'other')).join(',');
   const [activeIndex, setActiveIndex] = useState(0);
+  // Outgoing slide stays mounted while it fades out, so the crossfade never shows black.
+  const [leavingIndex, setLeavingIndex] = useState<number | null>(null);
   const [flare, setFlare] = useState(false);
-  // null = not yet measured; treat as single-slide until we know desktop can layer
-  // multiple videos (avoids mounting 3 autoplay videos on mobile before hydrate).
-  const [isCoarsePointer, setIsCoarsePointer] = useState<boolean | null>(null);
-
+  const [paused, setPaused] = useState(false);
+  const carouselRef = useRef<HeroCarousel | null>(null);
+  const prevIndexRef = useRef(0);
+  const reducedMotionRef = useRef(reducedMotion);
   useEffect(() => {
-    const mq = window.matchMedia('(hover: none), (pointer: coarse), (max-width: 768px)');
-    const update = () => setIsCoarsePointer(mq.matches);
-    update();
-    mq.addEventListener?.('change', update);
-    return () => mq.removeEventListener?.('change', update);
-  }, []);
+    reducedMotionRef.current = reducedMotion;
+  }, [reducedMotion]);
 
-  const useSingleSlideMount = isCoarsePointer !== false;
-
-  // Crossfade tuning — long enough that two slides genuinely blend rather than swap.
-  const HOLD_MS = 10_000;
   const CROSSFADE_MS = 2_400;
 
-  // Carousel auto-advance. All slides are mounted simultaneously below and
-  // only their opacity is toggled, so each video is already playing in the
-  // background when its layer becomes active — no black flash possible.
+  // Videos advance when each clip ends (with a safety timer), failed/stalled slides are
+  // skipped, and the sequence loops. Reduced motion still advances, but as an instant cut
+  // with no lens flare; the Pause control stops it entirely (WCAG 2.2.2).
   useEffect(() => {
-    if (allSlides.length <= 1 || reducedMotion) return;
-    const tick = setTimeout(() => {
-      setFlare(true);
-      setActiveIndex((prev) => (prev + 1) % allSlides.length);
-      const clean = setTimeout(() => setFlare(false), CROSSFADE_MS);
-      return () => clearTimeout(clean);
-    }, HOLD_MS);
-    return () => clearTimeout(tick);
-  }, [activeIndex, allSlides.length, reducedMotion]);
+    if (!isCarousel) return;
+    const carousel = createHeroCarousel({
+      kinds: kindsKey.split(',') as HeroSlideKind[],
+      imageHoldMs: HERO_IMAGE_HOLD_MS,
+      videoMaxMs: HERO_VIDEO_MAX_MS,
+      onChange: (next) => {
+        const from = prevIndexRef.current;
+        prevIndexRef.current = next;
+        setActiveIndex(next);
+        if (reducedMotionRef.current) return;
+        setLeavingIndex(from);
+        setFlare(true);
+        window.setTimeout(() => {
+          setFlare(false);
+          setLeavingIndex((current) => (current === from ? null : current));
+        }, CROSSFADE_MS);
+      },
+    });
+    carouselRef.current = carousel;
+    carousel.start();
+    return () => {
+      carousel.destroy();
+      carouselRef.current = null;
+    };
+  }, [isCarousel, kindsKey]);
 
-  const goToSlide = (target: number) => {
-    if (target === activeIndex) return;
-    setFlare(true);
-    setActiveIndex(target);
-    setTimeout(() => setFlare(false), CROSSFADE_MS);
+  const goToSlide = (target: number) => carouselRef.current?.select(target);
+
+  const togglePaused = () => {
+    const next = !paused;
+    setPaused(next);
+    if (next) carouselRef.current?.pause();
+    else carouselRef.current?.resume();
   };
 
-  const renderSlide = (slide: typeof allSlides[number] | undefined, slideIndex = 0, sizesOverride?: string) => {
+  // Only the showing slide plays and downloads; the next one preloads metadata.
+  const standbyIndex = isCarousel ? (activeIndex + 1) % slideCount : null;
+
+  const renderSlide = (
+    slide: typeof allSlides[number] | undefined,
+    slideIndex = 0,
+    sizesOverride?: string,
+    playing = true
+  ) => {
     if (!slide?.mediaUrl) return null;
     const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
     return (
@@ -123,6 +154,11 @@ export function UnifiedHero({
           objectPosition="var(--hero-pos)"
           priority={slideIndex === 0}
           sizes={sizesOverride ?? '100vw'}
+          playing={playing}
+          loop={!isCarousel}
+          onEnded={() => carouselRef.current?.slideEnded(slideIndex)}
+          onStalled={() => carouselRef.current?.slideStalled(slideIndex)}
+          onError={() => carouselRef.current?.slideFailed(slideIndex)}
         />
       </div>
     );
@@ -199,46 +235,29 @@ export function UnifiedHero({
       <div className={`relative ${heightClasses[heightPreset]}`}>
         <div className="absolute inset-0 bg-black">
           {/*
-            Desktop: mount every slide as its own absolute-positioned layer
-            and only toggle opacity. The videos preload + autoplay together so
-            by the time a layer's opacity rises to 1 it's already running —
-            no frozen first frame, no black flash.
-
-            Mobile / coarse-pointer: only mount the active slide. iOS allows a
-            single concurrent <video> autoplay and mounting three drains the
-            battery + bandwidth. The lens flare overlay masks the swap.
+            Mounted layers: the showing slide (plays), the next slide (standby:
+            metadata only, paused) and, during a crossfade, the outgoing slide.
+            Never more than one video downloads in full at a time.
           */}
-          {useSingleSlideMount ? (
-            <div
-              key={`hero-slide-mobile-${activeIndex}-${allSlides[activeIndex]?.mediaUrl ?? ''}`}
-              className="absolute inset-0"
-              style={{
-                animation: `heroSlideFadeIn ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1) both`,
-                willChange: 'opacity',
-              }}
-            >
-              {renderSlide(allSlides[activeIndex], activeIndex)}
-            </div>
-          ) : (
-            allSlides.map((slide, idx) => {
-              const isActive = idx === activeIndex;
-              return (
-                <div
-                  key={`hero-slide-${idx}-${slide?.mediaUrl ?? ''}`}
-                  aria-hidden={!isActive}
-                  className="absolute inset-0"
-                  style={{
-                    opacity: isActive ? 1 : 0,
-                    transition: `opacity ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-                    zIndex: isActive ? 2 : 1,
-                    willChange: 'opacity',
-                  }}
-                >
-                  {renderSlide(slide, idx)}
-                </div>
-              );
-            })
-          )}
+          {allSlides.map((slide, idx) => {
+            const isActive = idx === activeIndex;
+            if (!isActive && idx !== standbyIndex && idx !== leavingIndex) return null;
+            return (
+              <div
+                key={`hero-slide-${idx}-${slide?.mediaUrl ?? ''}`}
+                aria-hidden={!isActive}
+                className="absolute inset-0"
+                style={{
+                  opacity: isActive ? 1 : 0,
+                  transition: reducedMotion ? 'none' : `opacity ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                  zIndex: isActive ? 2 : 1,
+                  willChange: 'opacity',
+                }}
+              >
+                {renderSlide(slide, idx, undefined, isActive && !paused)}
+              </div>
+            );
+          })}
 
           {/* Phase D: single balanced overlay — bottom vignette + light center gradient for readability */}
           <div
@@ -319,19 +338,34 @@ export function UnifiedHero({
               </motion.div>
             </motion.div>
           )}
-          {allSlides.length > 1 && (
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-2 z-30 pointer-events-auto">
+          {isCarousel && (
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-1 z-30 pointer-events-auto">
+              <button
+                type="button"
+                onClick={togglePaused}
+                aria-label={paused ? 'Play slideshow' : 'Pause slideshow'}
+                aria-pressed={paused}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-white/70 hover:text-white focus-ring"
+              >
+                {paused ? <Play className="h-4 w-4" aria-hidden /> : <Pause className="h-4 w-4" aria-hidden />}
+              </button>
               {allSlides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => goToSlide(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 focus-ring ${
-                    i === activeIndex ? 'bg-[#C6A75E] w-4' : 'bg-white/40 w-1.5'
-                  }`}
+                  // 44px tap area around the small visual dot.
+                  className="flex h-11 min-w-6 items-center justify-center px-1 focus-ring rounded-full"
                   aria-label={`Go to slide ${i + 1}`}
                   aria-current={i === activeIndex ? 'true' : undefined}
-                />
+                >
+                  <span
+                    aria-hidden
+                    className={`block h-1.5 rounded-full transition-all duration-300 ${
+                      i === activeIndex ? 'bg-[#C6A75E] w-4' : 'bg-white/40 w-1.5'
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           )}
