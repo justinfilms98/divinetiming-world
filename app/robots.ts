@@ -1,11 +1,14 @@
 import type { MetadataRoute } from 'next';
-import { BASE_URL } from '@/lib/site';
+import { BASE_URL, IS_PRODUCTION_SITE } from '@/lib/site';
 
 /**
  * Public site is indexable. Admin, API, and login stay out of the index.
  * Cart is noindex via its layout metadata rather than a robots disallow.
  */
 export default function robots(): MetadataRoute.Robots {
+  if (!IS_PRODUCTION_SITE) {
+    return { rules: { userAgent: '*', disallow: '/' } };
+  }
   return {
     rules: {
       userAgent: '*',

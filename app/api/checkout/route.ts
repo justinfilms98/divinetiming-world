@@ -5,6 +5,7 @@ import { getServiceClient } from '@/lib/supabase/service';
 import { getStripeSecretKey, ENV_ERROR_MESSAGES } from '@/lib/env';
 import { apiSuccess, apiError } from '@/lib/apiResponses';
 import { canFulfillQuantity } from '@/lib/shop/commerce';
+import { BASE_URL } from '@/lib/site';
 
 /**
  * Stripe checkout — uses existing Price IDs on products/variants when present.
@@ -117,8 +118,8 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${request.nextUrl.origin}/shop?success=true`,
-      cancel_url: `${request.nextUrl.origin}/shop/${cancelSlug}?canceled=true`,
+      success_url: `${BASE_URL}/shop?success=true`,
+      cancel_url: `${BASE_URL}/shop/${cancelSlug}?canceled=true`,
       metadata: {
         cartItems: JSON.stringify(items),
       },

@@ -7,7 +7,27 @@ const nextConfig: NextConfig = {
     },
   },
   async redirects() {
+    // Production only: previews must stay reachable on their own *.vercel.app host.
+    // /api/* is excluded so webhooks and callbacks are never redirected.
+    const canonicalHostRedirects =
+      process.env.VERCEL_ENV === 'production'
+        ? [
+            {
+              source: '/:path((?!api/).*)',
+              has: [{ type: 'host' as const, value: 'www.divinetiming.world' }],
+              destination: 'https://divinetiming.world/:path',
+              permanent: true,
+            },
+            {
+              source: '/:path((?!api/).*)',
+              has: [{ type: 'host' as const, value: '(?<deployment>.+)\\.vercel\\.app' }],
+              destination: 'https://divinetiming.world/:path',
+              permanent: false,
+            },
+          ]
+        : [];
     return [
+      ...canonicalHostRedirects,
       { source: '/tour', destination: '/events', permanent: true },
       { source: '/epk', destination: '/presskit', permanent: true },
       { source: '/admin/booking', destination: '/admin/journey', permanent: false },

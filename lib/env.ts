@@ -41,15 +41,6 @@ export function getStripeSecretKey(): string | null {
   return typeof v === 'string' && v.startsWith('sk_') ? v : null;
 }
 
-/** Optional. Canonical site URL for metadata/OG. Falls back to VERCEL_URL or default. */
-export function getSiteUrl(): string {
-  const v = process.env.NEXT_PUBLIC_SITE_URL;
-  if (typeof v === 'string' && v.startsWith('http')) return v;
-  const vercel = process.env.VERCEL_URL;
-  if (typeof vercel === 'string' && vercel) return `https://${vercel}`;
-  return 'https://divinetiming.world';
-}
-
 /** Returns true if Stripe is configured (checkout can be used). */
 export function isStripeConfigured(): boolean {
   return getStripeSecretKey() !== null;
