@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getServiceClient } from '@/lib/supabase/service';
 import { sendBookingNotification, sendInquiryAcknowledgement } from '@/lib/email/notify';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Each inquiry emails an acknowledgement, so cap repeats per address to stop mail-bombing. */
+const MAX_INQUIRIES_PER_EMAIL_PER_HOUR = 3;
+
 /** Trims to null so empty form fields don't store empty strings. */
-function str(value: unknown): string | null {
+function str(value: unknown, max = 300): string | null {
   if (typeof value !== 'string') return null;
-  return value.trim() || null;
+  return value.trim().slice(0, max) || null;
 }
 
 function int(value: unknown): number | null {
@@ -17,10 +21,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Honeypot: real visitors never fill this hidden field. Pretend success.
+    if (typeof body.website === 'string' && body.website.trim()) {
+      return NextResponse.json({ success: true });
+    }
+
     // The contact form and the booking form post different shapes; accept both.
-    const name = str(body.name);
-    const email = str(body.email);
-    const message = str(body.message);
+    const name = str(body.name, 150);
+    const email = str(body.email, 254)?.toLowerCase() ?? null;
+    const message = str(body.message, 5000);
     const organization = str(body.company ?? body.organization);
     const eventType = str(body.eventType ?? body.event_type);
     const eventDate = str(body.eventDate ?? body.event_date);
@@ -30,6 +39,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Name, email, and message are required' },
         { status: 400 }
+      );
+    }
+    if (!EMAIL_PATTERN.test(email)) {
+      return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 });
+    }
+
+    // Anon has no insert policy on booking_inquiries; only this route writes.
+    const supabase = getServiceClient();
+
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recent } = await supabase
+      .from('booking_inquiries')
+      .select('id', { count: 'exact', head: true })
+      .eq('email', email)
+      .gte('created_at', since);
+    if ((recent ?? 0) >= MAX_INQUIRIES_PER_EMAIL_PER_HOUR) {
+      return NextResponse.json(
+        { error: 'We already received your inquiry. We will be in touch soon.' },
+        { status: 429 }
       );
     }
 
@@ -57,7 +85,6 @@ export async function POST(request: NextRequest) {
     };
     if (eventType !== null) row.event_type = eventType;
 
-    const supabase = await createClient();
     const { error } = await supabase.from('booking_inquiries').insert(row);
 
     if (error) {
