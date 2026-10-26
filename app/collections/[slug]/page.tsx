@@ -48,13 +48,18 @@ export default async function CollectionStoryPage({ params }: Params) {
 
   const frames = gallery.gallery_media
     .filter((item) => item.resolved_url)
-    .map((item) => ({
-      id: item.id,
-      media_type: item.media_type,
-      url: item.resolved_url!,
-      thumbnail_url: item.resolved_thumbnail_url ?? null,
-      caption: item.caption ?? null,
-    }));
+    .map((item) => {
+      const asset = (item as { asset?: { width?: number | null; height?: number | null } | null }).asset;
+      return {
+        id: item.id,
+        media_type: item.media_type,
+        url: item.resolved_url!,
+        thumbnail_url: item.resolved_thumbnail_url ?? null,
+        caption: item.caption ?? null,
+        width: asset?.width ?? null,
+        height: asset?.height ?? null,
+      };
+    });
 
   const images = frames
     .filter((frame) => frame.media_type === 'image')

@@ -44,6 +44,7 @@ export function StoryCard({ story, featured = false, imageOnRight = false }: Sto
             blurDataURL={BLUR_PLACEHOLDER}
             sizes={featured ? '100vw' : '(max-width: 768px) 100vw, 50vw'}
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+            style={{ objectPosition: '50% 30%' }}
           />
         ) : (
           <div className="absolute inset-0 bg-[var(--bg-secondary)]" aria-hidden />

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAssetRenderer';
 import { motion } from 'framer-motion';
 import type { HeroSingleSource } from '@/lib/content/heroSingleSource';
+import { heroArtDirectionFor } from '@/lib/media/heroArtDirection';
 
 export interface UnifiedHeroProps {
   mediaUrl?: string | null;
@@ -30,11 +31,25 @@ const heightClasses = {
   tall: 'w-full aspect-[4/5] min-h-[320px] max-h-[74svh] md:aspect-[16/9] md:min-h-[400px] md:max-h-[82svh]',
   standard: 'w-full aspect-[4/5] min-h-[300px] max-h-[68svh] md:aspect-[16/9] md:min-h-[380px] md:max-h-[74svh]',
   // Utility pages (shop, media, contact, events listing).
-  compact: 'w-full aspect-[5/4] min-h-[260px] max-h-[56svh] md:aspect-auto md:h-[clamp(380px,56svh,620px)] md:max-h-none',
+  compact: 'w-full aspect-[5/4] min-h-[260px] max-h-[56svh] md:aspect-auto md:h-[clamp(420px,60svh,680px)] md:max-h-none',
 };
 
-/** Faces usually sit in the upper third; bias the crop up rather than dead centre. */
-const DEFAULT_OBJECT_POSITION = '50% 30%';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+function subscribeReducedMotion(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
+  mq.addEventListener?.('change', onChange);
+  return () => mq.removeEventListener?.('change', onChange);
+}
+function getReducedMotion() {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+/** Inline CSS variables consumed by `.hero-focal` (phone vs md+ crop anchor). */
+function focalStyle(url: string | null | undefined, preset: string): React.CSSProperties {
+  if (preset === 'full') return { ['--hero-pos-m' as string]: '50% 50%', ['--hero-pos-d' as string]: '50% 50%' };
+  const art = heroArtDirectionFor(url);
+  return { ['--hero-pos-m' as string]: art.mobile, ['--hero-pos-d' as string]: art.desktop };
+}
 
 export function UnifiedHero({
   mediaUrl,
@@ -50,13 +65,8 @@ export function UnifiedHero({
   badge,
   children,
 }: UnifiedHeroProps) {
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
   const opacity = Math.max(0, Math.min(1, overlayOpacity));
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(mq.matches);
-  }, []);
 
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -100,21 +110,65 @@ export function UnifiedHero({
     setTimeout(() => setFlare(false), CROSSFADE_MS);
   };
 
-  const renderSlide = (slide: typeof allSlides[number] | undefined, slideIndex = 0) => {
+  const renderSlide = (slide: typeof allSlides[number] | undefined, slideIndex = 0, sizesOverride?: string) => {
     if (!slide?.mediaUrl) return null;
     const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
     return (
-      <MediaAssetRenderer
-        url={slide.mediaUrl ?? null}
-        mediaType={t}
-        poster={slide.posterUrl ?? posterUrl ?? null}
-        fallback={HeroEclipseFallback}
-        objectPosition={heightPreset === 'full' ? undefined : DEFAULT_OBJECT_POSITION}
-        priority={slideIndex === 0}
-        sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
-      />
+      <div className="hero-focal absolute inset-0" style={focalStyle(slide.mediaUrl, heightPreset)}>
+        <MediaAssetRenderer
+          url={slide.mediaUrl ?? null}
+          mediaType={t}
+          poster={slide.posterUrl ?? posterUrl ?? null}
+          fallback={HeroEclipseFallback}
+          objectPosition="var(--hero-pos)"
+          priority={slideIndex === 0}
+          sizes={sizesOverride ?? '100vw'}
+        />
+      </div>
     );
   };
+
+  const firstSlide = allSlides[0];
+  const splitLayout =
+    heightPreset !== 'full' &&
+    allSlides.length === 1 &&
+    firstSlide?.mediaType === 'image' &&
+    heroArtDirectionFor(firstSlide.mediaUrl).desktopLayout === 'split';
+
+  const textBottomLeft =
+    heightPreset !== 'full' &&
+    allSlides.length === 1 &&
+    heroArtDirectionFor(firstSlide?.mediaUrl).desktopText === 'bottom-left';
+
+  if (splitLayout && firstSlide) {
+    return (
+      <section className="band-night relative w-full overflow-hidden rounded-b-2xl md:grid md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <div className="relative md:order-2 w-full aspect-[5/4] min-h-[260px] max-h-[56svh] md:aspect-auto md:max-h-none md:h-[clamp(440px,64svh,720px)]">
+          {renderSlide(firstSlide, 0, '(max-width: 768px) 100vw, 50vw')}
+          {/* Readability overlay only where text sits on the photo (phones). */}
+          <div
+            className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/10 via-black/25 to-black/55 md:hidden"
+            style={{ opacity: Math.max(0.6, opacity) }}
+          />
+          <div className="hero-grain" aria-hidden="true" />
+        </div>
+        <div
+          className={`absolute inset-0 z-10 flex flex-col justify-center px-6 pointer-events-none md:static md:order-1 md:px-12 lg:px-20 md:py-16 ${
+            align === 'center' ? 'items-center text-center md:items-start md:text-left' : 'items-start text-left'
+          }`}
+        >
+          {badge && <span className="type-hero-label text-white md:text-[var(--accent)] mb-3">{badge}</span>}
+          {headline && <h1 className="type-hero-title text-white hero-text-shadow md:[text-shadow:none]">{headline}</h1>}
+          {subtext && (
+            <p className="text-white/90 md:text-[var(--text-on-dark-muted)] text-base md:text-lg mt-2 md:mt-4 max-w-md leading-relaxed">
+              {subtext}
+            </p>
+          )}
+          {children && <div className="pointer-events-auto w-full mt-6">{children}</div>}
+        </div>
+      </section>
+    );
+  }
 
   // No image or video assigned: a short title band instead of a large empty black box.
   if (allSlides.length === 0 && heightPreset !== 'full') {
@@ -212,7 +266,7 @@ export function UnifiedHero({
         <div
           className={`absolute inset-0 z-10 flex flex-col justify-center px-6 md:px-12 pointer-events-none ${
             align === 'center' ? 'items-center text-center' : 'items-start text-left'
-          }`}
+          } ${textBottomLeft ? 'md:justify-end md:items-start md:text-left md:pb-12 lg:px-20' : ''}`}
         >
           {badge && (
             <motion.span
@@ -236,7 +290,7 @@ export function UnifiedHero({
           )}
           {subtext && (
             <motion.p
-              className={`text-white/90 text-lg mt-2 max-w-2xl leading-relaxed ${align === 'center' ? 'mx-auto' : ''}`}
+              className={`text-white/90 text-lg mt-2 max-w-2xl leading-relaxed ${align === 'center' ? 'mx-auto' : ''} ${textBottomLeft ? 'md:mx-0' : ''}`}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}

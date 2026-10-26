@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Event } from '@/lib/types/content';
 import { eventDetailHref } from '@/lib/eventDetailHref';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
+import { SpiralMark } from '@/components/brand/SpiralMark';
 import { motion } from 'framer-motion';
 import { track } from '@/lib/analytics/track';
 import { eventLocationLine, eventProofLinks, eventTypeLabel, ticketState } from '@/lib/events/display';
@@ -25,18 +26,14 @@ function formatYear(dateString: string) {
   return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric' });
 }
 
-function EventCardPlaceholder({ monthLabel }: { monthLabel: string }) {
+/** Branded stand-in while a photo loads, if it fails, or when an event has no photo. */
+function EventCardPlaceholder() {
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center bg-[var(--bg)] border border-[var(--accent)]/10"
+      className="absolute inset-0 flex items-center justify-end pr-6 bg-gradient-to-br from-[#14110f] via-[#0b0b0c] to-[#1a1410]"
       aria-hidden
     >
-      <span
-        className="text-[var(--text-muted)]/30 text-5xl font-light tracking-[0.2em]"
-        style={{ fontFamily: 'var(--font-display)' }}
-      >
-        {monthLabel}
-      </span>
+      <SpiralMark size={64} glow={false} className="text-[var(--accent)]/35" />
     </div>
   );
 }
@@ -68,21 +65,26 @@ export function EventCard({ event, isPast = false }: EventCardProps) {
       <Link
         href={href}
         onClick={handleClick}
-        className="relative block aspect-[16/10] w-full overflow-hidden bg-[var(--bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+        // No photo: a compact branded strip instead of a large empty image area.
+        className={`relative block w-full overflow-hidden bg-[#0b0b0c] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] ${
+          imageUrl ? 'aspect-[16/10]' : 'h-24'
+        }`}
       >
         {imageUrl ? (
           <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.04]">
+            <EventCardPlaceholder />
             <MediaAssetRenderer
               url={imageUrl}
               mediaType="image"
               alt={title}
-              fallback={<EventCardPlaceholder monthLabel={monthLabel} />}
-              errorFallback={<EventCardPlaceholder monthLabel={monthLabel} />}
-              sizes="(max-width: 768px) 100vw, 50vw"
+              objectPosition="50% 30%"
+              fallback={<EventCardPlaceholder />}
+              errorFallback={<EventCardPlaceholder />}
+              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 420px"
             />
           </div>
         ) : (
-          <EventCardPlaceholder monthLabel={monthLabel} />
+          <EventCardPlaceholder />
         )}
 
         {/* Date badge overlay */}

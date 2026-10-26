@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Play } from 'lucide-react';
 import { VideoPlayerModal } from '@/components/media/VideoPlayerModal';
+import { SpiralMark } from '@/components/brand/SpiralMark';
 import type { MediaPageVideo } from '@/lib/content/shared';
 
 interface VideoGridProps {
@@ -12,6 +13,38 @@ interface VideoGridProps {
 
 function youtubeThumb(id: string): string {
   return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+}
+
+function BrandedVideoFallback() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#14110f] via-[#0b0b0c] to-[#1a1410]">
+      <SpiralMark size={56} className="text-[var(--accent)]/50" />
+    </div>
+  );
+}
+
+/**
+ * No poster recorded: show the clip's own frame. preload="metadata" fetches only the
+ * header + first frame range, not the whole file; the #t fragment makes iOS paint a frame.
+ */
+function VideoFrameThumb({ url }: { url: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <BrandedVideoFallback />;
+  return (
+    <>
+      <BrandedVideoFallback />
+      <video
+        src={`${url}#t=0.5`}
+        muted
+        playsInline
+        preload="metadata"
+        tabIndex={-1}
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+        onError={() => setFailed(true)}
+      />
+    </>
+  );
 }
 
 /** 3-column grid of video thumbnails; clicking opens a modal (YouTube or library video). */
@@ -39,19 +72,22 @@ export function VideoGrid({ videos }: VideoGridProps) {
                   setActive(v);
                 }
               }}
-              className="group relative block w-full aspect-video overflow-hidden rounded-xl bg-[var(--bg-secondary)] border border-[var(--accent)]/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+              aria-label={`Play video: ${v.title}`}
+              className="group relative block w-full aspect-video overflow-hidden rounded-xl bg-[#0b0b0c] border border-[var(--accent)]/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
             >
               {thumb ? (
                 <Image
                   src={thumb}
-                  alt={v.title}
+                  alt=""
                   fill
                   loading="lazy"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                 />
+              ) : v.video_url ? (
+                <VideoFrameThumb url={v.video_url} />
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg)]" />
+                <BrandedVideoFallback />
               )}
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
                 <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">

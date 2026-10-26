@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { SpiralLoader } from '@/components/brand/SpiralLoader';
+import { isOptimizableImageUrl } from '@/lib/media/imageHosts';
 
 interface MediaAssetRendererProps {
   url: string | null;
@@ -27,11 +29,15 @@ interface MediaAssetRendererProps {
   poster?: string | null;
 }
 
+const STALL_TIMEOUT_MS = 8000;
+
 /** Retry muted autoplay — mobile Safari often needs an explicit play() call. */
 function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, url: string | null) {
   const [playing, setPlaying] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(true);
+  // Slow networks can stall indefinitely; stop the spinner and fall back to the poster.
+  const [stalled, setStalled] = useState(false);
 
   const attemptPlay = useCallback(() => {
     const v = videoRef.current;
@@ -52,10 +58,10 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
   }, [videoRef, url]);
 
   useEffect(() => {
-    setPlaying(false);
-    setNeedsTap(false);
-    setBuffering(true);
-  }, [url]);
+    if (!buffering) return;
+    const timer = window.setTimeout(() => setStalled(true), STALL_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [buffering]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -78,6 +84,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     setPlaying(true);
     setNeedsTap(false);
     setBuffering(false);
+    setStalled(false);
   }, []);
 
   const onWaiting = useCallback(() => {
@@ -86,6 +93,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
 
   const onCanPlay = useCallback(() => {
     setBuffering(false);
+    setStalled(false);
     attemptPlay();
   }, [attemptPlay]);
 
@@ -94,7 +102,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     setNeedsTap(false);
   }, [attemptPlay]);
 
-  return { playing, needsTap, buffering, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay };
+  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay };
 }
 
 interface HeroAutoplayVideoProps {
@@ -142,10 +150,7 @@ function BufferedVideo({
         onPlaying={() => setBuffering(false)}
         onCanPlay={() => setBuffering(false)}
         onLoadedData={() => setBuffering(false)}
-      >
-        <source src={url} type="video/mp4" />
-        <source src={url} type="video/webm" />
-      </video>
+      />
       <div className="spiral-buffer" data-visible={buffering ? 'true' : 'false'}>
         <SpiralLoader size="md" variant="spin" label="Buffering video" />
       </div>
@@ -164,7 +169,7 @@ function HeroAutoplayVideo({
   onError,
 }: HeroAutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { playing, needsTap, buffering, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
+  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
     useMutedAutoplay(videoRef, url);
 
   return (
@@ -179,7 +184,8 @@ function HeroAutoplayVideo({
         playsInline
         webkit-playsinline=""
         x5-playsinline=""
-        preload="auto"
+        // Only the first slide downloads eagerly; later carousel slides fetch metadata first.
+        preload={priority ? 'auto' : 'metadata'}
         poster={posterUrl ?? undefined}
         disablePictureInPicture
         disableRemotePlayback
@@ -193,11 +199,8 @@ function HeroAutoplayVideo({
         onCanPlayThrough={onCanPlay}
         onPlaying={onPlaying}
         onWaiting={onWaiting}
-      >
-        <source src={url} type="video/mp4" />
-        <source src={url} type="video/webm" />
-      </video>
-      {posterUrl && !playing && (
+      />
+      {posterUrl && (!playing || stalled) && (
         <img
           src={posterUrl}
           alt=""
@@ -206,7 +209,7 @@ function HeroAutoplayVideo({
           style={{ objectPosition }}
         />
       )}
-      <div className="spiral-buffer" data-visible={buffering && !needsTap ? 'true' : 'false'}>
+      <div className="spiral-buffer" data-visible={buffering && !needsTap && !stalled ? 'true' : 'false'}>
         <SpiralLoader size="md" variant="spin" label="Buffering video" />
       </div>
       {needsTap && (
@@ -246,7 +249,15 @@ export const HeroEclipseFallback = (
   </div>
 );
 
-export function MediaAssetRenderer({
+/**
+ * Keyed by URL so a carousel advancing to a different source remounts cleanly
+ * (fresh error/buffer state) instead of resetting state inside effects.
+ */
+export function MediaAssetRenderer(props: MediaAssetRendererProps) {
+  return <MediaAssetRendererInner key={props.url ?? 'none'} {...props} />;
+}
+
+function MediaAssetRendererInner({
   url,
   mediaType,
   alt = '',
@@ -266,15 +277,6 @@ export function MediaAssetRenderer({
   const [hasError, setHasError] = useState(false);
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
   const [driveInaccessible, setDriveInaccessible] = useState(false);
-
-  // Reset error state when the source changes (e.g. carousel advances to a
-  // different slot). Without this, one broken slide kills every subsequent
-  // slide in the carousel.
-  useEffect(() => {
-    setHasError(false);
-    setDriveHealthChecked(false);
-    setDriveInaccessible(false);
-  }, [url]);
 
   const handleError = () => {
     setHasError(true);
@@ -353,9 +355,22 @@ export function MediaAssetRenderer({
     );
   }
 
-  // Image: direct CDN rendering (no proxy). Native <img> for Uploadcare + Drive.
-  // Phase 29A: Never use /image?url= proxy. Uploadcare CDN is public, fast, cached.
   if (effectiveType === 'image') {
+    if (fill && isOptimizableImageUrl(url)) {
+      return (
+        <Image
+          src={url}
+          alt={alt}
+          fill
+          sizes={sizes}
+          priority={priority}
+          quality={80}
+          className={`${objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${className}`}
+          style={{ objectPosition }}
+          onError={handleError}
+        />
+      );
+    }
     return (
       <img
         src={url}

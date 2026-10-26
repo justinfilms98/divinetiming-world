@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { isOptimizableImageUrl } from '@/lib/media/imageHosts';
 
 export interface LightboxItem {
   url: string;
@@ -17,39 +19,42 @@ interface LightboxProps {
   onClose: () => void;
 }
 
-/** Fullscreen lightbox with keyboard arrows + swipe. ~minimal, no dependencies. */
+const CONTROL =
+  'flex h-12 w-12 items-center justify-center rounded-full bg-black/45 text-white/85 ring-1 ring-white/15 backdrop-blur-md hover:bg-black/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+
+/** Fullscreen viewer: whole photo always visible (contain), keyboard arrows, swipe, tap backdrop to close. */
 export function Lightbox({ items, startIndex, open, onClose }: LightboxProps) {
+  if (!open || items.length === 0) return null;
+  // Remount per opening so the viewer always starts on the tapped photo.
+  return <LightboxDialog key={startIndex} items={items} startIndex={startIndex} onClose={onClose} />;
+}
+
+function LightboxDialog({ items, startIndex, onClose }: Omit<LightboxProps, 'open'>) {
   const [index, setIndex] = useState(startIndex);
   const touchStartX = useRef<number | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  const next = useCallback(() => setIndex((i) => (i + 1) % items.length), [items.length]);
+  const prev = useCallback(() => setIndex((i) => (i - 1 + items.length) % items.length), [items.length]);
 
   useEffect(() => {
-    if (open) setIndex(startIndex);
-  }, [open, startIndex]);
-
-  const next = useCallback(() => {
-    setIndex((i) => (i + 1) % items.length);
-  }, [items.length]);
-
-  const prev = useCallback(() => {
-    setIndex((i) => (i - 1 + items.length) % items.length);
-  }, [items.length]);
-
-  useEffect(() => {
-    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       else if (e.key === 'ArrowRight') next();
       else if (e.key === 'ArrowLeft') prev();
     };
     document.addEventListener('keydown', onKey);
+    const { overflow } = document.body.style;
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
+      document.body.style.overflow = overflow;
+      previouslyFocused?.focus?.();
     };
-  }, [open, onClose, next, prev]);
+  }, [onClose, next, prev]);
 
-  if (!open || items.length === 0) return null;
   const item = items[index];
   if (!item) return null;
 
@@ -67,75 +72,100 @@ export function Lightbox({ items, startIndex, open, onClose }: LightboxProps) {
     else prev();
   };
 
+  const multiple = items.length > 1;
+
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+      className="fixed inset-0 z-[100] flex flex-col bg-[#060607]/[0.97]"
       role="dialog"
       aria-modal="true"
+      aria-label="Photo viewer"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-4 right-4 z-10 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-        aria-label="Close"
+      <div
+        className="flex items-center justify-between px-3 sm:px-5"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
-        <X className="w-6 h-6" />
-      </button>
+        <span className="text-white/60 text-xs tracking-[0.2em] tabular-nums" aria-live="polite">
+          {multiple ? `${index + 1} / ${items.length}` : ''}
+        </span>
+        <button ref={closeRef} type="button" onClick={onClose} className={CONTROL} aria-label="Close viewer">
+          <X className="w-6 h-6" />
+        </button>
+      </div>
 
-      {items.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={prev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="w-7 h-7" />
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Next"
-          >
-            <ChevronRight className="w-7 h-7" />
-          </button>
-        </>
-      )}
-
-      <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12">
+      {/* Tapping the empty area around the photo closes the viewer. */}
+      <div className="relative flex-1 min-h-0 mx-2 sm:mx-16 my-2" onClick={onClose}>
         {item.mediaType === 'video' ? (
           <video
             key={item.url}
             src={item.url}
             controls
             autoPlay
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            playsInline
+            className="absolute inset-0 m-auto max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : isOptimizableImageUrl(item.url) ? (
+          <Image
+            key={item.url}
+            src={item.url}
+            alt={item.alt || item.caption || ''}
+            fill
+            priority
+            quality={88}
+            sizes="100vw"
+            className="object-contain select-none"
+            draggable={false}
+            onClick={(e) => e.stopPropagation()}
           />
         ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- host not allowed by the image optimiser
           <img
             key={item.url}
             src={item.url}
             alt={item.alt || item.caption || ''}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl select-none"
+            className="absolute inset-0 m-auto max-w-full max-h-full object-contain select-none"
             draggable={false}
+            onClick={(e) => e.stopPropagation()}
           />
+        )}
+
+        {multiple && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                prev();
+              }}
+              className={`${CONTROL} absolute left-1 sm:-left-14 top-1/2 -translate-y-1/2`}
+              aria-label="Previous photo"
+            >
+              <ChevronLeft className="w-7 h-7" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                next();
+              }}
+              className={`${CONTROL} absolute right-1 sm:-right-14 top-1/2 -translate-y-1/2`}
+              aria-label="Next photo"
+            >
+              <ChevronRight className="w-7 h-7" />
+            </button>
+          </>
         )}
       </div>
 
-      {item.caption && (
-        <p className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-md text-white/80 text-sm max-w-[80vw] truncate">
-          {item.caption}
-        </p>
-      )}
-
-      {items.length > 1 && (
-        <div className="absolute bottom-6 right-6 text-white/50 text-xs tracking-wider tabular-nums">
-          {index + 1} / {items.length}
-        </div>
-      )}
+      <div
+        className="min-h-[2.5rem] px-5 text-center"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
+        {item.caption && <p className="mx-auto max-w-[60ch] text-white/75 text-sm leading-relaxed">{item.caption}</p>}
+      </div>
     </div>
   );
 }

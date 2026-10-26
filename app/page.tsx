@@ -121,7 +121,6 @@ export default async function HomePage() {
     </div>
   );
 
-  const heroVideoUrl = mediaType === 'video' && mediaUrl ? mediaUrl : null;
   const musicGroup = musicGroupJsonLd({
     name: siteSettings?.artist_name?.trim() || SITE_NAME,
     url: BASE_URL,
@@ -139,9 +138,6 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(musicGroup) }}
       />
-      {heroVideoUrl && (
-        <link rel="preload" href={heroVideoUrl} as="fetch" crossOrigin="anonymous" />
-      )}
       <UnifiedHero
         mediaUrl={mediaUrl}
         mediaType={mediaType}
