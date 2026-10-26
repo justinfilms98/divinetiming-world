@@ -14,7 +14,8 @@ interface HeroLogoProps {
 
 /**
  * Renders the hero logo image in place of the text title.
- * Mobile: max-height 56px; Desktop: max-height 88px. Aspect ratio preserved.
+ * Mobile: 28px tall (kept small so it doesn't compete with branding inside the video); Desktop: 88px.
+ * Aspect ratio preserved.
  * On load error, renders fallback (e.g. text title) to avoid broken image.
  */
 export function HeroLogo({ url, alt = 'Divine Timing logo', fallback }: HeroLogoProps) {
@@ -34,7 +35,7 @@ export function HeroLogo({ url, alt = 'Divine Timing logo', fallback }: HeroLogo
         alt={alt}
         width={1200}
         height={400}
-        className="object-contain w-auto h-[56px] md:h-[88px] max-h-[56px] md:max-h-[88px]"
+        className="object-contain w-auto h-[28px] max-w-[56vw] md:h-[88px] md:max-h-[88px] md:max-w-full"
         sizes="(max-width: 768px) 600px, 1200px"
         priority
         unoptimized={url.includes('ucarecdn')}

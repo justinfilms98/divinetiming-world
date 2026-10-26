@@ -1,7 +1,6 @@
 import { getProducts, getHeroSection, getPageSettings } from '@/lib/content/server';
 import { stripArtistBylineFromHeroSubtext } from '@/lib/content/heroSubtext';
 import { UnifiedHero } from '@/components/hero/UnifiedHero';
-import { SignatureDivider } from '@/components/brand/SignatureDivider';
 import { Suspense } from 'react';
 import { ShopPageClient } from '@/components/shop/ShopPageClient';
 import { ShopCheckoutBanner } from '@/components/shop/ShopCheckoutBanner';
@@ -41,9 +40,7 @@ export default async function ShopPage() {
         subtext={tagline}
         heightPreset="compact"
       />
-      <div className="mt-20" />
-      <SignatureDivider className="my-14 md:my-16" />
-      <Section className="section-lift py-14 md:py-20">
+      <Section padded={false} className="section-lift page-body">
         <ContentRail>
           <Suspense fallback={null}>
             <ShopCheckoutBanner />

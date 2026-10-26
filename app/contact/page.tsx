@@ -41,24 +41,14 @@ export default async function ContactPage() {
         heightPreset="compact"
       />
 
-      <div className="flex-1 py-16 md:py-24">
+      <div className="page-body">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
-          {/* Header block */}
-          <header className="text-center mb-14 md:mb-20 max-w-2xl mx-auto">
-            <p className="type-label text-[var(--accent)] tracking-[0.25em] mb-3">REACH US</p>
-            <h2
-              className="type-h2 text-[var(--text)] mb-4 tracking-tight"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              Three ways to connect
-            </h2>
-            <p className="type-body text-[var(--text-muted)] leading-relaxed">
-              Bookings, press, collaborations, or just to say hello — pick the channel that works for you.
-            </p>
+          <header className="text-center mb-8 md:mb-12 max-w-2xl mx-auto">
+            <p className="section-label mb-3">Reach us</p>
+            <h2 className="type-h2 text-[var(--text)] tracking-tight">Three ways to connect</h2>
           </header>
 
-          {/* 3-column Dior-style grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 mb-20 md:mb-24">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-8 mb-12 md:mb-16">
             <ContactColumn
               icon={<Phone className="w-7 h-7" aria-hidden />}
               label="Call Us"
@@ -142,27 +132,30 @@ function ContactColumn({
       : null;
   const isInteractive = Boolean(resolvedHref);
 
+  // Phones: compact row (icon left). sm+: centred column card.
   const inner = (
     <>
-      <div className="w-14 h-14 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center mb-5 [&_svg]:w-7 [&_svg]:h-7">
+      <div className="shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center sm:mb-4 [&_svg]:w-6 [&_svg]:h-6 md:[&_svg]:w-7 md:[&_svg]:h-7">
         {icon}
       </div>
-      <p className="type-label text-[var(--text-muted)] tracking-[0.2em] mb-2">{label.toUpperCase()}</p>
-      <p className="text-[var(--text-muted)] text-sm mb-4 max-w-[28ch] leading-relaxed">{caption}</p>
-      <p
-        className={
-          isInteractive
-            ? 'text-[var(--text)] group-hover:text-[var(--accent)] transition-colors duration-200 type-body font-medium'
-            : 'text-[var(--text-muted)]/70 text-sm'
-        }
-      >
-        {display}
-      </p>
+      <div className="min-w-0 flex flex-col sm:items-center">
+        <p className="type-label text-[var(--text-muted)] tracking-[0.2em] mb-1 sm:mb-2">{label.toUpperCase()}</p>
+        <p className="hidden sm:block text-[var(--text-muted)] text-sm mb-3 max-w-[28ch] leading-relaxed">{caption}</p>
+        <p
+          className={
+            isInteractive
+              ? 'text-[var(--text)] group-hover:text-[var(--accent)] transition-colors duration-200 type-body font-medium break-words'
+              : 'text-[var(--text-muted)]/70 text-sm'
+          }
+        >
+          {display}
+        </p>
+      </div>
     </>
   );
 
   const cardClass =
-    'group flex flex-col items-center text-center px-4 py-6 rounded-2xl w-full min-h-[220px] transition-colors duration-200';
+    'group flex flex-row items-center gap-4 text-left sm:flex-col sm:gap-0 sm:text-center px-4 py-4 sm:py-6 rounded-2xl w-full min-h-[44px] border border-[var(--text)]/10 sm:border-transparent transition-colors duration-200';
 
   if (isInteractive && resolvedHref) {
     return (

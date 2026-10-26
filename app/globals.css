@@ -179,6 +179,12 @@ body {
   }
 }
 
+/* First content block after a page header: one rhythm for every page. */
+.page-body {
+  padding-top: clamp(2.5rem, 6vw, 4.5rem);
+  padding-bottom: clamp(3.5rem, 8vw, 6.5rem);
+}
+
 .content-width {
   max-width: var(--content-max-width);
   margin-left: auto;

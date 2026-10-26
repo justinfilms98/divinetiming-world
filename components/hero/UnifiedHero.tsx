@@ -23,12 +23,18 @@ export interface UnifiedHeroProps {
   children?: React.ReactNode;
 }
 
+// Phones get portrait-friendly shapes so people aren't cropped to a sliver; larger
+// screens are capped by viewport height so a header never exceeds the first screen.
 const heightClasses = {
   full: 'min-h-[calc(100dvh-var(--public-nav-height)-env(safe-area-inset-top,0px))]',
-  tall: 'aspect-[16/9] min-h-[320px] w-full',
-  standard: 'aspect-[16/9] min-h-[280px] w-full',
-  compact: 'min-h-[160px] aspect-[3/1] w-full max-h-[200px]',
+  tall: 'w-full aspect-[4/5] min-h-[320px] max-h-[74svh] md:aspect-[16/9] md:min-h-[400px] md:max-h-[82svh]',
+  standard: 'w-full aspect-[4/5] min-h-[300px] max-h-[68svh] md:aspect-[16/9] md:min-h-[380px] md:max-h-[74svh]',
+  // Utility pages (shop, media, contact, events listing).
+  compact: 'w-full aspect-[5/4] min-h-[260px] max-h-[56svh] md:aspect-auto md:h-[clamp(380px,56svh,620px)] md:max-h-none',
 };
+
+/** Faces usually sit in the upper third; bias the crop up rather than dead centre. */
+const DEFAULT_OBJECT_POSITION = '50% 30%';
 
 export function UnifiedHero({
   mediaUrl,
@@ -103,11 +109,34 @@ export function UnifiedHero({
         mediaType={t}
         poster={slide.posterUrl ?? posterUrl ?? null}
         fallback={HeroEclipseFallback}
+        objectPosition={heightPreset === 'full' ? undefined : DEFAULT_OBJECT_POSITION}
         priority={slideIndex === 0}
         sizes={heightPreset === 'full' ? '100vw' : '(max-width: 768px) 100vw, 1600px'}
       />
     );
   };
+
+  // No image or video assigned: a short title band instead of a large empty black box.
+  if (allSlides.length === 0 && heightPreset !== 'full') {
+    return (
+      <section className="band-night relative w-full overflow-hidden">
+        <div
+          className={`relative z-10 flex flex-col px-6 md:px-12 pt-14 pb-12 md:pt-20 md:pb-16 ${
+            align === 'center' ? 'items-center text-center' : 'items-start text-left'
+          }`}
+        >
+          {badge && <span className="type-hero-label text-[var(--accent)] mb-3">{badge}</span>}
+          {headline && <h1 className="type-hero-title text-[var(--text-on-dark)]">{headline}</h1>}
+          {subtext && (
+            <p className={`text-[var(--text-on-dark-muted)] text-base md:text-lg mt-3 max-w-2xl leading-relaxed ${align === 'center' ? 'mx-auto' : ''}`}>
+              {subtext}
+            </p>
+          )}
+          {children && <div className="w-full mt-6">{children}</div>}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

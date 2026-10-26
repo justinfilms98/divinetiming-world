@@ -9,6 +9,7 @@ import { useCart } from './CartContext';
 import { track } from '@/lib/analytics/track';
 import type { Product } from '@/lib/types/content';
 import { getProductCommerceState } from '@/lib/shop/commerce';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface ShopPageClientProps {
   products: Product[];
@@ -33,12 +34,8 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
 
   return (
     <div className="w-full max-w-full">
-      <p className="text-center text-[var(--text-muted)] type-body mb-14 md:mb-16 max-w-[45ch] mx-auto leading-relaxed">
-        Official merchandise and music.
-      </p>
-
       {categories.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-2 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 mb-10 md:mb-12">
           <button
             type="button"
             onClick={() => setCategory(null)}
@@ -69,7 +66,14 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
 
       {visible.length > 0 ? (
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-12 md:gap-x-6 md:gap-y-16 w-full max-w-7xl mx-auto"
+          className={`grid grid-cols-1 gap-x-4 gap-y-12 md:gap-x-6 md:gap-y-16 w-full mx-auto ${
+            // Few products: shrink the grid so they sit centred instead of stranded in column one.
+            visible.length === 1
+              ? 'max-w-sm'
+              : visible.length === 2
+                ? 'sm:grid-cols-2 max-w-3xl'
+                : 'sm:grid-cols-2 lg:grid-cols-3 max-w-7xl'
+          }`}
           initial="hidden"
           animate="visible"
           variants={{
@@ -94,13 +98,15 @@ export function ShopPageClient({ products }: ShopPageClientProps) {
           })}
         </motion.div>
       ) : (
-        <div className="py-24 md:py-32 text-center">
-          <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">
-            {products.length === 0
-              ? 'No products yet. Check back soon.'
-              : 'No products in this category.'}
-          </p>
-        </div>
+        products.length === 0 ? (
+          <EmptyState
+            title="No products yet"
+            message="Merchandise will appear here when it's available. Join the tribe to hear first."
+            action={{ label: 'Join the tribe', href: '/#tribe' }}
+          />
+        ) : (
+          <EmptyState title="Nothing in this category yet" />
+        )
       )}
     </div>
   );

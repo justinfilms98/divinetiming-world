@@ -10,6 +10,8 @@ interface MediaAssetRendererProps {
   className?: string;
   fill?: boolean;
   objectFit?: 'cover' | 'contain';
+  /** CSS object-position for cropped media, e.g. '50% 30%'. Defaults to centre. */
+  objectPosition?: string;
   priority?: boolean;
   sizes?: string;
   onError?: () => void;
@@ -101,6 +103,7 @@ interface HeroAutoplayVideoProps {
   className?: string;
   fill?: boolean;
   objectFit?: 'cover' | 'contain';
+  objectPosition?: string;
   priority?: boolean;
   onError?: () => void;
 }
@@ -156,6 +159,7 @@ function HeroAutoplayVideo({
   className = '',
   fill = true,
   objectFit = 'cover',
+  objectPosition,
   priority = false,
   onError,
 }: HeroAutoplayVideoProps) {
@@ -181,7 +185,7 @@ function HeroAutoplayVideo({
         disableRemotePlayback
         controlsList="nodownload nofullscreen noremoteplayback"
         className={`hero-autoplay-video w-full h-full ${className}`}
-        style={fill ? { position: 'absolute', inset: 0, objectFit } : { objectFit }}
+        style={fill ? { position: 'absolute', inset: 0, objectFit, objectPosition } : { objectFit, objectPosition }}
         onError={onError}
         onLoadedMetadata={attemptPlay}
         onLoadedData={attemptPlay}
@@ -199,6 +203,7 @@ function HeroAutoplayVideo({
           alt=""
           aria-hidden
           className={`pointer-events-none z-[1] w-full h-full object-cover ${fill ? 'absolute inset-0' : ''}`}
+          style={{ objectPosition }}
         />
       )}
       <div className="spiral-buffer" data-visible={buffering && !needsTap ? 'true' : 'false'}>
@@ -248,6 +253,7 @@ export function MediaAssetRenderer({
   className = '',
   fill = true,
   objectFit = 'cover',
+  objectPosition,
   priority = false,
   sizes = '100vw',
   onError,
@@ -340,6 +346,7 @@ export function MediaAssetRenderer({
         className={className}
         fill={fill}
         objectFit={objectFit}
+        objectPosition={objectPosition}
         priority={priority}
         onError={handleError}
       />
@@ -354,7 +361,7 @@ export function MediaAssetRenderer({
         src={url}
         alt={alt}
         className={`w-full h-full ${objectFit === 'cover' ? 'object-cover' : 'object-contain'} ${className}`}
-        style={fill ? { position: 'absolute', inset: 0 } : undefined}
+        style={fill ? { position: 'absolute', inset: 0, objectPosition } : { objectPosition }}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         fetchPriority={priority ? 'high' : undefined}

@@ -29,6 +29,10 @@ const LEGAL_LINKS = [
 
 const FOOTER_SOCIAL_IDS: PlatformId[] = ['spotify', 'youtube', 'instagram'];
 
+/** 44px rows on touch screens; compact list on desktop. */
+const FOOTER_LINK_CLASS =
+  'inline-flex items-center min-h-[44px] md:min-h-0 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 focus-ring rounded-sm';
+
 export function Footer({
   siteSettings,
   className,
@@ -46,7 +50,7 @@ export function Footer({
 
   return (
     <footer
-      className={cn('border-t border-[var(--text)]/10 bg-[var(--bg)]/60', className)}
+      className={cn('border-t border-[var(--text)]/10 bg-[var(--bg)]', className)}
       role="contentinfo"
     >
       <ContentRail className="py-10 md:py-20">
@@ -83,12 +87,12 @@ export function Footer({
               <p className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-[var(--text)] font-medium mb-3 md:mb-4">
                 Explore
               </p>
-              <ul className="space-y-2 md:space-y-2.5">
+              <ul className="md:space-y-2.5">
                 {SITEMAP_LINKS.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 focus-ring rounded-sm"
+                      className={FOOTER_LINK_CLASS}
                     >
                       {item.label}
                     </Link>
@@ -102,12 +106,12 @@ export function Footer({
               <p className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-[var(--text)] font-medium mb-3 md:mb-4">
                 Legal
               </p>
-              <ul className="space-y-2 md:space-y-2.5">
+              <ul className="md:space-y-2.5">
                 {LEGAL_LINKS.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 focus-ring rounded-sm"
+                      className={FOOTER_LINK_CLASS}
                     >
                       {item.label}
                     </Link>

@@ -98,7 +98,7 @@ export default function CartPage() {
                           onClick={() =>
                             updateQuantity(item.productId, item.variantId, item.quantity - 1)
                           }
-                          className="w-8 h-8 rounded-lg bg-[var(--bg)] text-[var(--text)] text-sm font-medium hover:bg-[var(--accent)]/15 border border-[var(--text)]/10 transition-colors"
+                          className="w-11 h-11 rounded-lg bg-[var(--bg)] text-[var(--text)] text-sm font-medium hover:bg-[var(--accent)]/15 border border-[var(--text)]/10 transition-colors"
                         >
                           −
                         </button>
@@ -107,13 +107,13 @@ export default function CartPage() {
                           onClick={() =>
                             updateQuantity(item.productId, item.variantId, item.quantity + 1)
                           }
-                          className="w-8 h-8 rounded-lg bg-[var(--bg)] text-[var(--text)] text-sm font-medium hover:bg-[var(--accent)]/15 border border-[var(--text)]/10 transition-colors"
+                          className="w-11 h-11 rounded-lg bg-[var(--bg)] text-[var(--text)] text-sm font-medium hover:bg-[var(--accent)]/15 border border-[var(--text)]/10 transition-colors"
                         >
                           +
                         </button>
                         <button
                           onClick={() => removeItem(item.productId, item.variantId)}
-                          className="text-[var(--text-muted)] hover:text-red-600 text-sm ml-4"
+                          className="min-h-[44px] px-2 text-[var(--text-muted)] hover:text-red-600 text-sm ml-2"
                         >
                           Remove
                         </button>

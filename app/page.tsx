@@ -88,17 +88,21 @@ export default async function HomePage() {
         </p>
       )}
       {heroSection?.logoFinalUrl ? (
-        <HeroLogo
-          url={heroSection.logoFinalUrl}
-          alt="Divine Timing logo"
-          fallback={
-            <DivineTimingIntro
-              artistName={artistName}
-              animationType={animationType}
-              animationEnabled={animationEnabled}
-            />
-          }
-        />
+        <>
+          {/* The image logo is the visual title; DivineTimingIntro renders its own h1. */}
+          <h1 className="sr-only">{artistName}</h1>
+          <HeroLogo
+            url={heroSection.logoFinalUrl}
+            alt="Divine Timing logo"
+            fallback={
+              <DivineTimingIntro
+                artistName={artistName}
+                animationType={animationType}
+                animationEnabled={animationEnabled}
+              />
+            }
+          />
+        </>
       ) : (
         <DivineTimingIntro
           artistName={artistName}

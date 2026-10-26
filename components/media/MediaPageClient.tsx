@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { track } from '@/lib/analytics/track';
 import { VideoGrid } from '@/components/media/VideoGrid';
 import { StoryCard } from '@/components/collections/StoryCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { MediaPageVideo, GalleryForHub } from '@/lib/content/shared';
 
 interface MediaPageClientProps {
@@ -31,7 +32,7 @@ export function MediaPageClient({
   const showEmptyVideos = activeTab === 'videos' && !hasVideos;
 
   return (
-    <div className="flex-1 w-full max-w-full py-12 md:py-16 px-4 md:px-6 min-w-0">
+    <div className="flex-1 w-full max-w-full min-w-0">
       <div className="w-full max-w-7xl mx-auto">
         {showHeadline && (
           <>
@@ -53,7 +54,7 @@ export function MediaPageClient({
           <button
             type="button"
             onClick={() => setActiveTab('galleries')}
-            className={`px-6 py-2.5 text-xs uppercase tracking-[0.2em] transition-colors duration-200 ${
+            className={`min-h-[44px] px-6 py-2.5 text-xs uppercase tracking-[0.2em] transition-colors duration-200 ${
               activeTab === 'galleries'
                 ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
                 : 'text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text)]'
@@ -64,7 +65,7 @@ export function MediaPageClient({
           <button
             type="button"
             onClick={() => setActiveTab('videos')}
-            className={`px-6 py-2.5 text-xs uppercase tracking-[0.2em] transition-colors duration-200 ${
+            className={`min-h-[44px] px-6 py-2.5 text-xs uppercase tracking-[0.2em] transition-colors duration-200 ${
               activeTab === 'videos'
                 ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
                 : 'text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text)]'
@@ -75,17 +76,9 @@ export function MediaPageClient({
         </div>
 
         {showEmptyCollections ? (
-          <div className="py-24 md:py-32 text-center">
-            <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">
-              Visual stories coming soon.
-            </p>
-          </div>
+          <EmptyState title="No collections yet" message="Photo stories will appear here once they're published." />
         ) : showEmptyVideos ? (
-          <div className="py-24 md:py-32 text-center">
-            <p className="text-[var(--text-muted)] type-body leading-relaxed max-w-[40ch] mx-auto">
-              Videos coming soon.
-            </p>
-          </div>
+          <EmptyState title="No videos yet" message="Films and live sets will appear here once they're published." />
         ) : activeTab === 'galleries' ? (
           <CollectionsMasonry galleries={galleries} />
         ) : (
