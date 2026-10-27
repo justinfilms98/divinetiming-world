@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
         width: f.width ?? null,
         height: f.height ?? null,
         orientation: orientationFromDimensions(f.width, f.height),
-        usage_type: 'public',
+        // New uploads stay off public listings (e.g. the Videos tab) until an admin sets Usage to Public.
+        usage_type: 'internal',
         is_archived: false,
         is_featured: false,
         tags: [] as string[],

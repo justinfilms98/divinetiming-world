@@ -511,11 +511,11 @@ export default function AdminPressKitPage() {
           ))}
         </ul>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Label" value={newShow.label} onChange={(e) => setNewShow({ ...newShow, label: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Venue" value={newShow.venue} onChange={(e) => setNewShow({ ...newShow, venue: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="City" value={newShow.city} onChange={(e) => setNewShow({ ...newShow, city: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Country" value={newShow.country} onChange={(e) => setNewShow({ ...newShow, country: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Year" value={newShow.year} onChange={(e) => setNewShow({ ...newShow, year: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Label" value={newShow.label} onChange={(e) => setNewShow({ ...newShow, label: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Venue" value={newShow.venue} onChange={(e) => setNewShow({ ...newShow, venue: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="City" value={newShow.city} onChange={(e) => setNewShow({ ...newShow, city: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Country" value={newShow.country} onChange={(e) => setNewShow({ ...newShow, country: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Year" value={newShow.year} onChange={(e) => setNewShow({ ...newShow, year: e.target.value })} />
         </div>
         <button
           type="button"
@@ -557,9 +557,9 @@ export default function AdminPressKitPage() {
           <input className="admin-input w-full px-3 py-2 text-sm" placeholder="Title" value={newRelease.title} onChange={(e) => setNewRelease({ ...newRelease, title: e.target.value })} />
           <textarea className="admin-input w-full px-3 py-2 text-sm min-h-[80px]" placeholder="Body" value={newRelease.body_md} onChange={(e) => setNewRelease({ ...newRelease, body_md: e.target.value })} />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input type="date" className="admin-input px-3 py-2 text-sm" value={newRelease.published_at} onChange={(e) => setNewRelease({ ...newRelease, published_at: e.target.value })} />
-            <input className="admin-input px-3 py-2 text-sm" placeholder="External URL" value={newRelease.external_url} onChange={(e) => setNewRelease({ ...newRelease, external_url: e.target.value })} />
-            <select className="admin-input px-3 py-2 text-sm" value={newRelease.status} onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value as 'draft' | 'published' })}>
+            <input type="date" className="admin-input admin-tap px-3 py-2 text-sm" value={newRelease.published_at} onChange={(e) => setNewRelease({ ...newRelease, published_at: e.target.value })} />
+            <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="External URL" value={newRelease.external_url} onChange={(e) => setNewRelease({ ...newRelease, external_url: e.target.value })} />
+            <select className="admin-input admin-tap px-3 py-2 text-sm" value={newRelease.status} onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value as 'draft' | 'published' })}>
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>

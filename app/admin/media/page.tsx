@@ -198,9 +198,9 @@ export default function AdminMediaPage() {
 
   const handleDelete = async (id: string) => {
     const ok = await dialog.confirm({
-      title: 'Delete this file permanently?',
-      message: 'It will be removed from the library. This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: 'Remove from the library?',
+      message: 'It will no longer appear in the library or the media pickers. The original file is kept in storage.',
+      confirmLabel: 'Remove',
       tone: 'danger',
     });
     if (!ok) return;
@@ -264,7 +264,7 @@ export default function AdminMediaPage() {
           <button
             type="button"
             onClick={() => setEditing(asset)}
-            className="admin-tap flex-1 min-w-0 px-2 py-1.5 rounded bg-slate-800 text-white hover:bg-slate-700 text-xs font-medium"
+            className="admin-tap basis-full sm:basis-auto flex-1 min-w-0 px-2 py-1.5 rounded bg-slate-800 text-white hover:bg-slate-700 text-xs font-medium"
           >
             Edit
           </button>
@@ -280,8 +280,8 @@ export default function AdminMediaPage() {
             type="button"
             onClick={() => handleDelete(asset.id)}
             className="admin-icon-btn rounded text-red-600 hover:bg-red-50"
-            title="Delete"
-            aria-label="Delete file"
+            title="Remove from library"
+            aria-label="Remove from library"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -293,7 +293,7 @@ export default function AdminMediaPage() {
   return (
     <AdminPage
       title="Media Library"
-      subtitle="Upload and manage media library. Set tags, usage, and archive state. Video uploads also appear in the public Media → Videos tab when usage is public."
+      subtitle="Upload and manage media library. Set tags, usage, and archive state. New uploads start as Internal; set Usage to Public to show a video on the public Media → Videos tab."
       actions={
         <UniversalUploader
           multiple
@@ -310,7 +310,7 @@ export default function AdminMediaPage() {
             key={f}
             type="button"
             onClick={() => setFilter(f)}
-            className={`admin-tap px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+            className={`admin-tap min-w-[44px] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
               filter === f
                 ? 'bg-slate-700 text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'

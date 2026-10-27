@@ -680,6 +680,7 @@ export function DashboardHeroEditor() {
             <input
               id="hero-overlay"
               type="range"
+              className="admin-tap w-full max-w-xs"
               min="0"
               max="90"
               value={overlayPct}
@@ -688,7 +689,6 @@ export function DashboardHeroEditor() {
                   overlay_opacity: Number(e.target.value) / 100,
                 })
               }
-              className="w-full max-w-xs"
               aria-valuemin={0}
               aria-valuemax={90}
               aria-valuenow={overlayPct}
