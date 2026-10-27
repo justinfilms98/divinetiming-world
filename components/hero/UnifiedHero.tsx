@@ -13,6 +13,7 @@ import { MediaAssetRenderer, HeroEclipseFallback } from '@/components/ui/MediaAs
 import { motion } from 'framer-motion';
 import type { HeroSingleSource } from '@/lib/content/heroSingleSource';
 import { heroArtDirectionFor } from '@/lib/media/heroArtDirection';
+import { heroRenditionFor, pickHeroVariant, type HeroRendition, type HeroVariant } from '@/lib/media/heroRenditions';
 
 export interface UnifiedHeroProps {
   mediaUrl?: string | null;
@@ -52,6 +53,38 @@ function getReducedMotion() {
   return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
+// Decided once per page view: switching renditions on resize would download the clip again.
+let cachedVariant: HeroVariant | null = null;
+function getHeroVariant(): HeroVariant {
+  if (!cachedVariant) {
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; downlink?: number } }).connection;
+    cachedVariant = pickHeroVariant({
+      viewportWidth: window.innerWidth,
+      saveData: conn?.saveData,
+      effectiveType: conn?.effectiveType,
+      downlink: conn?.downlink,
+    });
+  }
+  return cachedVariant;
+}
+const subscribeNever = () => () => {};
+
+function RenditionPoster({ rendition, priority }: { rendition: HeroRendition; priority: boolean }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- same file the video uses as its poster, so the handoff never refetches
+    <img
+      src={rendition.poster}
+      srcSet={`${rendition.posterSmall} 1280w, ${rendition.poster} 1920w`}
+      sizes="100vw"
+      alt=""
+      aria-hidden
+      fetchPriority={priority ? 'high' : undefined}
+      className="absolute inset-0 h-full w-full object-cover"
+      style={{ objectPosition: 'var(--hero-pos)' }}
+    />
+  );
+}
+
 /** Inline CSS variables consumed by `.hero-focal` (phone vs md+ crop anchor). */
 function focalStyle(url: string | null | undefined, preset: string): React.CSSProperties {
   if (preset === 'full') return { ['--hero-pos-m' as string]: '50% 50%', ['--hero-pos-d' as string]: '50% 50%' };
@@ -79,7 +112,17 @@ export function UnifiedHero({
   const allSlides = (slides && slides.length > 0) ? slides : (mediaUrl ? [{ mediaUrl, mediaType: mediaType as 'image' | 'video' | null, posterUrl }] : []);
   const slideCount = allSlides.length;
   const isCarousel = slideCount > 1;
-  const kindsKey = allSlides.map((s) => (s.mediaType === 'video' || s.mediaType === 'image' ? s.mediaType : 'other')).join(',');
+  // null on the server and during hydration: slides with renditions show their poster until
+  // the browser has picked a rendition, so no video starts downloading before that choice.
+  const variant = useSyncExternalStore(subscribeNever, getHeroVariant, () => null);
+  const renditionOf = (s: (typeof allSlides)[number] | undefined) =>
+    s?.mediaType === 'video' ? heroRenditionFor(s.mediaUrl) : null;
+  const kindsKey = allSlides
+    .map((s) => {
+      if (variant === 'posters' && renditionOf(s)) return 'image';
+      return s.mediaType === 'video' || s.mediaType === 'image' ? s.mediaType : 'other';
+    })
+    .join(',');
   const [activeIndex, setActiveIndex] = useState(0);
   // Outgoing slide stays mounted while it fades out, so the crossfade never shows black.
   const [leavingIndex, setLeavingIndex] = useState<number | null>(null);
@@ -151,13 +194,30 @@ export function UnifiedHero({
     restartToken?: number
   ) => {
     if (!slide?.mediaUrl) return null;
-    const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
+    const rendition = renditionOf(slide);
+    if (rendition && !variant) {
+      return (
+        <div className="hero-focal absolute inset-0" style={focalStyle(slide.mediaUrl, heightPreset)}>
+          <RenditionPoster rendition={rendition} priority={slideIndex === 0} />
+        </div>
+      );
+    }
+    let url: string = slide.mediaUrl;
+    let t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
+    let poster = slide.posterUrl ?? posterUrl ?? null;
+    if (rendition && variant === 'posters') {
+      url = rendition.poster;
+      t = 'image';
+    } else if (rendition) {
+      url = variant === 'mobile' ? rendition.mobile : rendition.desktop;
+      poster = variant === 'mobile' ? rendition.posterSmall : rendition.poster;
+    }
     return (
       <div className="hero-focal absolute inset-0" style={focalStyle(slide.mediaUrl, heightPreset)}>
         <MediaAssetRenderer
-          url={slide.mediaUrl ?? null}
+          url={url}
           mediaType={t}
-          poster={slide.posterUrl ?? posterUrl ?? null}
+          poster={poster}
           fallback={HeroEclipseFallback}
           objectPosition="var(--hero-pos)"
           priority={slideIndex === 0}
@@ -168,6 +228,7 @@ export function UnifiedHero({
           onStalled={() => carouselRef.current?.slideStalled(slideIndex)}
           onError={() => carouselRef.current?.slideFailed(slideIndex)}
           restartToken={restartToken}
+          holdUntilPlayable={!!rendition}
         />
       </div>
     );

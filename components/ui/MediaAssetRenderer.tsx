@@ -39,17 +39,29 @@ interface MediaAssetRendererProps {
   onStalled?: () => void;
   /** Hero video only: each new value rewinds the clip to its start (a slide re-entering the carousel). */
   restartToken?: number;
+  /**
+   * Hero video only: when the connection can't keep up, hold the clip once until the browser
+   * reports it can play through, instead of stuttering through repeated buffering.
+   */
+  holdUntilPlayable?: boolean;
 }
 
 const STALL_TIMEOUT_MS = 8000;
+// A deliberate hold (slow connection) gets longer before the carousel gives up on the slide.
+const HOLD_TIMEOUT_MS = 15000;
 
 /** Retry muted autoplay — mobile Safari often needs an explicit play() call. */
 function useMutedAutoplay(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   url: string | null,
   shouldPlay: boolean,
-  onStalled?: () => void
+  onStalled?: () => void,
+  holdUntilPlayable = false
 ) {
+  // play() is always called first (iOS Safari only buffers after it); the hold pauses on the
+  // first `waiting` and resumes on `canplaythrough`.
+  const holdingRef = useRef(false);
+  const [holding, setHolding] = useState(false);
   const onStalledRef = useRef(onStalled);
   useEffect(() => {
     onStalledRef.current = onStalled;
@@ -67,7 +79,7 @@ function useMutedAutoplay(
 
   const attemptPlay = useCallback(() => {
     const v = videoRef.current;
-    if (!v || !url) return;
+    if (!v || !url || holdingRef.current) return;
     v.muted = true;
     v.defaultMuted = true;
     v.playsInline = true;
@@ -76,7 +88,9 @@ function useMutedAutoplay(
     v.setAttribute('x5-playsinline', '');
     const p = v.play();
     if (p && typeof p.catch === 'function') {
-      p.catch(() => {
+      p.catch((err: unknown) => {
+        // AbortError = interrupted by our own pause() (hold or slide change), not an autoplay block.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setNeedsTap(true);
         setBuffering(false);
       });
@@ -89,9 +103,9 @@ function useMutedAutoplay(
     const timer = window.setTimeout(() => {
       setStalled(true);
       onStalledRef.current?.();
-    }, STALL_TIMEOUT_MS);
+    }, holding ? HOLD_TIMEOUT_MS : STALL_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [buffering, shouldPlay]);
+  }, [buffering, shouldPlay, holding]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -100,10 +114,11 @@ function useMutedAutoplay(
       v.pause();
       return;
     }
+    holdingRef.current = false;
     attemptPlay();
     const raf = requestAnimationFrame(() => attemptPlay());
     const timer = window.setTimeout(() => {
-      if (v.paused && !v.ended) {
+      if (v.paused && !v.ended && !holdingRef.current) {
         setNeedsTap(true);
         setBuffering(false);
       }
@@ -115,6 +130,8 @@ function useMutedAutoplay(
   }, [url, attemptPlay, videoRef, shouldPlay]);
 
   const onPlaying = useCallback(() => {
+    holdingRef.current = false;
+    setHolding(false);
     setPlaying(true);
     setNeedsTap(false);
     setBuffering(false);
@@ -123,20 +140,36 @@ function useMutedAutoplay(
 
   const onWaiting = useCallback(() => {
     setBuffering(true);
-  }, []);
+    const v = videoRef.current;
+    if (holdUntilPlayable && v && !v.paused && !holdingRef.current) {
+      holdingRef.current = true;
+      setHolding(true);
+      v.pause();
+    }
+  }, [holdUntilPlayable, videoRef]);
 
   const onCanPlay = useCallback(() => {
+    if (holdingRef.current) return;
+    setBuffering(false);
+    setStalled(false);
+    if (shouldPlayRef.current) attemptPlay();
+  }, [attemptPlay]);
+
+  const onCanPlayThrough = useCallback(() => {
+    holdingRef.current = false;
+    setHolding(false);
     setBuffering(false);
     setStalled(false);
     if (shouldPlayRef.current) attemptPlay();
   }, [attemptPlay]);
 
   const onTapPlay = useCallback(() => {
+    holdingRef.current = false;
     attemptPlay();
     setNeedsTap(false);
   }, [attemptPlay]);
 
-  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay };
+  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onCanPlayThrough, onTapPlay };
 }
 
 interface HeroAutoplayVideoProps {
@@ -153,6 +186,7 @@ interface HeroAutoplayVideoProps {
   onEnded?: () => void;
   onStalled?: () => void;
   restartToken?: number;
+  holdUntilPlayable?: boolean;
 }
 
 function BufferedVideo({
@@ -210,6 +244,7 @@ function HeroAutoplayVideo({
   onEnded,
   onStalled,
   restartToken,
+  holdUntilPlayable = false,
 }: HeroAutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const shouldPlay = playingProp !== false;
@@ -217,8 +252,8 @@ function HeroAutoplayVideo({
     const v = videoRef.current;
     if (v && restartToken != null && v.currentTime > 0) v.currentTime = 0;
   }, [restartToken]);
-  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
-    useMutedAutoplay(videoRef, url, shouldPlay, onStalled);
+  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onCanPlayThrough, onTapPlay } =
+    useMutedAutoplay(videoRef, url, shouldPlay, onStalled, holdUntilPlayable);
   const maybePlay = () => {
     if (shouldPlay) attemptPlay();
   };
@@ -247,7 +282,7 @@ function HeroAutoplayVideo({
         onLoadedMetadata={maybePlay}
         onLoadedData={maybePlay}
         onCanPlay={onCanPlay}
-        onCanPlayThrough={onCanPlay}
+        onCanPlayThrough={onCanPlayThrough}
         onPlaying={onPlaying}
         onWaiting={onWaiting}
         onEnded={onEnded}
@@ -330,6 +365,7 @@ function MediaAssetRendererInner({
   onEnded,
   onStalled,
   restartToken,
+  holdUntilPlayable,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
@@ -413,6 +449,7 @@ function MediaAssetRendererInner({
         onEnded={onEnded}
         onStalled={onStalled}
         restartToken={restartToken}
+        holdUntilPlayable={holdUntilPlayable}
       />
     );
   }
