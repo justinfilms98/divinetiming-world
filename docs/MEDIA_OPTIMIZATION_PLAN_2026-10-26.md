@@ -40,6 +40,11 @@ will use local copies. Please check *Supabase → Organization → Usage* for th
 - **Homepage hero editor** (`DashboardHeroEditor`): same uploader with the `hero` preset; poster
   images compressed to ≤1.5 MB / 1920 px and uploaded under `hero/<page>/slot-N/`.
 - Filenames are timestamped, so a new upload never overwrites an older file.
+- "Remove" in the Media Library deletes only the library record; the file stays in storage
+  (D0 reworded the dialog to say so). There is no storage clean-up tool yet, so removed files keep
+  counting toward the 1 GB.
+- From D0, new uploads are registered as **Internal** (previously Public, which put new videos
+  straight onto the public Videos tab).
 - Signed-URL uploads do not set a cache lifetime, so files are stored with `no-cache` or
   `max-age=undefined` (older direct uploads have `max-age=3600`).
 
