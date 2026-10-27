@@ -192,12 +192,12 @@ export function RecentUploads({ media, totals }: { media: AdminOverview['recentM
           </Link>
         </p>
       ) : (
-        <ul className="mt-3 grid grid-cols-3 gap-2 md:gap-3">
+        <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6 md:gap-3">
           {media.map((m) => (
             <li key={m.id}>
               <Link href="/admin/media" className="group relative block aspect-square overflow-hidden rounded-xl border border-white/10 bg-black" title={m.name ?? undefined}>
                 {m.preview_url ? (
-                  <Artwork url={m.preview_url} alt={m.name ?? ''} sizes="(max-width: 768px) 30vw, 160px" />
+                  <Artwork url={m.preview_url} alt={m.name ?? ''} sizes="(max-width: 640px) 30vw, 120px" />
                 ) : (
                   <span className="flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#1a1410] to-[#0f0c10] px-2 text-center text-[#C6A75E]/75">
                     {m.kind === 'video' ? <Film className="h-5 w-5" aria-hidden /> : <ImageIcon className="h-5 w-5" aria-hidden />}
