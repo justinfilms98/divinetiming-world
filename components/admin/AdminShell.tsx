@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { AdminTabBar } from '@/components/admin/AdminTabBar';
-import { findActiveNav } from '@/components/admin/adminNavigation';
+import { adminPageTitle } from '@/components/admin/adminNavigation';
 import { AdminToastProvider } from '@/components/admin/AdminToast';
 import { AdminDialogProvider } from '@/components/admin/AdminDialog';
 import { LogOut, ExternalLink, PanelLeftClose, PanelLeft } from 'lucide-react';
@@ -43,7 +43,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(subscribeCollapsed, getCollapsed, () => false);
-  const pageTitle = findActiveNav(pathname)?.item.label ?? 'Admin';
+  const pageTitle = adminPageTitle(pathname);
 
   useEffect(() => {
     document.documentElement.classList.add('admin-active');

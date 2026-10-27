@@ -53,4 +53,12 @@ describe('admin navigation', () => {
     expect(findActiveNav('/admin/booking-inquiries')?.item.label).toBe('Booking Inquiries');
     expect(findActiveNav('/admin/eventsx')).toBeNull();
   });
+
+  it('names every admin page in the phone top bar, including flag-hidden ones', async () => {
+    const { adminPageTitle } = await loadNav(false);
+    expect(adminPageTitle('/admin/integrations')).toBe('Integrations');
+    expect(adminPageTitle('/admin/inbox')).toBe('Content Inbox');
+    expect(adminPageTitle('/admin/hero')).toBe('Homepage & Hero');
+    for (const route of adminPageRoutes()) expect(adminPageTitle(route)).not.toBe('Admin');
+  });
 });

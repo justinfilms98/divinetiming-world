@@ -142,7 +142,7 @@ export default function AdminBookingInquiriesPage() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-sm border capitalize transition-colors ${
+            className={`admin-tap px-4 py-1.5 rounded-full text-sm border capitalize transition-colors ${
               filter === s
                 ? 'bg-slate-800 text-white border-slate-800'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'

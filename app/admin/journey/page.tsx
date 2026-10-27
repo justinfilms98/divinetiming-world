@@ -176,7 +176,7 @@ export default function AdminJourneyPage() {
           href="/journey"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-800"
+          className="admin-tap inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-800"
         >
           View journey page <ExternalLink className="w-4 h-4" />
         </a>

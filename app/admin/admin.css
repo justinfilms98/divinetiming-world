@@ -3,7 +3,8 @@
 
 html.admin-active,
 html.admin-active body {
-  overflow-x: hidden;
+  /* clip, not hidden: `hidden` on body makes it a scroll container and breaks position:sticky. */
+  overflow-x: clip;
   background: #0f0c10;
   color: #f5f0e8;
 }

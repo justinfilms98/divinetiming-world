@@ -109,6 +109,20 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
 ];
 
+/** Page names for routes that exist but are hidden from navigation by a feature flag. */
+const HIDDEN_ROUTE_TITLES: Record<string, string> = {
+  '/admin/integrations': 'Integrations',
+  '/admin/inbox': 'Content Inbox',
+};
+
+/** Title for the phone top bar: nav label when listed, otherwise the hidden route's name. */
+export function adminPageTitle(pathname: string | null): string {
+  const active = findActiveNav(pathname);
+  if (active) return active.item.label;
+  const hidden = Object.keys(HIDDEN_ROUTE_TITLES).find((r) => pathname === r || pathname?.startsWith(`${r}/`));
+  return hidden ? HIDDEN_ROUTE_TITLES[hidden] : 'Admin';
+}
+
 export function isNavItemActive(item: AdminNavItem, pathname: string | null): boolean {
   if (!pathname || item.comingSoon) return false;
   if (item.href === '/admin') return pathname === '/admin';
