@@ -53,7 +53,8 @@ export function AdminToastProvider({ children }: { children: React.ReactNode }) 
         <div
           role="status"
           aria-live="polite"
-          className={`fixed top-4 right-4 z-[100] flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium ${
+          // Phones: above the bottom tab bar, full width. Desktop: top-right.
+          className={`fixed z-[130] left-4 right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:left-auto md:bottom-auto md:top-4 md:right-4 md:max-w-sm flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
             toast.type === 'success'
               ? 'bg-green-600 text-white'
               : 'bg-red-600 text-white'

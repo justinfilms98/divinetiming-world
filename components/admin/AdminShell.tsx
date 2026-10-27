@@ -1,48 +1,54 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { AdminTabBar } from '@/components/admin/AdminTabBar';
+import { adminPageTitle } from '@/components/admin/adminNavigation';
 import { AdminToastProvider } from '@/components/admin/AdminToast';
-import { OverflowDebug } from '@/components/dev/OverflowDebug';
+import { AdminDialogProvider } from '@/components/admin/AdminDialog';
 import { LogOut, ExternalLink, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { cn } from '@/lib/ui/cn';
 import '@/app/admin/admin.css';
 
-const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_KEY = 'admin-sidebar-collapsed';
-const MOBILE_BREAKPOINT = 768;
+const COLLAPSE_EVENT = 'admin-sidebar-collapse';
 
+function subscribeCollapsed(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  window.addEventListener(COLLAPSE_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(COLLAPSE_EVENT, onChange);
+  };
+}
+const getCollapsed = () => window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+
+function setCollapsed(value: boolean) {
+  window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, value ? '1' : '0');
+  window.dispatchEvent(new Event(COLLAPSE_EVENT));
+}
+
+const SIDE_LINK =
+  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:text-white/90 hover:bg-white/[0.06] transition-colors w-full';
+
+/**
+ * Phones (< md): top bar with page title + bottom tab bar (AdminTabBar).
+ * md and up: collapsible grouped sidebar. Layout switches in CSS so there's no
+ * hydration flash; every admin route renders in the same <main>.
+ */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const pathname = usePathname();
+  const collapsed = useSyncExternalStore(subscribeCollapsed, getCollapsed, () => false);
+  const pageTitle = adminPageTitle(pathname);
 
   useEffect(() => {
     document.documentElement.classList.add('admin-active');
     return () => document.documentElement.classList.remove('admin-active');
   }, []);
-
-  useEffect(() => {
-    setSidebarCollapsed(window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
-  }, []);
-
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const sync = () => setIsMobile(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-
-  useEffect(() => {
-    if (!isMobile) {
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? '1' : '0');
-    }
-  }, [sidebarCollapsed, isMobile]);
-
-  const effectiveCollapsed = isMobile || sidebarCollapsed;
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -51,102 +57,83 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="admin-root min-h-screen w-full overflow-x-hidden">
-      <Suspense fallback={null}>
-        <OverflowDebug />
-      </Suspense>
+    <div className="admin-root min-h-screen w-full">
       <div
-        className="grid min-h-screen transition-[grid-template-columns] duration-200 ease-out"
-        style={{ gridTemplateColumns: effectiveCollapsed ? '56px 1fr' : `${SIDEBAR_WIDTH}px 1fr` }}
+        className="min-h-screen md:grid md:transition-[grid-template-columns] md:duration-200"
+        style={{ gridTemplateColumns: collapsed ? '56px minmax(0,1fr)' : '240px minmax(0,1fr)' }}
       >
-        <aside
-          className="admin-sidebar shrink-0 flex flex-col min-w-0"
-          style={{ background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <div
-            className="p-4 flex items-center justify-between gap-2"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            {!effectiveCollapsed && (
+        <aside className="admin-sidebar hidden md:flex sticky top-0 h-screen flex-col min-w-0">
+          <div className="p-4 flex items-center justify-between gap-2 border-b border-white/[0.08]">
+            {!collapsed && (
               <Link
                 href="/admin"
-                style={{
-                  color: '#C6A75E',
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '18px',
-                  letterSpacing: '0.08em',
-                  fontWeight: 700,
-                }}
+                className="text-[#C6A75E] text-lg font-bold tracking-[0.08em]"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
                 Admin
               </Link>
             )}
             <button
               type="button"
-              onClick={() => setSidebarCollapsed((c) => !c)}
-              className="p-2 rounded-lg transition-colors"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
-              aria-label={effectiveCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              onClick={() => setCollapsed(!collapsed)}
+              className="p-2 rounded-lg text-white/40 hover:text-white/90 transition-colors"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {effectiveCollapsed ? (
-                <PanelLeft className="w-5 h-5" />
-              ) : (
-                <PanelLeftClose className="w-5 h-5" />
-              )}
+              {collapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
             </button>
           </div>
           <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
-            <AdminNav collapsed={effectiveCollapsed} />
+            <AdminNav collapsed={collapsed} />
           </div>
-          <div className="p-3 space-y-0.5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <Link
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
+          <div className="p-3 space-y-0.5 border-t border-white/[0.08]">
+            <Link href="/" target="_blank" rel="noopener noreferrer" className={cn(SIDE_LINK, collapsed && 'justify-center')}>
               <ExternalLink className="w-4 h-4 shrink-0" />
-              {!effectiveCollapsed && <span>View site</span>}
+              {!collapsed && <span>View site</span>}
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              style={{ color: 'rgba(255,255,255,0.5)' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
+            <button type="button" onClick={handleLogout} className={cn(SIDE_LINK, collapsed && 'justify-center')}>
               <LogOut className="w-4 h-4 shrink-0" />
-              {!effectiveCollapsed && <span>Logout</span>}
+              {!collapsed && <span>Logout</span>}
             </button>
           </div>
         </aside>
 
-        <div className="min-w-0 flex flex-col" style={{ background: '#0f0c10' }}>
-          <main className="flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
-              <AdminToastProvider>{children}</AdminToastProvider>
+        <div className="min-w-0 flex flex-col bg-[#0f0c10]">
+          <header
+            className="md:hidden sticky top-0 z-30 flex items-center gap-2 border-b border-white/[0.08] bg-[#0a0a0a]/95 backdrop-blur-md px-4"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
+            <p className="flex-1 min-w-0 truncate py-4 text-base font-semibold text-[#f5f0e8]">{pageTitle}</p>
+            <Link
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View site"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-white/60 hover:bg-white/10"
+            >
+              <ExternalLink className="h-5 w-5" />
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Log out"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-white/60 hover:bg-white/10"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </header>
+
+          {/* Bottom padding keeps page content clear of the phone tab bar (64px + home indicator). */}
+          <main className="flex-1 min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+            <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 py-5 sm:py-8 md:py-10">
+              <AdminToastProvider>
+                <AdminDialogProvider>{children}</AdminDialogProvider>
+              </AdminToastProvider>
             </div>
           </main>
         </div>
       </div>
+
+      <AdminTabBar />
     </div>
   );
 }

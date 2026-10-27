@@ -7,6 +7,7 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { Save, Check, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { revalidatePaths } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { MediaLibraryPicker, type LibraryAsset } from '@/components/admin/MediaLibraryPicker';
 import type {
   PressKit,
@@ -30,6 +31,7 @@ export default function AdminPressKitPage() {
   const [newRelease, setNewRelease] = useState({ title: '', body_md: '', published_at: '', external_url: '', status: 'draft' as 'draft' | 'published' });
   const [newShow, setNewShow] = useState({ label: '', venue: '', city: '', country: '', year: '' });
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/presskit', { credentials: 'same-origin' });
@@ -129,7 +131,13 @@ export default function AdminPressKitPage() {
   };
 
   const removeAsset = async (id: string) => {
-    if (!window.confirm('Remove this asset from the press kit?')) return;
+    const ok = await dialog.confirm({
+      title: 'Remove this asset?',
+      message: 'It will no longer appear in the press kit.',
+      confirmLabel: 'Remove asset',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/presskit/assets?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -178,7 +186,13 @@ export default function AdminPressKitPage() {
   };
 
   const removeRelease = async (id: string) => {
-    if (!window.confirm('Delete this press release?')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this press release?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete release',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/presskit/releases?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -212,7 +226,13 @@ export default function AdminPressKitPage() {
   };
 
   const removePerformance = async (id: string) => {
-    if (!window.confirm('Remove this performance?')) return;
+    const ok = await dialog.confirm({
+      title: 'Remove this performance?',
+      message: 'It will be removed from the notable performances list.',
+      confirmLabel: 'Remove performance',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/presskit/performances?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -249,7 +269,7 @@ export default function AdminPressKitPage() {
           href="/presskit"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
+          className="admin-tap inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
         >
           <ExternalLink className="w-4 h-4" />
           View public page
@@ -405,11 +425,11 @@ export default function AdminPressKitPage() {
           />
         </AdminCard>
 
-        <div className="flex items-center gap-4">
+        <div className="admin-sticky-actions admin-sticky-actions--page">
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 font-medium"
+            className="admin-tap inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 font-medium"
           >
             {saving ? (
               <>Saving…</>
@@ -429,16 +449,16 @@ export default function AdminPressKitPage() {
       </form>
 
       <AdminCard className="mt-8">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-slate-800">Photos and logos</h2>
-          <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 min-w-0">Photos and logos</h2>
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
                 setPickerKind('photo');
                 setPickerOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-50"
+              className="admin-tap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-50"
             >
               <Plus className="w-4 h-4" /> Photo
             </button>
@@ -448,7 +468,7 @@ export default function AdminPressKitPage() {
                 setPickerKind('logo');
                 setPickerOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-50"
+              className="admin-tap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-50"
             >
               <Plus className="w-4 h-4" /> Logo
             </button>
@@ -460,11 +480,13 @@ export default function AdminPressKitPage() {
           <ul className="space-y-2">
             {assets.map((asset) => (
               <li key={asset.id} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
-                <div>
-                  <p className="text-sm text-slate-800">{asset.caption || asset.url || asset.external_media_asset_id}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-slate-800 truncate" title={asset.caption || asset.url || asset.external_media_asset_id || undefined}>
+                    {asset.caption || asset.url || asset.external_media_asset_id}
+                  </p>
                   <p className="text-xs text-slate-500 uppercase tracking-wider">{asset.kind}</p>
                 </div>
-                <button type="button" onClick={() => removeAsset(asset.id)} className="p-2 text-slate-400 hover:text-red-600" aria-label="Remove asset">
+                <button type="button" onClick={() => removeAsset(asset.id)} className="admin-icon-btn text-slate-400 hover:text-red-600" aria-label="Remove asset">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </li>
@@ -479,26 +501,26 @@ export default function AdminPressKitPage() {
         <ul className="space-y-2 mb-4">
           {performances.map((row) => (
             <li key={row.id} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
-              <p className="text-sm text-slate-800">
+              <p className="text-sm text-slate-800 min-w-0 flex-1 break-words">
                 {[row.year, row.label, row.venue, row.city, row.country].filter(Boolean).join(' · ')}
               </p>
-              <button type="button" onClick={() => removePerformance(row.id)} className="p-2 text-slate-400 hover:text-red-600" aria-label="Remove performance">
+              <button type="button" onClick={() => removePerformance(row.id)} className="admin-icon-btn text-slate-400 hover:text-red-600" aria-label="Remove performance">
                 <Trash2 className="w-4 h-4" />
               </button>
             </li>
           ))}
         </ul>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Label" value={newShow.label} onChange={(e) => setNewShow({ ...newShow, label: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Venue" value={newShow.venue} onChange={(e) => setNewShow({ ...newShow, venue: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="City" value={newShow.city} onChange={(e) => setNewShow({ ...newShow, city: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Country" value={newShow.country} onChange={(e) => setNewShow({ ...newShow, country: e.target.value })} />
-          <input className="admin-input px-3 py-2 text-sm" placeholder="Year" value={newShow.year} onChange={(e) => setNewShow({ ...newShow, year: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Label" value={newShow.label} onChange={(e) => setNewShow({ ...newShow, label: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Venue" value={newShow.venue} onChange={(e) => setNewShow({ ...newShow, venue: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="City" value={newShow.city} onChange={(e) => setNewShow({ ...newShow, city: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Country" value={newShow.country} onChange={(e) => setNewShow({ ...newShow, country: e.target.value })} />
+          <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="Year" value={newShow.year} onChange={(e) => setNewShow({ ...newShow, year: e.target.value })} />
         </div>
         <button
           type="button"
           onClick={addPerformance}
-          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm"
+          className="admin-tap mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm"
         >
           <Plus className="w-4 h-4" /> Add performance
         </button>
@@ -508,23 +530,23 @@ export default function AdminPressKitPage() {
         <h2 className="text-lg font-semibold text-slate-800 mb-4">Press releases</h2>
         <ul className="space-y-2 mb-4">
           {releases.map((row) => (
-            <li key={row.id} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
-              <div>
-                <p className="text-sm text-slate-800">{row.title}</p>
+            <li key={row.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 border-b border-slate-100 last:border-0">
+              <div className="min-w-0 flex-1 basis-48">
+                <p className="text-sm text-slate-800 break-words">{row.title}</p>
                 <p className="text-xs text-slate-500">
                   {row.status === 'published' ? 'Published' : 'Draft'}
                   {row.published_at ? ` · ${row.published_at}` : ''}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-auto">
                 <button
                   type="button"
                   onClick={() => toggleRelease(row)}
-                  className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
+                  className="admin-tap text-xs px-3 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
                 >
                   {row.status === 'published' ? 'Unpublish' : 'Publish'}
                 </button>
-                <button type="button" onClick={() => removeRelease(row.id)} className="p-2 text-slate-400 hover:text-red-600" aria-label="Delete release">
+                <button type="button" onClick={() => removeRelease(row.id)} className="admin-icon-btn text-slate-400 hover:text-red-600" aria-label="Delete release">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -535,9 +557,9 @@ export default function AdminPressKitPage() {
           <input className="admin-input w-full px-3 py-2 text-sm" placeholder="Title" value={newRelease.title} onChange={(e) => setNewRelease({ ...newRelease, title: e.target.value })} />
           <textarea className="admin-input w-full px-3 py-2 text-sm min-h-[80px]" placeholder="Body" value={newRelease.body_md} onChange={(e) => setNewRelease({ ...newRelease, body_md: e.target.value })} />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input type="date" className="admin-input px-3 py-2 text-sm" value={newRelease.published_at} onChange={(e) => setNewRelease({ ...newRelease, published_at: e.target.value })} />
-            <input className="admin-input px-3 py-2 text-sm" placeholder="External URL" value={newRelease.external_url} onChange={(e) => setNewRelease({ ...newRelease, external_url: e.target.value })} />
-            <select className="admin-input px-3 py-2 text-sm" value={newRelease.status} onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value as 'draft' | 'published' })}>
+            <input type="date" className="admin-input admin-tap px-3 py-2 text-sm" value={newRelease.published_at} onChange={(e) => setNewRelease({ ...newRelease, published_at: e.target.value })} />
+            <input className="admin-input admin-tap px-3 py-2 text-sm" placeholder="External URL" value={newRelease.external_url} onChange={(e) => setNewRelease({ ...newRelease, external_url: e.target.value })} />
+            <select className="admin-input admin-tap px-3 py-2 text-sm" value={newRelease.status} onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value as 'draft' | 'published' })}>
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>
@@ -546,7 +568,7 @@ export default function AdminPressKitPage() {
         <button
           type="button"
           onClick={addRelease}
-          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm"
+          className="admin-tap mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm"
         >
           <Plus className="w-4 h-4" /> Add press release
         </button>

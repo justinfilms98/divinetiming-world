@@ -3,7 +3,8 @@
 
 html.admin-active,
 html.admin-active body {
-  overflow-x: hidden;
+  /* clip, not hidden: `hidden` on body makes it a scroll container and breaks position:sticky. */
+  overflow-x: clip;
   background: #0f0c10;
   color: #f5f0e8;
 }
@@ -60,6 +61,14 @@ html.admin-active body {
   font-size: 14px;
   transition: border-color 0.2s ease;
   width: 100%;
+}
+/* iOS Safari zooms the page when a focused field is under 16px. */
+@media (max-width: 767px) {
+  .admin-root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  .admin-root textarea,
+  .admin-root select {
+    font-size: 16px;
+  }
 }
 .admin-root input:focus,
 .admin-root textarea:focus,
@@ -160,6 +169,96 @@ html.admin-active body {
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: flex-end;
+}
+
+/* Phones: shared modal becomes a full-height bottom sheet. */
+@media (max-width: 639px) {
+  .admin-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .admin-modal-panel {
+    max-width: none;
+    max-height: 100svh;
+    border-radius: 1rem 1rem 0 0;
+  }
+}
+
+/* ---------- Mobile admin utilities (D0) ---------- */
+
+/* Icon-only buttons: 44px touch target on phones, compact on desktop. */
+.admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .admin-icon-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* Text buttons and selects that must be comfortably tappable on phones. */
+@media (max-width: 767px) {
+  .admin-tap {
+    min-height: 44px;
+  }
+}
+
+/*
+ * Sticky Save/Cancel bar. Inside a scrolling modal panel it pins to the panel's bottom;
+ * on long pages it pins above the phone tab bar. Place it as the last child of the
+ * scroll container (or the page) with no horizontal padding on the parent, or pair it
+ * with negative margins that match the parent padding.
+ */
+.admin-sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 0.875rem 1rem calc(0.875rem + env(safe-area-inset-bottom));
+  background: rgba(15, 12, 16, 0.96);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.admin-sticky-actions--page {
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+  margin-top: 1.5rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.875rem;
+}
+@media (min-width: 768px) {
+  .admin-sticky-actions--page {
+    bottom: 1rem;
+  }
+}
+@media (max-width: 639px) {
+  .admin-sticky-actions > * {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}
+
+/* Touch screens can't hover: reveal controls that otherwise appear only on hover. */
+@media (hover: none) {
+  .admin-root .opacity-0[class*="group-hover:opacity-100"] {
+    opacity: 1 !important;
+  }
+  .admin-root .hidden[class*="group-hover:flex"] {
+    display: flex !important;
+  }
+  .admin-root .invisible[class*="group-hover:visible"] {
+    visibility: visible !important;
+  }
 }
 
 .admin-page-title {

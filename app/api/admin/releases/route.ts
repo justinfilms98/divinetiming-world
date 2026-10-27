@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { apiSuccess, apiError } from '@/lib/apiResponses';
+import { requestedStatus, statusForCreate } from '@/lib/admin/publicationStatus';
 import type { Release, ReleaseStatus, ReleaseType } from '@/lib/types/content';
 
 const RELEASE_TYPES: ReleaseType[] = ['single', 'ep', 'album', 'remix', 'compilation', 'mix'];
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     const releaseType: ReleaseType = RELEASE_TYPES.includes(body.release_type)
       ? body.release_type
       : 'single';
-    const status: ReleaseStatus = STATUSES.includes(body.status) ? body.status : 'draft';
+    const status: ReleaseStatus | null = id ? requestedStatus(body.status, STATUSES) : statusForCreate(body.status, STATUSES);
 
     const releaseData: Record<string, unknown> = {
       title: cleanTitle,
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
       credits: cleanUrl(body.credits),
       video_url: cleanUrl(body.video_url),
       is_featured: !!body.is_featured,
-      status,
+      ...(status ? { status } : {}),
       updated_at: new Date().toISOString(),
     };
 

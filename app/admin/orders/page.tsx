@@ -125,7 +125,7 @@ export default function AdminOrdersPage() {
             key={s}
             type="button"
             onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-sm border capitalize ${
+            className={`admin-tap px-4 py-1.5 rounded-full text-sm border capitalize ${
               filter === s
                 ? 'bg-slate-800 text-white border-slate-800'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
@@ -150,26 +150,26 @@ export default function AdminOrdersPage() {
       ) : (
         <div className="space-y-4">
           {visible.map((order) => (
-            <AdminCard key={order.id} className="p-6">
+            <AdminCard key={order.id} className="p-4 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2 py-0.5 rounded-full border text-xs font-medium capitalize bg-slate-50 text-slate-700 border-slate-200">
                       {order.status}
                     </span>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-slate-800 break-words min-w-0">
                       {order.customer_name || order.customer_email}
                     </span>
                     <a
                       href={`mailto:${order.customer_email}`}
-                      className="text-sm text-[var(--accent)] hover:underline"
+                      className="text-sm text-[var(--accent)] hover:underline break-all min-w-0"
                     >
                       {order.customer_email}
                     </a>
                     <span className="text-sm font-medium text-slate-700">{money(order.total_cents)}</span>
                   </div>
 
-                  <ul className="text-sm text-slate-600 space-y-1">
+                  <ul className="text-sm text-slate-600 space-y-1 break-words">
                     {(order.order_items || []).map((item) => (
                       <li key={item.id}>
                         {item.quantity}× {item.product_name}
@@ -179,12 +179,12 @@ export default function AdminOrdersPage() {
                   </ul>
 
                   <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-200">
-                    <label className="text-sm text-slate-600">
+                    <label className="flex items-center gap-2 text-sm text-slate-600">
                       Status
                       <select
                         value={order.status}
                         onChange={(e) => patch(order.id, { status: e.target.value as OrderStatus })}
-                        className="ml-2 px-2 py-1 rounded border border-slate-300 text-sm bg-white capitalize"
+                        className="admin-tap px-2 py-2 rounded border border-slate-300 text-sm bg-white capitalize"
                       >
                         {STATUSES.map((s) => (
                           <option key={s} value={s}>
@@ -193,7 +193,7 @@ export default function AdminOrdersPage() {
                         ))}
                       </select>
                     </label>
-                    <label className="text-sm text-slate-600 flex-1 min-w-[200px]">
+                    <label className="text-sm text-slate-600 flex flex-col gap-1 w-full min-w-0 sm:flex-row sm:items-center sm:gap-2 sm:w-auto sm:flex-1 sm:min-w-[200px]">
                       Tracking
                       <input
                         type="text"
@@ -204,10 +204,10 @@ export default function AdminOrdersPage() {
                           }
                         }}
                         placeholder="Carrier tracking #"
-                        className="ml-2 px-2 py-1 rounded border border-slate-300 text-sm w-full sm:w-auto sm:min-w-[200px]"
+                        className="admin-tap px-2 py-1 rounded border border-slate-300 text-sm w-full min-w-0 sm:flex-1"
                       />
                     </label>
-                    <label className="text-sm text-slate-600 flex-1 min-w-[220px]">
+                    <label className="text-sm text-slate-600 flex flex-col gap-1 w-full min-w-0 sm:flex-row sm:items-center sm:gap-2 sm:w-auto sm:flex-1 sm:min-w-[220px]">
                       Notes
                       <input
                         type="text"
@@ -218,7 +218,7 @@ export default function AdminOrdersPage() {
                           }
                         }}
                         placeholder="Internal note"
-                        className="ml-2 px-2 py-1 rounded border border-slate-300 text-sm w-full sm:w-auto sm:min-w-[220px]"
+                        className="admin-tap px-2 py-1 rounded border border-slate-300 text-sm w-full min-w-0 sm:flex-1"
                       />
                     </label>
                     {savingId === order.id && <span className="text-xs text-slate-400">Saving…</span>}

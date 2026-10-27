@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { variantLabel } from '@/lib/shop/commerce';
+import { requestedStatus, statusForCreate } from '@/lib/admin/publicationStatus';
+
+const PRODUCT_STATUSES = ['draft', 'published', 'archived'] as const;
 
 function slugify(text: string): string {
   return text
@@ -157,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     const priceCents = price_cents ?? (typeof price === 'number' ? Math.round(price * 100) : null);
     const productSlug = slug || slugify(name || '') || `product-${Date.now()}`;
-    const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
+    const status = id ? requestedStatus(statusInput, PRODUCT_STATUSES) : statusForCreate(statusInput, PRODUCT_STATUSES);
     const tracking = track_inventory === true;
     const parsedStripePrice = cleanStripePriceId(stripe_price_id);
     if (cleanText(stripe_price_id) && !parsedStripePrice) {
@@ -170,12 +173,11 @@ export async function POST(request: NextRequest) {
       subtitle: subtitle ?? null,
       description: description ?? null,
       price_cents: priceCents ?? 0,
-      is_active: status === 'published',
+      ...(status ? { status, is_active: status === 'published' } : {}),
       is_featured: is_featured ?? false,
       badge: badge ?? null,
       display_order: display_order ?? 0,
       updated_at: new Date().toISOString(),
-      status,
       sku: cleanText(sku),
       category: cleanText(category),
       shipping_weight_grams: cleanInt(shipping_weight_grams),

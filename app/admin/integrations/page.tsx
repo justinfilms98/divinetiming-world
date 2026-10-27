@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { isContentInboxEnabled } from '@/lib/features';
 import { RefreshCw, Youtube, Unplug, Instagram } from 'lucide-react';
 import Link from 'next/link';
@@ -29,6 +30,7 @@ const inputClass =
 export default function AdminIntegrationsPage() {
   const enabled = isContentInboxEnabled();
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const [configured, setConfigured] = useState(false);
   const [accounts, setAccounts] = useState<YouTubeAccount[]>([]);
@@ -102,7 +104,13 @@ export default function AdminIntegrationsPage() {
   };
 
   const handleDisconnect = async (id: string) => {
-    if (!confirm('Disconnect this channel? Future syncs stop; already-published videos stay on the site.')) return;
+    const ok = await dialog.confirm({
+      title: 'Disconnect this channel?',
+      message: 'Future syncs stop; already-published videos stay on the site.',
+      confirmLabel: 'Disconnect',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/integrations/youtube?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -155,7 +163,7 @@ export default function AdminIntegrationsPage() {
         )}
 
         <form onSubmit={handleConnect} className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[320px] flex-1">
+          <div className="w-full sm:w-auto sm:min-w-[320px] flex-1">
             <label className="block text-sm font-medium text-white/70 mb-1">Channel ID, @handle, or URL</label>
             <input
               type="text"
@@ -169,7 +177,7 @@ export default function AdminIntegrationsPage() {
           <button
             type="submit"
             disabled={connecting || !configured || !channel.trim()}
-            className="px-4 py-2 rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50"
+            className="admin-tap w-full sm:w-auto px-4 py-2 rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50"
           >
             {connecting ? 'Connecting…' : 'Connect channel'}
           </button>
@@ -190,21 +198,21 @@ export default function AdminIntegrationsPage() {
             const status = STATUS_LABEL[acct.status] ?? STATUS_LABEL.error;
             return (
               <AdminCard key={acct.id} className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-white truncate">{acct.display_name || acct.external_account_id}</p>
+                <div className="min-w-0 flex-1 basis-60">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <p className="font-medium text-white truncate min-w-0 max-w-full">{acct.display_name || acct.external_account_id}</p>
                     <span className={`px-2 py-0.5 text-xs rounded ${status.className}`}>{status.label}</span>
                   </div>
                   <p className="text-sm text-white/50">
                     {acct.last_sync_at ? `Last sync ${new Date(acct.last_sync_at).toLocaleString()}` : 'Never synced'}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleSync(acct.id)}
                     disabled={syncingId === acct.id || acct.status === 'disconnected'}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50"
+                    className="admin-tap inline-flex items-center gap-2 px-4 py-1.5 text-sm rounded-lg bg-[#C6A75E] text-black font-medium hover:opacity-90 disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${syncingId === acct.id ? 'animate-spin' : ''}`} />
                     {syncingId === acct.id ? 'Syncing…' : 'Sync now'}
@@ -212,7 +220,7 @@ export default function AdminIntegrationsPage() {
                   <button
                     type="button"
                     onClick={() => handleDisconnect(acct.id)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-white/15 text-white/70 hover:bg-white/10"
+                    className="admin-tap inline-flex items-center gap-2 px-4 py-1.5 text-sm rounded-lg border border-white/15 text-white/70 hover:bg-white/10"
                   >
                     <Unplug className="w-4 h-4" />
                     Disconnect

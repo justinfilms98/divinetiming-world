@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/admin/EmptyState';
 import { Plus, Disc3, Trash2, X } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import type { Release, ReleaseStatus, ReleaseType } from '@/lib/types/content';
@@ -29,6 +30,12 @@ const STATUS_BADGE: Record<Exclude<ReleaseStatus, 'published'>, string> = {
   archived: 'bg-slate-500/20 text-slate-400',
 };
 
+async function fetchReleases(): Promise<Release[]> {
+  const res = await fetch('/api/admin/releases', { credentials: 'same-origin' });
+  const body = await res.json().catch(() => ({}));
+  return res.ok && body.ok && Array.isArray(body.data) ? (body.data as Release[]) : [];
+}
+
 export default function AdminReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,17 +46,24 @@ export default function AdminReleasesPage() {
   const [pendingCoverAssetId, setPendingCoverAssetId] = useState<string | null>(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
 
   const loadReleases = useCallback(async () => {
-    const res = await fetch('/api/admin/releases', { credentials: 'same-origin' });
-    const body = await res.json().catch(() => ({}));
-    setReleases(res.ok && body.ok && Array.isArray(body.data) ? (body.data as Release[]) : []);
+    setReleases(await fetchReleases());
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    loadReleases();
-  }, [loadReleases]);
+    let cancelled = false;
+    fetchReleases().then((list) => {
+      if (cancelled) return;
+      setReleases(list);
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -138,7 +152,13 @@ export default function AdminReleasesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this release?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/releases?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -199,7 +219,7 @@ export default function AdminReleasesPage() {
           {releases.map((release) => (
             <AdminCard key={release.id} className="p-0 overflow-hidden">
               <div
-                className="flex cursor-pointer"
+                className="flex min-w-0 cursor-pointer"
                 role="button"
                 tabIndex={0}
                 onClick={() => openEdit(release)}
@@ -211,7 +231,7 @@ export default function AdminReleasesPage() {
                 }}
                 aria-label={`Edit ${release.title}`}
               >
-                <div className="w-28 flex-shrink-0 aspect-square bg-white/5">
+                <div className="w-20 sm:w-28 flex-shrink-0 aspect-square bg-white/5">
                   {release.cover_image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -226,8 +246,8 @@ export default function AdminReleasesPage() {
                   )}
                 </div>
 
-                <div className="flex-1 flex items-center justify-between p-4 gap-4 min-w-0">
-                  <div className="min-w-0">
+                <div className="flex-1 flex items-center justify-between p-3 sm:p-4 gap-2 sm:gap-4 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-[var(--accent)] text-xs uppercase tracking-wider font-semibold">
                         {release.release_type}
@@ -254,11 +274,11 @@ export default function AdminReleasesPage() {
                     </h3>
                   </div>
 
-                  <div onClick={(e) => e.stopPropagation()}>
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => handleDelete(release.id)}
-                      className="p-2 text-red-400/70 hover:text-red-400"
+                      className="admin-icon-btn text-red-400/70 hover:text-red-400 hover:bg-red-400/10"
                       title="Delete release"
                       aria-label={`Delete ${release.title}`}
                     >
@@ -273,14 +293,14 @@ export default function AdminReleasesPage() {
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-xl shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-[#0f0c10] z-10">
-              <h2 className="text-xl font-semibold text-white">
+          <div className="relative w-full sm:max-w-2xl max-h-[100svh] sm:max-h-[90svh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-white/10 bg-[#0f0c10]">
+              <h2 className="text-xl font-semibold text-white truncate">
                 {editing ? 'Edit Release' : 'Create Release'}
               </h2>
-              <button onClick={closeModal} className="p-2 text-white/70 hover:text-white rounded-lg" aria-label="Close">
+              <button type="button" onClick={closeModal} className="admin-icon-btn text-white/70 hover:text-white hover:bg-white/5 rounded-lg" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -288,7 +308,7 @@ export default function AdminReleasesPage() {
             <form key={editing?.id ?? 'new'} onSubmit={handleSubmit} className="p-4 space-y-4">
               <div>
                 <label className={labelClass}>Cover art</label>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
                     {previewCover ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -299,19 +319,18 @@ export default function AdminReleasesPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-start gap-2 min-w-0 flex-1">
                     <UniversalUploader
                       acceptedTypes={['image']}
                       acceptOverride="image/*"
                       onSelected={handleCoverUploaded}
                       buttonLabel={previewCover ? 'Replace cover' : 'Upload cover'}
                       hideStorageTip
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setLibraryPickerOpen(true)}
-                      className="px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
+                      className="admin-tap px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors"
                     >
                       Choose from library
                     </button>
@@ -326,7 +345,7 @@ export default function AdminReleasesPage() {
                             setEditing({ ...editing, cover_image_url: null, external_cover_asset_id: null });
                           }
                         }}
-                        className="text-red-400/80 hover:text-red-400 text-sm"
+                        className="admin-tap px-3 py-2.5 rounded-lg text-red-400/80 hover:text-red-400 hover:bg-red-400/10 text-sm"
                       >
                         Remove
                       </button>
@@ -477,17 +496,17 @@ export default function AdminReleasesPage() {
                 Leave unchecked to let the newest published release fill that slot automatically.
               </p>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="admin-sticky-actions -mx-4 -mb-4 mt-6 px-4">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 rounded-lg border border-white/20 text-white/80 hover:text-white text-sm"
+                  className="admin-tap px-4 py-2 rounded-lg border border-white/20 text-white/80 hover:text-white text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="admin-btn-primary px-4 py-2 rounded-lg text-white text-sm font-medium"
+                  className="admin-tap admin-btn-primary px-4 py-2 rounded-lg text-white text-sm font-medium"
                 >
                   {editing ? 'Save changes' : 'Create release'}
                 </button>

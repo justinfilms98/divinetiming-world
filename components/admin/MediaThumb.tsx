@@ -35,16 +35,16 @@ export function MediaThumb({ src, isImage, alt = '', posterUrl, className = '' }
           />
           {!isImage && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-              <Video className="w-10 h-10 text-white/90 drop-shadow" />
+              <Video className="w-7 h-7 sm:w-10 sm:h-10 text-white/90 drop-shadow" />
             </div>
           )}
         </>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-white/[0.06]">
           {isImage ? (
-            <ImageIcon className="w-10 h-10 text-white/30" aria-hidden />
+            <ImageIcon className="w-7 h-7 sm:w-10 sm:h-10 text-white/30" aria-hidden />
           ) : (
-            <Video className="w-10 h-10 text-white/30" aria-hidden />
+            <Video className="w-7 h-7 sm:w-10 sm:h-10 text-white/30" aria-hidden />
           )}
         </div>
       )}

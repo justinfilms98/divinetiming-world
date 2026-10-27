@@ -9,6 +9,7 @@ import { MediaThumb } from '@/components/admin/MediaThumb';
 import { createClient } from '@/lib/supabase/client';
 import { X, ImageIcon, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 
 type GalleryStatus = 'draft' | 'published' | 'archived';
 
@@ -55,6 +56,7 @@ export default function AdminCollectionsPage() {
   const [galleryMediaDetail, setGalleryMediaDetail] = useState<GalleryMediaItem[]>([]);
   const [loadingMediaDetail, setLoadingMediaDetail] = useState(false);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
   const supabase = createClient();
 
   const load = useCallback(async () => {
@@ -119,7 +121,13 @@ export default function AdminCollectionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this story permanently?',
+      message: 'The collection and its frame list will be removed. This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/galleries?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -171,7 +179,7 @@ export default function AdminCollectionsPage() {
       const assetIds = (mediaRows as { external_media_asset_id?: string | null }[])
         .map((m) => m.external_media_asset_id)
         .filter((id): id is string => !!id);
-      let previewByAssetId: Record<string, string> = {};
+      const previewByAssetId: Record<string, string> = {};
       if (assetIds.length > 0) {
         const { data: assets } = await supabase
           .from('external_media_assets')
@@ -431,7 +439,7 @@ export default function AdminCollectionsPage() {
           <button
             type="submit"
             disabled={loading || !name.trim()}
-            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+            className="admin-tap px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
           >
             {loading ? 'Adding…' : 'Add story (draft)'}
           </button>
@@ -444,8 +452,8 @@ export default function AdminCollectionsPage() {
 
       <div className="space-y-3">
         {galleries.map((g, index) => (
-          <AdminCard key={g.id} className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
+          <AdminCard key={g.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               {g.cover_image_url ? (
                 <img
                   src={g.cover_image_url}
@@ -471,7 +479,7 @@ export default function AdminCollectionsPage() {
                     </span>
                   ) : null}
                 </div>
-                <p className="text-sm text-slate-500">{g.theme ? `${g.theme} · ` : ''}{g.slug}</p>
+                <p className="text-sm text-slate-500 break-all">{g.theme ? `${g.theme} · ` : ''}{g.slug}</p>
                 <p className="text-xs text-slate-500">
                   {(g.gallery_media?.length ?? 0)} frames
                   {g.slug ? (
@@ -482,13 +490,14 @@ export default function AdminCollectionsPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
               <button
                 type="button"
                 onClick={() => moveStory(index, 'up')}
                 disabled={index === 0}
-                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30"
+                className="admin-icon-btn rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30"
                 title="Move up"
+                aria-label={`Move ${g.name} up`}
               >
                 <ChevronUp className="w-4 h-4" />
               </button>
@@ -496,22 +505,23 @@ export default function AdminCollectionsPage() {
                 type="button"
                 onClick={() => moveStory(index, 'down')}
                 disabled={index === galleries.length - 1}
-                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30"
+                className="admin-icon-btn rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30"
                 title="Move down"
+                aria-label={`Move ${g.name} down`}
               >
                 <ChevronDown className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => openEdit(g)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
+                className="admin-tap flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
               >
                 Edit
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(g.id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                className="admin-tap flex-1 sm:flex-none px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium"
                 title="Delete"
               >
                 Delete
@@ -524,8 +534,8 @@ export default function AdminCollectionsPage() {
       {editingGallery && (
         <div className="admin-modal-backdrop" onClick={closeEdit}>
           <div className="admin-modal-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-header flex items-center justify-between">
-              <div>
+            <div className="admin-modal-header flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <span className="font-medium">Edit story</span>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {editingGallery.gallery_media?.length ?? 0} frames
@@ -535,7 +545,7 @@ export default function AdminCollectionsPage() {
                   {editFeatured ? ' · Featured' : ''}
                 </p>
               </div>
-              <button type="button" onClick={closeEdit} className="p-1 rounded hover:bg-slate-200" aria-label="Close">
+              <button type="button" onClick={closeEdit} className="admin-icon-btn rounded hover:bg-slate-200" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -613,7 +623,7 @@ export default function AdminCollectionsPage() {
                       <button
                         type="button"
                         onClick={() => setCoverPickerOpen(true)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
+                        className="admin-tap px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium"
                       >
                         Choose from library
                       </button>
@@ -621,7 +631,7 @@ export default function AdminCollectionsPage() {
                         <button
                           type="button"
                           onClick={handleClearCover}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 text-sm font-medium"
+                          className="admin-tap px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 text-sm font-medium"
                         >
                           Clear cover
                         </button>
@@ -643,15 +653,16 @@ export default function AdminCollectionsPage() {
                       {galleryMediaDetail.map((item, mediaIndex) => (
                         <div
                           key={item.id}
-                          className="relative group flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-2 pr-10"
+                          className="relative group flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-2"
                         >
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-1 flex-shrink-0">
                             <button
                               type="button"
                               onClick={() => moveMedia(mediaIndex, 'up')}
                               disabled={mediaIndex === 0}
-                              className="p-1 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+                              className="admin-icon-btn rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
                               title="Move up"
+                              aria-label="Move frame up"
                             >
                               <ChevronUp className="w-3.5 h-3.5" />
                             </button>
@@ -659,8 +670,9 @@ export default function AdminCollectionsPage() {
                               type="button"
                               onClick={() => moveMedia(mediaIndex, 'down')}
                               disabled={mediaIndex === galleryMediaDetail.length - 1}
-                              className="p-1 rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
+                              className="admin-icon-btn rounded text-slate-500 hover:bg-slate-100 disabled:opacity-30"
                               title="Move down"
+                              aria-label="Move frame down"
                             >
                               <ChevronDown className="w-3.5 h-3.5" />
                             </button>
@@ -680,7 +692,7 @@ export default function AdminCollectionsPage() {
                               type="text"
                               defaultValue={item.caption ?? ''}
                               placeholder="Caption (optional)"
-                              className="mt-1 w-full px-2 py-1 text-sm border border-slate-200 rounded"
+                              className="admin-tap mt-1 w-full px-2 py-1 text-sm border border-slate-200 rounded"
                               onBlur={(e) => {
                                 const next = e.target.value;
                                 if (next !== (item.caption ?? '')) saveCaption(item.id, next);
@@ -690,8 +702,9 @@ export default function AdminCollectionsPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveMediaFromCollection(item.id)}
-                            className="absolute right-2 top-3 p-1.5 rounded text-red-600 hover:bg-red-50"
+                            className="admin-icon-btn rounded text-red-600 hover:bg-red-50"
                             title="Remove from story"
+                            aria-label="Remove frame from story"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -704,7 +717,7 @@ export default function AdminCollectionsPage() {
                           type="button"
                           onClick={() => setAddMediaPickerOpen(true)}
                           disabled={addingMedia}
-                          className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
+                          className="admin-tap px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
                         >
                           {addingMedia ? 'Adding…' : 'Add from library'}
                         </button>
@@ -753,7 +766,7 @@ export default function AdminCollectionsPage() {
                         type="button"
                         onClick={() => setAddMediaPickerOpen(true)}
                         disabled={addingMedia}
-                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
+                        className="admin-tap px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
                       >
                         {addingMedia ? 'Adding…' : 'Add from library'}
                       </button>
@@ -805,15 +818,15 @@ export default function AdminCollectionsPage() {
                 )}
               </div>
             </form>
-            <div className="admin-modal-footer">
-              <button type="button" onClick={closeEdit} className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
+            <div className="admin-modal-footer admin-sticky-actions">
+              <button type="button" onClick={closeEdit} className="admin-tap px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
                 Cancel
               </button>
               <button
                 type="submit"
                 form="edit-gallery-form"
                 disabled={savingEdit}
-                className="admin-btn-primary px-4 py-2 rounded-lg text-white disabled:opacity-50"
+                className="admin-tap admin-btn-primary px-4 py-2 rounded-lg text-white disabled:opacity-50"
               >
                 {savingEdit ? 'Saving…' : 'Save'}
               </button>

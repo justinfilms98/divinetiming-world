@@ -27,12 +27,57 @@ interface MediaAssetRendererProps {
   errorFallback?: React.ReactNode;
   /** For video: poster image URL to show before play (improves LCP and perceived load) */
   poster?: string | null;
+  /**
+   * Hero video only. false = keep the element ready (metadata preloaded) but paused,
+   * e.g. the next carousel slide or a paused slideshow. Default true.
+   */
+  playing?: boolean;
+  /** Hero video only. Default true; carousels turn it off so `onEnded` can advance. */
+  loop?: boolean;
+  onEnded?: () => void;
+  /** Hero video only: buffering exceeded the stall timeout while playing. */
+  onStalled?: () => void;
+  /** Hero video only: each new value rewinds the clip to its start (a slide re-entering the carousel). */
+  restartToken?: number;
+  /**
+   * Hero video only: when the connection can't keep up, hold the clip once until the browser
+   * reports it can play through, instead of stuttering through repeated buffering.
+   */
+  holdUntilPlayable?: boolean;
 }
 
 const STALL_TIMEOUT_MS = 8000;
+// A deliberate hold (slow connection) gets longer before the carousel gives up on the slide.
+const HOLD_TIMEOUT_MS = 15000;
 
 /** Retry muted autoplay — mobile Safari often needs an explicit play() call. */
-function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, url: string | null) {
+function useMutedAutoplay(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  url: string | null,
+  shouldPlay: boolean,
+  onStalled?: () => void,
+  holdUntilPlayable = false
+) {
+  // play() is always called first (iOS Safari only buffers after it); the hold pauses on the
+  // first `waiting` and resumes on `canplaythrough`.
+  const holdingRef = useRef(false);
+  const [holding, setHolding] = useState(false);
+  // Marks pauses we cause, so a pause the browser makes on its own (power saving, background
+  // media policies) can be told apart and recovered from.
+  const selfPauseRef = useRef(false);
+  const resumeTriesRef = useRef(0);
+  // Only a clip that was actually playing counts as "paused by the browser"; a clip whose
+  // autoplay was refused is handled by the tap-to-play button and the carousel's safety timer.
+  const playedThisTurnRef = useRef(false);
+  const onStalledRef = useRef(onStalled);
+  useEffect(() => {
+    onStalledRef.current = onStalled;
+  }, [onStalled]);
+  const shouldPlayRef = useRef(shouldPlay);
+  useEffect(() => {
+    shouldPlayRef.current = shouldPlay;
+  }, [shouldPlay]);
+
   const [playing, setPlaying] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [buffering, setBuffering] = useState(true);
@@ -41,7 +86,7 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
 
   const attemptPlay = useCallback(() => {
     const v = videoRef.current;
-    if (!v || !url) return;
+    if (!v || !url || holdingRef.current) return;
     v.muted = true;
     v.defaultMuted = true;
     v.playsInline = true;
@@ -50,7 +95,9 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
     v.setAttribute('x5-playsinline', '');
     const p = v.play();
     if (p && typeof p.catch === 'function') {
-      p.catch(() => {
+      p.catch((err: unknown) => {
+        // AbortError = interrupted by our own pause() (hold or slide change), not an autoplay block.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setNeedsTap(true);
         setBuffering(false);
       });
@@ -58,18 +105,30 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
   }, [videoRef, url]);
 
   useEffect(() => {
-    if (!buffering) return;
-    const timer = window.setTimeout(() => setStalled(true), STALL_TIMEOUT_MS);
+    // A paused/standby video is not "stalled" however long it waits.
+    if (!buffering || !shouldPlay) return;
+    const timer = window.setTimeout(() => {
+      setStalled(true);
+      onStalledRef.current?.();
+    }, holding ? HOLD_TIMEOUT_MS : STALL_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [buffering]);
+  }, [buffering, shouldPlay, holding]);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !url) return;
+    if (!shouldPlay) {
+      if (!v.paused) selfPauseRef.current = true;
+      v.pause();
+      return;
+    }
+    holdingRef.current = false;
+    resumeTriesRef.current = 0;
+    playedThisTurnRef.current = false;
     attemptPlay();
     const raf = requestAnimationFrame(() => attemptPlay());
     const timer = window.setTimeout(() => {
-      if (v.paused && !v.ended) {
+      if (v.paused && !v.ended && !holdingRef.current) {
         setNeedsTap(true);
         setBuffering(false);
       }
@@ -78,9 +137,12 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
     };
-  }, [url, attemptPlay, videoRef]);
+  }, [url, attemptPlay, videoRef, shouldPlay]);
 
   const onPlaying = useCallback(() => {
+    holdingRef.current = false;
+    playedThisTurnRef.current = true;
+    setHolding(false);
     setPlaying(true);
     setNeedsTap(false);
     setBuffering(false);
@@ -89,20 +151,56 @@ function useMutedAutoplay(videoRef: React.RefObject<HTMLVideoElement | null>, ur
 
   const onWaiting = useCallback(() => {
     setBuffering(true);
-  }, []);
+    const v = videoRef.current;
+    if (holdUntilPlayable && v && !v.paused && !holdingRef.current) {
+      holdingRef.current = true;
+      setHolding(true);
+      selfPauseRef.current = true;
+      v.pause();
+    }
+  }, [holdUntilPlayable, videoRef]);
+
+  const onPause = useCallback(() => {
+    const v = videoRef.current;
+    if (selfPauseRef.current) {
+      selfPauseRef.current = false;
+      return;
+    }
+    if (!v || v.ended || holdingRef.current || !shouldPlayRef.current || !playedThisTurnRef.current) return;
+    // The browser paused the showing clip by itself: resume, and if it refuses, move on rather
+    // than leaving a frozen frame until the carousel's safety timer.
+    if (resumeTriesRef.current < 2) {
+      resumeTriesRef.current += 1;
+      window.setTimeout(() => attemptPlay(), 300);
+    }
+    window.setTimeout(() => {
+      const el = videoRef.current;
+      if (el && el.paused && !el.ended && !holdingRef.current && shouldPlayRef.current) onStalledRef.current?.();
+    }, 1500);
+  }, [attemptPlay, videoRef]);
 
   const onCanPlay = useCallback(() => {
+    if (holdingRef.current) return;
     setBuffering(false);
     setStalled(false);
-    attemptPlay();
+    if (shouldPlayRef.current) attemptPlay();
+  }, [attemptPlay]);
+
+  const onCanPlayThrough = useCallback(() => {
+    holdingRef.current = false;
+    setHolding(false);
+    setBuffering(false);
+    setStalled(false);
+    if (shouldPlayRef.current) attemptPlay();
   }, [attemptPlay]);
 
   const onTapPlay = useCallback(() => {
+    holdingRef.current = false;
     attemptPlay();
     setNeedsTap(false);
   }, [attemptPlay]);
 
-  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay };
+  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onPause, onCanPlay, onCanPlayThrough, onTapPlay };
 }
 
 interface HeroAutoplayVideoProps {
@@ -114,6 +212,12 @@ interface HeroAutoplayVideoProps {
   objectPosition?: string;
   priority?: boolean;
   onError?: () => void;
+  playing?: boolean;
+  loop?: boolean;
+  onEnded?: () => void;
+  onStalled?: () => void;
+  restartToken?: number;
+  holdUntilPlayable?: boolean;
 }
 
 function BufferedVideo({
@@ -165,12 +269,25 @@ function HeroAutoplayVideo({
   fill = true,
   objectFit = 'cover',
   objectPosition,
-  priority = false,
   onError,
+  playing: playingProp,
+  loop = true,
+  onEnded,
+  onStalled,
+  restartToken,
+  holdUntilPlayable = false,
 }: HeroAutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
-    useMutedAutoplay(videoRef, url);
+  const shouldPlay = playingProp !== false;
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && restartToken != null && v.currentTime > 0) v.currentTime = 0;
+  }, [restartToken]);
+  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onPause, onCanPlay, onCanPlayThrough, onTapPlay } =
+    useMutedAutoplay(videoRef, url, shouldPlay, onStalled, holdUntilPlayable);
+  const maybePlay = () => {
+    if (shouldPlay) attemptPlay();
+  };
 
   return (
     <div className={fill ? 'absolute inset-0' : 'relative w-full h-full'}>
@@ -178,14 +295,14 @@ function HeroAutoplayVideo({
         ref={videoRef}
         key={url}
         src={url}
-        autoPlay
-        loop
+        autoPlay={shouldPlay}
+        loop={loop}
         muted
         playsInline
         webkit-playsinline=""
         x5-playsinline=""
-        // Only the first slide downloads eagerly; later carousel slides fetch metadata first.
-        preload={priority ? 'auto' : 'metadata'}
+        // Standby slides (next in the carousel) fetch metadata only; the showing slide downloads.
+        preload={shouldPlay ? 'auto' : 'metadata'}
         poster={posterUrl ?? undefined}
         disablePictureInPicture
         disableRemotePlayback
@@ -193,12 +310,14 @@ function HeroAutoplayVideo({
         className={`hero-autoplay-video w-full h-full ${className}`}
         style={fill ? { position: 'absolute', inset: 0, objectFit, objectPosition } : { objectFit, objectPosition }}
         onError={onError}
-        onLoadedMetadata={attemptPlay}
-        onLoadedData={attemptPlay}
+        onLoadedMetadata={maybePlay}
+        onLoadedData={maybePlay}
         onCanPlay={onCanPlay}
-        onCanPlayThrough={onCanPlay}
+        onCanPlayThrough={onCanPlayThrough}
         onPlaying={onPlaying}
         onWaiting={onWaiting}
+        onPause={onPause}
+        onEnded={onEnded}
       />
       {posterUrl && (!playing || stalled) && (
         <img
@@ -209,10 +328,10 @@ function HeroAutoplayVideo({
           style={{ objectPosition }}
         />
       )}
-      <div className="spiral-buffer" data-visible={buffering && !needsTap && !stalled ? 'true' : 'false'}>
+      <div className="spiral-buffer" data-visible={shouldPlay && buffering && !needsTap && !stalled ? 'true' : 'false'}>
         <SpiralLoader size="md" variant="spin" label="Buffering video" />
       </div>
-      {needsTap && (
+      {shouldPlay && needsTap && (
         <button
           type="button"
           onClick={onTapPlay}
@@ -273,6 +392,12 @@ function MediaAssetRendererInner({
   fallback = HeroEclipseFallback,
   errorFallback = MediaUnavailableFallback,
   poster: posterUrl = null,
+  playing,
+  loop,
+  onEnded,
+  onStalled,
+  restartToken,
+  holdUntilPlayable,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
@@ -351,6 +476,12 @@ function MediaAssetRendererInner({
         objectPosition={objectPosition}
         priority={priority}
         onError={handleError}
+        playing={playing}
+        loop={loop}
+        onEnded={onEnded}
+        onStalled={onStalled}
+        restartToken={restartToken}
+        holdUntilPlayable={holdUntilPlayable}
       />
     );
   }

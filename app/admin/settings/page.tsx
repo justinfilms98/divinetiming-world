@@ -17,14 +17,20 @@ export default function AdminSettingsPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    const { data } = await supabase.from('site_settings').select('*').single();
-    setSettings((data as Record<string, unknown> | null) ?? {});
-    setIsLoading(false);
-  };
+    let cancelled = false;
+    supabase
+      .from('site_settings')
+      .select('*')
+      .single()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSettings((data as Record<string, unknown> | null) ?? {});
+        setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,11 +189,11 @@ export default function AdminSettingsPage() {
           </div>
         </AdminCard>
 
-        <div className="flex justify-end">
+        <div className="admin-sticky-actions admin-sticky-actions--page">
           <button
             type="submit"
             disabled={isSaving}
-            className="admin-btn-primary flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium text-white disabled:opacity-50"
+            className="admin-btn-primary admin-tap flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-medium text-white disabled:opacity-50"
           >
             {saved ? (
               <>

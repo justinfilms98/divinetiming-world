@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { supabasePublicObjectUrl } from '@/lib/storageUrls';
+import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
 
 const BUCKET = 'media';
 
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(storagePath, buffer, { contentType: mime, upsert: true });
+      .upload(storagePath, buffer, { contentType: mime, cacheControl: IMMUTABLE_CACHE_SECONDS, upsert: false });
 
     if (uploadError) {
       console.error('Hero slot storage upload error:', uploadError);

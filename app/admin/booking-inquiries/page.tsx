@@ -142,7 +142,7 @@ export default function AdminBookingInquiriesPage() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-sm border capitalize transition-colors ${
+            className={`admin-tap px-4 py-1.5 rounded-full text-sm border capitalize transition-colors ${
               filter === s
                 ? 'bg-slate-800 text-white border-slate-800'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
@@ -168,7 +168,7 @@ export default function AdminBookingInquiriesPage() {
       ) : (
         <div className="space-y-4">
           {visible.map((inq) => (
-            <AdminCard key={inq.id} className="p-6">
+            <AdminCard key={inq.id} className="p-4 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
@@ -177,10 +177,10 @@ export default function AdminBookingInquiriesPage() {
                     >
                       {inq.status}
                     </span>
-                    <span className="font-semibold text-slate-800">{inq.name}</span>
+                    <span className="font-semibold text-slate-800 break-words min-w-0">{inq.name}</span>
                     <a
                       href={`mailto:${inq.email}`}
-                      className="inline-flex items-center gap-1.5 text-sm text-[var(--accent)] hover:underline"
+                      className="inline-flex items-center gap-1.5 text-sm text-[var(--accent)] hover:underline break-all min-w-0"
                     >
                       <Mail className="w-4 h-4 shrink-0" />
                       {inq.email}
@@ -196,7 +196,7 @@ export default function AdminBookingInquiriesPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-1 text-sm text-slate-600">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-1 text-sm text-slate-600 break-words">
                     {inq.organization && <p><span className="font-medium text-slate-700">Company:</span> {inq.organization}</p>}
                     {inq.event_name && <p><span className="font-medium text-slate-700">Event:</span> {inq.event_name}</p>}
                     {inq.event_type && <p><span className="font-medium text-slate-700">Type:</span> {inq.event_type}</p>}
@@ -219,25 +219,25 @@ export default function AdminBookingInquiriesPage() {
                   </div>
 
                   {inq.message && (
-                    <p className="text-slate-700 text-sm mt-3 whitespace-pre-wrap border-t border-slate-200 pt-3">
+                    <p className="text-slate-700 text-sm mt-3 whitespace-pre-wrap break-words border-t border-slate-200 pt-3">
                       {inq.message}
                     </p>
                   )}
 
                   <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-200">
-                    <label className="text-sm text-slate-600">
+                    <label className="flex items-center gap-2 text-sm text-slate-600">
                       Status
                       <select
                         value={inq.status}
                         onChange={(e) => patch(inq.id, { status: e.target.value as InquiryStatus })}
-                        className="ml-2 px-2 py-1 rounded border border-slate-300 text-sm capitalize bg-white"
+                        className="admin-tap px-2 py-2 rounded border border-slate-300 text-sm capitalize bg-white"
                       >
                         {STATUSES.map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
                     </label>
-                    <label className="text-sm text-slate-600 flex-1 min-w-[220px]">
+                    <label className="text-sm text-slate-600 flex flex-col gap-1 w-full min-w-0 sm:flex-row sm:items-center sm:gap-2 sm:w-auto sm:flex-1 sm:min-w-[220px]">
                       Next action
                       <input
                         type="text"
@@ -248,7 +248,7 @@ export default function AdminBookingInquiriesPage() {
                           }
                         }}
                         placeholder="e.g. send offer by Friday"
-                        className="ml-2 px-2 py-1 rounded border border-slate-300 text-sm w-full sm:w-auto sm:min-w-[240px]"
+                        className="admin-tap px-2 py-1 rounded border border-slate-300 text-sm w-full min-w-0 sm:flex-1"
                       />
                     </label>
                     {savingId === inq.id && <span className="text-xs text-slate-400">Saving…</span>}

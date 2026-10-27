@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { createClient } from '@/lib/supabase/client';
 import { X } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export default function AdminVideosPage() {
   const [editStatus, setEditStatus] = useState<VideoStatus>('published');
   const [savingEdit, setSavingEdit] = useState(false);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
   const supabase = createClient();
 
   const load = useCallback(async () => {
@@ -108,7 +110,13 @@ export default function AdminVideosPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Remove this video from the Media page?')) return;
+    const ok = await dialog.confirm({
+      title: 'Delete this video?',
+      message: 'It will be removed from the Media page. This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/videos?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -189,10 +197,10 @@ export default function AdminVideosPage() {
   };
 
   return (
-    <AdminPage title="Videos" subtitle="Videos shown on the public Media page (Videos tab). Use unlisted YouTube links.">
+    <AdminPage title="YouTube Videos" subtitle="Videos shown on the public Media page (Videos tab). Use unlisted YouTube links.">
       <AdminCard className="mb-6">
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-4">
-          <div className="min-w-[200px]">
+          <div className="w-full sm:w-auto sm:min-w-[200px]">
             <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
             <input
               type="text"
@@ -202,7 +210,7 @@ export default function AdminVideosPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             />
           </div>
-          <div className="min-w-[280px]">
+          <div className="w-full sm:w-auto sm:min-w-[280px]">
             <label className="block text-sm font-medium text-slate-700 mb-1">YouTube URL or video ID</label>
             <input
               type="text"
@@ -212,7 +220,7 @@ export default function AdminVideosPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             />
           </div>
-          <div className="min-w-[200px]">
+          <div className="w-full sm:w-auto sm:min-w-[200px]">
             <label className="block text-sm font-medium text-slate-700 mb-1">Caption (optional)</label>
             <input
               type="text"
@@ -222,7 +230,7 @@ export default function AdminVideosPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
             />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="admin-tap flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={isVertical}
@@ -234,7 +242,7 @@ export default function AdminVideosPage() {
           <button
             type="submit"
             disabled={loading || !title.trim() || !youtubeInput.trim()}
-            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+            className="admin-tap w-full sm:w-auto px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
           >
             {loading ? 'Adding…' : 'Add video'}
           </button>
@@ -244,29 +252,29 @@ export default function AdminVideosPage() {
       <div className="space-y-3">
         {videos.map((v) => (
           <AdminCard key={v.id} className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-4 min-w-0 flex-1 basis-60">
               <img
                 src={`https://img.youtube.com/vi/${v.youtube_id}/mqdefault.jpg`}
                 alt=""
                 className="w-24 h-14 object-cover rounded-lg flex-shrink-0"
               />
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-medium text-slate-800 truncate">{v.title}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <p className="font-medium text-slate-800 truncate min-w-0 max-w-full">{v.title}</p>
                   {(v.status && v.status !== 'published') && (
                     <span className={`px-2 py-0.5 text-xs rounded ${v.status === 'draft' ? 'bg-amber-500/20 text-amber-700' : 'bg-slate-500/20 text-slate-600'}`}>
                       {v.status === 'draft' ? 'Draft' : 'Archived'}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-500">ID: {v.youtube_id}</p>
+                <p className="text-sm text-slate-500 truncate">ID: {v.youtube_id}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => openEdit(v)}
-                className="px-3 py-1.5 text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 text-sm"
+                className="admin-tap px-4 py-1.5 text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-300 text-sm"
                 title="Edit title, caption, link"
               >
                 Edit
@@ -274,8 +282,9 @@ export default function AdminVideosPage() {
               <select
                 value={v.status ?? 'published'}
                 onChange={(e) => handleStatusChange(v.id, e.target.value as VideoStatus)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm bg-white"
+                className="admin-tap px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm bg-white"
                 title="Visibility"
+                aria-label="Visibility"
               >
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
@@ -284,7 +293,7 @@ export default function AdminVideosPage() {
               <button
                 type="button"
                 onClick={() => handleDelete(v.id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                className="admin-tap px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm"
                 title="Delete"
               >
                 Delete
@@ -301,11 +310,11 @@ export default function AdminVideosPage() {
 
       {/* Edit modal */}
       {editingVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" aria-modal="true" role="dialog">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 sm:p-4" aria-modal="true" role="dialog">
+          <div className="w-full sm:max-w-md max-h-[100svh] sm:max-h-[90svh] overflow-y-auto bg-[#0f0c10] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-slate-200 bg-[#0f0c10]">
               <h3 className="text-lg font-semibold text-slate-800">Edit video</h3>
-              <button type="button" onClick={closeEdit} className="p-2 text-slate-500 hover:text-slate-700 rounded-lg" aria-label="Close">
+              <button type="button" onClick={closeEdit} className="admin-icon-btn text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -364,16 +373,16 @@ export default function AdminVideosPage() {
                   <option value="archived">Archived</option>
                 </select>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="admin-sticky-actions -mx-4 -mb-4 mt-6 px-4">
+                <button type="button" onClick={closeEdit} className="admin-tap px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
+                  className="admin-tap px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50"
                 >
                   {savingEdit ? 'Saving…' : 'Save'}
-                </button>
-                <button type="button" onClick={closeEdit} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
-                  Cancel
                 </button>
               </div>
             </form>

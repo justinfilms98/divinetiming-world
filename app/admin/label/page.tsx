@@ -46,20 +46,20 @@ export default function AdminLabelPage() {
         <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-white/70">
           Public presence
         </h2>
-        <p className="mt-3 text-sm text-white/60 leading-relaxed">
-          Public <code className="px-1 py-0.5 rounded bg-white/10">/label</code> 404s unless{' '}
-          <code className="px-1 py-0.5 rounded bg-white/10">NEXT_PUBLIC_LABEL_PUBLIC_ENABLED=1</code>.
+        <p className="mt-3 text-sm text-white/60 leading-relaxed break-words">
+          Public <code className="px-1 py-0.5 rounded bg-white/10 break-all">/label</code> 404s unless{' '}
+          <code className="px-1 py-0.5 rounded bg-white/10 break-all">NEXT_PUBLIC_LABEL_PUBLIC_ENABLED=1</code>.
           Even then it is a coming-soon note, not a label homepage. Roster rows stay hidden from
           the public API until they are published and{' '}
-          <code className="px-1 py-0.5 rounded bg-white/10">label_settings.public_enabled</code> is
+          <code className="px-1 py-0.5 rounded bg-white/10 break-all">label_settings.public_enabled</code> is
           true.
         </p>
         <dl className="mt-4 grid gap-2 text-sm text-white/70">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-x-2">
             <dt className="text-white/40">Feature flag</dt>
             <dd>{publicFlag ? 'on' : 'off (default)'}</dd>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-x-2">
             <dt className="text-white/40">Published setting</dt>
             <dd>{settings?.public_enabled ? 'on' : 'off (default)'}</dd>
           </div>
@@ -75,7 +75,7 @@ export default function AdminLabelPage() {
             No artists yet. Roster management comes when the label is ready to operate.
           </p>
         ) : (
-          <ul className="mt-3 space-y-1 text-sm text-white/70">
+          <ul className="mt-3 space-y-1 text-sm text-white/70 break-words">
             {artists.map((artist) => (
               <li key={artist.id}>
                 {artist.name}{' '}
@@ -97,7 +97,7 @@ export default function AdminLabelPage() {
             No label releases yet. Catalogue pages and submissions are deferred until launch.
           </p>
         ) : (
-          <ul className="mt-3 space-y-1 text-sm text-white/70">
+          <ul className="mt-3 space-y-1 text-sm text-white/70 break-words">
             {releases.map((release) => (
               <li key={release.id}>
                 {release.title}{' '}

@@ -8,6 +8,7 @@ import { MediaAssetEditor } from '@/components/admin/MediaAssetEditor';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { Image as ImageIcon, Trash2, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
 import type { MediaLibraryAsset } from '@/lib/media/types';
 
 type LibraryFilter = 'all' | 'image' | 'video';
@@ -31,6 +32,19 @@ function unwrapLibrary(payload: unknown): MediaLibraryAsset[] {
   return [];
 }
 
+type LibraryResult = { ok: true; assets: MediaLibraryAsset[] } | { ok: false; error: string };
+
+async function fetchLibrary(): Promise<LibraryResult> {
+  const res = await fetch('/api/admin/media-library?include_archived=1', {
+    credentials: 'same-origin',
+  }).catch(() => null);
+  const payload = res ? await res.json().catch(() => ({})) : {};
+  if (!res?.ok) {
+    return { ok: false, error: typeof payload.error === 'string' ? payload.error : 'Could not load library' };
+  }
+  return { ok: true, assets: unwrapLibrary(payload.data ?? payload) };
+}
+
 export default function AdminMediaPage() {
   const [assets, setAssets] = useState<MediaLibraryAsset[]>([]);
   const [filter, setFilter] = useState<LibraryFilter>('all');
@@ -44,25 +58,44 @@ export default function AdminMediaPage() {
   const [legacyDetailsOpen, setLegacyDetailsOpen] = useState(false);
   const [editing, setEditing] = useState<MediaLibraryAsset | null>(null);
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
+
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  const applyLibrary = useCallback(
+    (result: LibraryResult) => {
+      if (!result.ok) {
+        showToast('error', result.error);
+        setLoadState((s) => (s === 'ready' ? s : 'error'));
+        return;
+      }
+      setAssets(result.assets);
+      setLoadState('ready');
+    },
+    [showToast]
+  );
 
   const loadLibrary = useCallback(async () => {
-    const res = await fetch('/api/admin/media-library?include_archived=1', {
-      credentials: 'same-origin',
-    });
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      showToast('error', typeof payload.error === 'string' ? payload.error : 'Could not load library');
-      return;
-    }
-    setAssets(unwrapLibrary(payload.data ?? payload));
-  }, [showToast]);
+    applyLibrary(await fetchLibrary());
+  }, [applyLibrary]);
+
+  const retryLoad = () => {
+    setLoadState('loading');
+    loadLibrary();
+  };
 
   const displayUrl = (asset: MediaLibraryAsset) =>
     asset.preview_url || asset.thumbnail_url || '';
 
   useEffect(() => {
-    loadLibrary();
-  }, [loadLibrary]);
+    let cancelled = false;
+    fetchLibrary().then((result) => {
+      if (!cancelled) applyLibrary(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyLibrary]);
 
   const handleUpload = async (files: UploadedFile[]) => {
     if (files.length === 0) return;
@@ -154,14 +187,8 @@ export default function AdminMediaPage() {
   const applyFilters = (list: MediaLibraryAsset[]) =>
     sortAssets(list.filter(byType).filter(byArchive).filter(byCategory).filter(byTag).filter(bySearch));
 
-  const filteredCurrent = useMemo(
-    () => applyFilters(currentAssets),
-    [currentAssets, filter, searchQuery, sortOrder, archiveFilter, categoryFilter, tagFilter]
-  );
-  const filteredLegacy = useMemo(
-    () => applyFilters(legacyAssets),
-    [legacyAssets, filter, searchQuery, sortOrder, archiveFilter, categoryFilter, tagFilter]
-  );
+  const filteredCurrent = applyFilters(currentAssets);
+  const filteredLegacy = applyFilters(legacyAssets);
 
   const handleCopyUrl = async (url: string, id: string) => {
     await navigator.clipboard.writeText(url);
@@ -170,7 +197,13 @@ export default function AdminMediaPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete permanently? This cannot be undone.')) return;
+    const ok = await dialog.confirm({
+      title: 'Remove from the library?',
+      message: 'It will no longer appear in the library or the media pickers. The original file is kept in storage.',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/media-library?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -204,11 +237,11 @@ export default function AdminMediaPage() {
             className="rounded-none w-full h-full !aspect-square"
           />
         </button>
-        <div className="p-3 space-y-1 flex-1 min-w-0">
+        <div className="p-2 sm:p-3 space-y-1 flex-1 min-w-0">
           <p className="text-sm font-medium text-slate-800 truncate" title={asset.name || ''}>
             {asset.name || 'Untitled'}
           </p>
-          <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+          <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1 sm:gap-1.5 min-w-0">
             <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
               {isImage ? 'Image' : 'Video'}
             </span>
@@ -227,18 +260,18 @@ export default function AdminMediaPage() {
           </p>
           {asset.category && <p className="text-xs text-slate-400 truncate">{asset.category}</p>}
         </div>
-        <div className="flex gap-2 p-3 border-t border-slate-200">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 p-2 sm:p-3 border-t border-slate-200">
           <button
             type="button"
             onClick={() => setEditing(asset)}
-            className="flex-1 px-2 py-1.5 rounded bg-slate-800 text-white hover:bg-slate-700 text-xs font-medium"
+            className="admin-tap basis-full sm:basis-auto flex-1 min-w-0 px-2 py-1.5 rounded bg-slate-800 text-white hover:bg-slate-700 text-xs font-medium"
           >
             Edit
           </button>
           <button
             type="button"
             onClick={() => handleCopyUrl(displayUrl(asset) || asset.preview_url, asset.id)}
-            className="flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-medium"
+            className="admin-tap flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-medium"
           >
             {copiedId === asset.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
             {copiedId === asset.id ? 'Copied' : 'Copy'}
@@ -246,8 +279,9 @@ export default function AdminMediaPage() {
           <button
             type="button"
             onClick={() => handleDelete(asset.id)}
-            className="p-1.5 rounded text-red-600 hover:bg-red-50"
-            title="Delete"
+            className="admin-icon-btn rounded text-red-600 hover:bg-red-50"
+            title="Remove from library"
+            aria-label="Remove from library"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -258,8 +292,8 @@ export default function AdminMediaPage() {
 
   return (
     <AdminPage
-      title="Media"
-      subtitle="Upload and manage media library. Set tags, usage, and archive state. Video uploads also appear in the public Media → Videos tab when usage is public."
+      title="Media Library"
+      subtitle="Upload and manage media library. Set tags, usage, and archive state. New uploads start as Internal; set Usage to Public to show a video on the public Media → Videos tab."
       actions={
         <UniversalUploader
           multiple
@@ -276,7 +310,7 @@ export default function AdminMediaPage() {
             key={f}
             type="button"
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+            className={`admin-tap min-w-[44px] px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
               filter === f
                 ? 'bg-slate-700 text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -288,7 +322,7 @@ export default function AdminMediaPage() {
         <select
           value={archiveFilter}
           onChange={(e) => setArchiveFilter(e.target.value as ArchiveFilter)}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="admin-tap w-[calc(50%-0.375rem)] sm:w-auto min-w-0 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
           aria-label="Archive state"
         >
           <option value="active">Active</option>
@@ -298,7 +332,7 @@ export default function AdminMediaPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="admin-tap w-[calc(50%-0.375rem)] sm:w-auto min-w-0 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
           aria-label="Filter by category"
         >
           <option value="">All categories</option>
@@ -311,7 +345,7 @@ export default function AdminMediaPage() {
         <select
           value={tagFilter}
           onChange={(e) => setTagFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="admin-tap w-[calc(50%-0.375rem)] sm:w-auto min-w-0 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
           aria-label="Filter by tag"
         >
           <option value="">All tags</option>
@@ -326,13 +360,13 @@ export default function AdminMediaPage() {
           placeholder="Search media…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="ml-auto min-w-[180px] px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+          className="admin-tap w-full sm:w-auto sm:ml-auto sm:min-w-[180px] px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
           aria-label="Search media by name, tag, or credit"
         />
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
+          className="admin-tap w-[calc(50%-0.375rem)] sm:w-auto min-w-0 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400"
           aria-label="Sort order"
         >
           <option value="newest">Newest</option>
@@ -341,7 +375,30 @@ export default function AdminMediaPage() {
         </select>
       </div>
 
-      {assets.length === 0 ? (
+      {loadState === 'loading' && assets.length === 0 ? (
+        <div role="status" aria-live="polite" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
+          <span className="sr-only">Loading media library…</span>
+          {Array.from({ length: 10 }, (_, i) => (
+            <div key={i} aria-hidden className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="aspect-square bg-slate-100 motion-safe:animate-pulse" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 w-3/4 rounded bg-slate-100 motion-safe:animate-pulse" />
+                <div className="h-3 w-1/2 rounded bg-slate-100 motion-safe:animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : loadState === 'error' && assets.length === 0 ? (
+        <AdminCard>
+          <div className="text-center py-12 text-slate-600">
+            <p className="font-medium">The media library couldn&apos;t be loaded</p>
+            <p className="text-sm mt-1 text-slate-500">Your files are safe. Check your connection and try again.</p>
+            <button type="button" onClick={retryLoad} className="admin-tap mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium">
+              Try again
+            </button>
+          </div>
+        </AdminCard>
+      ) : assets.length === 0 ? (
         <AdminCard>
           <div className="text-center py-12 text-slate-500">
             <ImageIcon className="w-12 h-12 mx-auto mb-3 text-slate-300" />
@@ -356,14 +413,14 @@ export default function AdminMediaPage() {
             <p className="text-slate-600 text-sm">No media matches these filters. Adjust tag, category, or archive filters, or enable &quot;Show legacy items&quot;.</p>
           </AdminCard>
         ) : null}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
           {filteredCurrent.map(renderCard)}
         </div>
 
         {showLegacy && filteredLegacy.length > 0 && (
           <div className="mt-10">
             <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Legacy</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
               {filteredLegacy.map(renderCard)}
             </div>
           </div>
@@ -373,7 +430,7 @@ export default function AdminMediaPage() {
           <button
             type="button"
             onClick={() => setShowLegacy((v) => !v)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium"
+            className="admin-tap flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium"
           >
             {showLegacy ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             Show legacy items
@@ -395,6 +452,7 @@ export default function AdminMediaPage() {
           <div className="px-4 pb-4 pt-0 border-t border-slate-200 text-sm text-slate-500">
             <p className="mb-3">Asset IDs are used for hero, gallery covers, events, and product images.</p>
             {assets.length > 0 && (
+              <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
               <table className="admin-table">
                 <thead>
                   <tr>
@@ -411,6 +469,7 @@ export default function AdminMediaPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
             {assets.length > 20 && <p className="mt-2 text-xs text-slate-400">Showing first 20 of {assets.length}.</p>}
           </div>
