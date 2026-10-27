@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAttention,
+  splitDemo,
   summarizeActivity,
   summarizeStorage,
   visibleAttention,
   type AttentionInput,
   type OverviewEvent,
 } from './overview';
+import { isDemo } from './demoContent';
+import { bandwidthNotice, supabasePlan } from './supabasePlan';
 
 const NOW = new Date('2026-10-27T12:00:00Z');
 const daysFromNow = (d: number) => new Date(NOW.getTime() + d * 86_400_000).toISOString();
@@ -236,11 +239,69 @@ describe('fan activity', () => {
 });
 
 describe('storage meter', () => {
-  it('reports usage against the Free plan quota with warning levels', () => {
-    const gb = 1024 ** 3;
-    expect(summarizeStorage(0.37 * gb, 63, 'x')).toMatchObject({ percent: 37, level: 'ok' });
-    expect(summarizeStorage(0.8 * gb, 1, 'x').level).toBe('warning');
-    expect(summarizeStorage(0.95 * gb, 1, 'x')).toMatchObject({ level: 'critical' });
-    expect(summarizeStorage(2 * gb, 1, 'x')).toMatchObject({ percent: 100, availableBytes: 0 });
+  const gb = 1024 ** 3;
+  const free = supabasePlan(undefined);
+
+  it('reports usage against the plan quota with warning levels', () => {
+    expect(summarizeStorage(0.37 * gb, 63, 'x', free)).toMatchObject({ percent: 37, level: 'ok', planLabel: 'Free', planConfigured: false });
+    expect(summarizeStorage(0.8 * gb, 1, 'x', free).level).toBe('warning');
+    expect(summarizeStorage(0.95 * gb, 1, 'x', free)).toMatchObject({ level: 'critical' });
+    expect(summarizeStorage(2 * gb, 1, 'x', free)).toMatchObject({ percent: 100, availableBytes: 0 });
+  });
+
+  it('uses the configured plan, and flags an assumed one', () => {
+    expect(supabasePlan('pro')).toMatchObject({ key: 'pro', storageBytes: 100 * gb, configured: true });
+    expect(supabasePlan(' FREE ')).toMatchObject({ key: 'free', configured: true });
+    expect(supabasePlan('team')).toMatchObject({ key: 'free', configured: false });
+    expect(summarizeStorage(0.37 * gb, 63, 'x', supabasePlan('pro')).percent).toBe(0.4);
+  });
+
+  it('shows the bandwidth notice only on Free and only until the billing cycle ends', () => {
+    expect(bandwidthNotice(supabasePlan('free'), new Date('2026-10-27T12:00:00Z'))).toMatch(/Nov 14/);
+    expect(bandwidthNotice(supabasePlan('free'), new Date('2026-11-16T00:00:00Z'))).toBeNull();
+    expect(bandwidthNotice(supabasePlan('pro'), new Date('2026-10-27T12:00:00Z'))).toBeNull();
+  });
+});
+
+describe('demonstration content', () => {
+  it('matches demo records by exact id only, never by title', () => {
+    expect(isDemo('collections', 'd77dc441-678a-4b59-b566-4aadce501db5')).toBe(true);
+    expect(isDemo('collections', 'some-real-collection')).toBe(false);
+    const rows = [
+      { id: '99d1c43e-4d1c-4db7-b19c-649e44bfc19e', name: 'TEST TEST' },
+      { id: 'real-1', name: 'test' },
+    ];
+    const { real, demo } = splitDemo(rows, (id) => isDemo('events', id));
+    expect(real.map((r) => r.id)).toEqual(['real-1']);
+    expect(demo).toHaveLength(1);
+  });
+
+  it('keeps demo clicks out of totals and rankings but reports them separately', () => {
+    const rows = [
+      { event_name: 'gallery_click', entity_type: 'gallery', entity_id: 'demo', created_at: '2026-10-27T09:00:00Z' },
+      { event_name: 'gallery_click', entity_type: 'gallery', entity_id: 'demo', created_at: '2026-10-27T09:00:00Z' },
+      { event_name: 'event_card_click', entity_type: 'event', entity_id: 'real', created_at: '2026-10-27T09:00:00Z' },
+    ];
+    const a = summarizeActivity(rows, NOW, (r) => ({ key: r.entity_id!, label: r.entity_id!, href: '#', demo: r.entity_id === 'demo' }));
+    expect(a.total).toBe(1);
+    expect(a.demoClicks).toBe(2);
+    expect(a.byCategory).toEqual({ events: 1, collections: 0, products: 0 });
+    expect(a.top.map((t) => t.key)).toEqual(['real']);
+  });
+
+  it('still asks for refund and shipping pages while a demo product is publicly visible', () => {
+    const items = buildAttention(
+      empty({
+        products: [],
+        shopIsLive: true,
+        policies: [
+          { slug: 'privacy', title: 'Privacy', status: 'published' },
+          { slug: 'terms', title: 'Terms', status: 'published' },
+          { slug: 'refund', title: 'Refund', status: 'draft' },
+        ],
+      }),
+      NOW
+    );
+    expect(items.map((i) => i.title)).toEqual(['Refund is not published yet']);
   });
 });

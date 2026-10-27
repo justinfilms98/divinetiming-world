@@ -59,7 +59,7 @@ export function AttentionPanel({ items, now }: { items: AttentionItem[]; now: st
   return (
     <section aria-labelledby="attention-heading" className="rounded-2xl border border-[#C6A75E]/25 bg-gradient-to-b from-[#C6A75E]/[0.07] to-white/[0.02] p-4 md:p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="attention-heading" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C6A75E]">
+        <h2 id="attention-heading" className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C6A75E]">
           Needs your attention
         </h2>
         {visible.length > 0 && (
@@ -85,9 +85,9 @@ export function AttentionPanel({ items, now }: { items: AttentionItem[]; now: st
                   <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`} aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="sr-only">{style.label}: </span>
-                    <span className="block text-[15px] font-medium leading-snug text-white">{item.title}</span>
-                    <span className="mt-1 block text-[13px] leading-relaxed text-white/55">{item.detail}</span>
-                    <span className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-medium text-[#C6A75E]">
+                    <span className="block text-base font-medium leading-snug text-white">{item.title}</span>
+                    <span className="mt-1 block text-sm leading-relaxed text-white/55">{item.detail}</span>
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-[#C6A75E]">
                       {item.action}
                       <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
                     </span>
@@ -97,7 +97,7 @@ export function AttentionPanel({ items, now }: { items: AttentionItem[]; now: st
                   <button
                     type="button"
                     onClick={() => snooze(item.id)}
-                    className="admin-icon-btn mt-2 shrink-0 rounded-xl text-white/40 hover:bg-white/5 hover:text-white/80"
+                    className="mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/45 hover:bg-white/5 hover:text-white/80"
                     aria-label={`Snooze for ${SNOOZE_DAYS} days: ${item.title}`}
                     title={`Snooze for ${SNOOZE_DAYS} days`}
                   >
@@ -113,12 +113,12 @@ export function AttentionPanel({ items, now }: { items: AttentionItem[]; now: st
       {(visible.length > INITIAL_VISIBLE || snoozed > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/[0.06] pt-2">
           {visible.length > INITIAL_VISIBLE && (
-            <button type="button" onClick={() => setShowAll((v) => !v)} className="admin-tap text-sm font-medium text-white/70 hover:text-white">
+            <button type="button" onClick={() => setShowAll((v) => !v)} className="min-h-11 text-[15px] font-medium text-white/75 hover:text-white">
               {showAll ? 'Show fewer' : `Show all ${visible.length}`}
             </button>
           )}
           {snoozed > 0 && (
-            <button type="button" onClick={restore} className="admin-tap text-sm text-white/45 hover:text-white/80">
+            <button type="button" onClick={restore} className="min-h-11 text-sm text-white/55 hover:text-white/85">
               {snoozed} snoozed · show again
             </button>
           )}

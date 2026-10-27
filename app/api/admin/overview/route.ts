@@ -4,11 +4,14 @@ import { requireAdmin } from '@/lib/admin/auth';
 import { getServiceClient } from '@/lib/supabase/service';
 import { resolveHeroSlotVideoUrl } from '@/lib/storageUrls';
 import { heroRenditionFor } from '@/lib/media/heroRenditions';
+import { isDemo } from '@/lib/admin/demoContent';
+import { bandwidthNotice, supabasePlan } from '@/lib/admin/supabasePlan';
 import {
   buildAttention,
   eventLabel,
   PREVIEW_MAX_BYTES,
   safeTimeZone,
+  splitDemo,
   summarizeActivity,
   summarizeStorage,
   type ActivityTarget,
@@ -219,20 +222,30 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Demonstration records stay in the admin but never raise reminders or fill "Coming up".
+  const ev = splitDemo(events, (id) => isDemo('events', id));
+  const col = splitDemo(collections, (id) => isDemo('collections', id));
+  const prod = splitDemo(products, (id) => isDemo('products', id));
+  const rel = splitDemo(releases, (id) => isDemo('releases', id));
+
   const attention = buildAttention(
     {
-      events,
-      collections,
-      products,
-      releases,
+      events: ev.real,
+      collections: col.real,
+      products: prod.real,
+      releases: rel.real,
       inquiries,
       policies: (policiesRes.data ?? []) as { slug: string; title: string | null; status: string | null }[],
       heroSlots,
+      // A published demo product is still visible in the Shop, so the refund and shipping pages matter.
+      shopIsLive: products.some((p) => p.status === 'published'),
     },
     now
   );
 
-  const upcoming = events.filter((e) => Date.parse(e.date) >= now.getTime() && e.booking_status !== 'cancelled').slice(0, 3);
+  const isUpcoming = (e: OverviewEvent) => Date.parse(e.date) >= now.getTime() && e.booking_status !== 'cancelled';
+  const upcoming = ev.real.filter(isUpcoming).slice(0, 3);
+  const upcomingDemoHidden = ev.demo.filter(isUpcoming).length;
 
   const liveAssets = assets.filter((a) => !a.is_archived);
   const recentMedia: OverviewMedia[] = liveAssets.slice(0, 6).map((a) => {
@@ -249,15 +262,17 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  const count = (rows: { status: string | null }[]) => ({
-    published: rows.filter((r) => r.status === 'published').length,
-    drafts: rows.filter((r) => r.status === 'draft').length,
+  const count = (split: { real: { status: string | null }[]; demo: { status: string | null }[] }) => ({
+    published: split.real.filter((r) => r.status === 'published').length,
+    drafts: split.real.filter((r) => r.status === 'draft').length,
+    demo: split.demo.length,
+    demoPublished: split.demo.filter((r) => r.status === 'published').length,
   });
   const content: ContentCount[] = [
-    { key: 'events', label: 'Events', href: '/admin/events', ...count(events) },
-    { key: 'collections', label: 'Collections', href: '/admin/collections', ...count(collections) },
-    { key: 'releases', label: 'Music', href: '/admin/releases', ...count(releases) },
-    { key: 'products', label: 'Shop', href: '/admin/shop', ...count(products) },
+    { key: 'events', label: 'Events', href: '/admin/events', ...count(ev) },
+    { key: 'collections', label: 'Collections', href: '/admin/collections', ...count(col) },
+    { key: 'releases', label: 'Music', href: '/admin/releases', ...count(rel) },
+    { key: 'products', label: 'Shop', href: '/admin/shop', ...count(prod) },
   ];
 
   // Fan activity: name the content behind each recorded interaction.
@@ -276,24 +291,28 @@ export async function GET(request: NextRequest) {
     if (!id) return null;
     if (row.entity_type === 'event') {
       const e = eventById.get(id);
-      return e ? { key: `event:${id}`, label: eventLabel(e), href: `/admin/events?edit=${id}` } : null;
+      return e ? { key: `event:${id}`, label: eventLabel(e), href: `/admin/events?edit=${id}`, demo: isDemo('events', id) } : null;
     }
     const galleryId = row.entity_type === 'gallery' ? id : row.entity_type === 'gallery_media' ? galleryOfMedia.get(id) : undefined;
     if (galleryId) {
       const g = collectionById.get(galleryId);
-      return g ? { key: `gallery:${galleryId}`, label: g.name, href: `/admin/collections?edit=${galleryId}` } : null;
+      return g
+        ? { key: `gallery:${galleryId}`, label: g.name, href: `/admin/collections?edit=${galleryId}`, demo: isDemo('collections', galleryId) }
+        : null;
     }
     if (row.entity_type === 'product') {
       const p = productById.get(id);
-      return p ? { key: `product:${id}`, label: p.name, href: `/admin/shop?edit=${id}` } : null;
+      return p ? { key: `product:${id}`, label: p.name, href: `/admin/shop?edit=${id}`, demo: isDemo('products', id) } : null;
     }
     return null;
   };
 
+  const plan = supabasePlan();
   const overview: AdminOverview = {
     generatedAt: now.toISOString(),
     attention,
     upcoming,
+    upcomingDemoHidden,
     recentMedia,
     mediaTotals: {
       total: liveAssets.length,
@@ -306,7 +325,8 @@ export async function GET(request: NextRequest) {
       newCount: inquiries.filter((i) => (i.status ?? 'new') === 'new').length,
     },
     activity: summarizeActivity(rows, now, resolve, timeZone),
-    storage: storageRes ? summarizeStorage(storageRes.bytes, storageRes.files, storageRes.measuredAt) : null,
+    storage: storageRes ? summarizeStorage(storageRes.bytes, storageRes.files, storageRes.measuredAt, plan) : null,
+    bandwidthNotice: bandwidthNotice(plan, now),
   };
 
   return NextResponse.json({ ok: true, data: overview }, { headers: { 'Cache-Control': 'no-store' } });

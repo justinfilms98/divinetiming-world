@@ -11,6 +11,7 @@ import { X, ImageIcon, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
+import { DemoBadge } from '@/components/admin/DemoBadge';
 
 type GalleryStatus = 'draft' | 'published' | 'archived';
 
@@ -491,6 +492,7 @@ export default function AdminCollectionsPage() {
                       {g.status === 'draft' ? 'Draft' : 'Archived'}
                     </span>
                   ) : null}
+                  <DemoBadge kind="collections" id={g.id} />
                 </div>
                 <p className="text-sm text-slate-500 break-all">{g.theme ? `${g.theme} · ` : ''}{g.slug}</p>
                 <p className="text-xs text-slate-500">

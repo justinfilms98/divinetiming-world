@@ -75,6 +75,8 @@ export interface AttentionInput {
   inquiries: OverviewInquiry[];
   policies: OverviewPolicy[];
   heroSlots: OverviewHeroSlot[];
+  /** Whether any product is publicly visible (demo or not). Defaults to the products given. */
+  shopIsLive?: boolean;
 }
 
 const DAY_MS = 86_400_000;
@@ -296,7 +298,7 @@ function staleDraftItems(input: AttentionInput, now: number, alreadyFlagged: Set
 /** Ordered most urgent first. Never more than one grouped item per rule and content type. */
 export function buildAttention(input: AttentionInput, nowDate: Date): AttentionItem[] {
   const now = nowDate.getTime();
-  const shopIsLive = input.products.some((p) => p.status === 'published');
+  const shopIsLive = input.shopIsLive ?? input.products.some((p) => p.status === 'published');
   const events = eventItems(input.events, now);
   const flaggedEventIds = new Set(events.map((i) => i.id.split(':')[1]));
   const items = [
@@ -350,10 +352,15 @@ export interface ActivityTarget {
   key: string;
   label: string;
   href: string;
+  /** Demonstration content: counted separately, never ranked. */
+  demo?: boolean;
 }
 
 export interface FanActivity {
+  /** Recorded clicks on real (non-demo) content. */
   total: number;
+  /** Recorded clicks on demonstration content, excluded from everything else. */
+  demoClicks: number;
   byCategory: Record<ActivityCategory, number>;
   /** Oldest first; seven calendar days ending today in `timeZone`. */
   daily: { date: string; count: number }[];
@@ -393,27 +400,40 @@ export function summarizeActivity(
   const byCategory: Record<ActivityCategory, number> = { events: 0, collections: 0, products: 0 };
   const counts = new Map<string, ActivityTarget & { category: ActivityCategory; count: number }>();
   let total = 0;
+  let demoClicks = 0;
   for (const row of rows) {
     const category = EVENT_CATEGORY[row.event_name];
     const day = localDateKey(new Date(row.created_at), timeZone);
     if (!category || !daily.has(day)) continue;
+    const target = resolve(row);
+    if (target?.demo) {
+      demoClicks++;
+      continue;
+    }
     total++;
     byCategory[category]++;
     daily.set(day, (daily.get(day) ?? 0) + 1);
-    const target = resolve(row);
     if (!target) continue;
     const prev = counts.get(target.key);
     counts.set(target.key, { ...target, category, count: (prev?.count ?? 0) + 1 });
   }
   const top = [...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, 3);
-  return { total, byCategory, daily: days.map((date) => ({ date, count: daily.get(date) ?? 0 })), top, timeZone };
+  return { total, demoClicks, byCategory, daily: days.map((date) => ({ date, count: daily.get(date) ?? 0 })), top, timeZone };
 }
 
 // ---------------------------------------------------------------------------------------------
-// Storage meter
+// Demonstration content
 
-/** Supabase Free plan file storage. Bandwidth is a separate quota and is not shown here. */
-export const STORAGE_QUOTA_BYTES = 1024 ** 3;
+/** Splits rows into real and demonstration records using an exact-id predicate. */
+export function splitDemo<T extends { id: string }>(rows: T[], isDemoRow: (id: string) => boolean): { real: T[]; demo: T[] } {
+  const real: T[] = [];
+  const demo: T[] = [];
+  for (const r of rows) (isDemoRow(r.id) ? demo : real).push(r);
+  return { real, demo };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Storage meter (file storage only; bandwidth is a separate quota and is not shown)
 
 export interface StorageSummary {
   usedBytes: number;
@@ -423,9 +443,18 @@ export interface StorageSummary {
   level: 'ok' | 'warning' | 'critical';
   files: number;
   measuredAt: string;
+  planLabel: string;
+  /** false when the plan is assumed rather than configured. */
+  planConfigured: boolean;
 }
 
-export function summarizeStorage(usedBytes: number, files: number, measuredAt: string, quotaBytes = STORAGE_QUOTA_BYTES): StorageSummary {
+export function summarizeStorage(
+  usedBytes: number,
+  files: number,
+  measuredAt: string,
+  plan: { label: string; storageBytes: number; configured: boolean }
+): StorageSummary {
+  const quotaBytes = plan.storageBytes;
   const percent = Math.min(100, Math.round((usedBytes / quotaBytes) * 1000) / 10);
   return {
     usedBytes,
@@ -435,6 +464,8 @@ export function summarizeStorage(usedBytes: number, files: number, measuredAt: s
     level: percent >= 90 ? 'critical' : percent >= 75 ? 'warning' : 'ok',
     files,
     measuredAt,
+    planLabel: plan.label,
+    planConfigured: plan.configured,
   };
 }
 
@@ -456,14 +487,22 @@ export interface ContentCount {
   key: 'events' | 'collections' | 'products' | 'releases';
   label: string;
   href: string;
+  /** Real content only. */
   published: number;
   drafts: number;
+  /** Demonstration records of this type (any status). */
+  demo: number;
+  /** Demonstration records that are publicly visible. */
+  demoPublished: number;
 }
 
 export interface AdminOverview {
   generatedAt: string;
+  /** Real content only; demonstration records never raise reminders. */
   attention: AttentionItem[];
+  /** Next real events; demonstration events are counted in `upcomingDemoHidden`. */
   upcoming: OverviewEvent[];
+  upcomingDemoHidden: number;
   recentMedia: OverviewMedia[];
   mediaTotals: { total: number; images: number; videos: number };
   content: ContentCount[];
@@ -471,4 +510,6 @@ export interface AdminOverview {
   activity: FanActivity;
   /** Null when usage could not be measured. */
   storage: StorageSummary | null;
+  /** Plan-specific bandwidth note, or null (never a live figure). */
+  bandwidthNotice: string | null;
 }

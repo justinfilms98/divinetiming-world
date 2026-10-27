@@ -9,6 +9,7 @@ import { revalidateAfterSave } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
+import { DemoBadge } from '@/components/admin/DemoBadge';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
@@ -353,6 +354,7 @@ export default function AdminEventsPage() {
                           {event.status === 'draft' ? 'Draft' : 'Archived'}
                         </span>
                       )}
+                      <DemoBadge kind="events" id={event.id} />
                       {event.is_featured && (
                         <span className="px-2 py-0.5 bg-[var(--accent)]/20 text-[var(--accent)] text-xs rounded">
                           Featured
