@@ -14,6 +14,7 @@ import { cn } from '@/lib/ui/cn';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { compressImage } from '@/lib/utils/compressMedia';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
+import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
 
 const PAGE_KEYS = ['home', 'events', 'media', 'shop', 'booking'] as const;
 const PAGE_LABELS: Record<string, string> = {
@@ -226,9 +227,11 @@ export function DashboardHeroEditor() {
           throw new Error((pathData?.error as string) || 'Could not get upload path');
         }
         const { path } = pathData as { path: string };
+        // Timestamped slot path from /api/admin/hero-slot/upload-path: unique, never overwritten.
         const { error: uploadErr } = await supabase.storage.from('media').upload(path, optimized, {
           contentType: optimized.type || file.type || 'image/jpeg',
-          upsert: true,
+          cacheControl: IMMUTABLE_CACHE_SECONDS,
+          upsert: false,
         });
         if (uploadErr) throw new Error(uploadErr.message || 'Storage upload failed');
         setPosterStoragePath(path);

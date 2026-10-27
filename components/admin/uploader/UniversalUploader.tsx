@@ -9,6 +9,7 @@ import {
   willCompress,
   type CompressionPreset,
 } from '@/lib/utils/compressMedia';
+import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
 
 
 export type UploadedFile = {
@@ -206,7 +207,9 @@ export function UniversalUploader({
             .from('media')
             .uploadToSignedUrl(path, token, file, {
               contentType: file.type || 'application/octet-stream',
-              upsert: true,
+              // Paths are unique per upload (timestamped) and never overwritten, so a year is safe.
+              cacheControl: IMMUTABLE_CACHE_SECONDS,
+              upsert: false,
             });
           if (uploadErr) {
             setError(uploadErr.message || 'Storage upload failed.');

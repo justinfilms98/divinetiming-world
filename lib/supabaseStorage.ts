@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
 
 const BUCKET = 'media';
 
@@ -36,7 +37,8 @@ export async function uploadToSupabase(
 
   const { error } = await supabase.storage.from(BUCKET).upload(storagePath, file, {
     contentType: file.type || 'application/octet-stream',
-    upsert: true,
+    cacheControl: IMMUTABLE_CACHE_SECONDS,
+    upsert: false,
   });
 
   if (opts?.onProgress) opts.onProgress(90);
