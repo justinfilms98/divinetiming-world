@@ -34,11 +34,6 @@ describe('pickHeroVariant', () => {
     expect(pickHeroVariant({ viewportWidth: 1440, effectiveType: '4g' })).toBe('desktop');
   });
 
-  it('uses the phone rendition on wide screens with a slow measured downlink', () => {
-    expect(pickHeroVariant({ viewportWidth: 1440, effectiveType: '4g', downlink: 2.5 })).toBe('mobile');
-    expect(pickHeroVariant({ viewportWidth: 1440, effectiveType: '4g', downlink: 10 })).toBe('desktop');
-  });
-
   it('shows still frames only with Data Saver or a 3G-class connection or slower', () => {
     expect(pickHeroVariant({ viewportWidth: 1440, saveData: true })).toBe('posters');
     expect(pickHeroVariant({ viewportWidth: 390, effectiveType: '3g' })).toBe('posters');

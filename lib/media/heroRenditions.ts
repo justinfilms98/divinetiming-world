@@ -56,17 +56,14 @@ export interface HeroVariantEnv {
   /** Network Information API (Chrome/Android only; Safari reports none of these). */
   saveData?: boolean;
   effectiveType?: string;
-  /** Estimated downlink in Mbit/s. */
-  downlink?: number;
 }
 
 // The phone rendition averages ~2.6 Mbit/s: below ~0.7 Mbit/s ("3g" and slower) even it can't
 // play in real time, so the carousel shows still frames instead of a stalling video.
+// `downlink` is deliberately ignored: a browser with no history reports ~1.5 Mbit/s on any line.
 export function pickHeroVariant(env: HeroVariantEnv): HeroVariant {
   if (env.saveData || env.effectiveType === '3g' || env.effectiveType === '2g' || env.effectiveType === 'slow-2g') {
     return 'posters';
   }
-  if (env.viewportWidth < 768) return 'mobile';
-  if (typeof env.downlink === 'number' && env.downlink > 0 && env.downlink < 5) return 'mobile';
-  return 'desktop';
+  return env.viewportWidth < 768 ? 'mobile' : 'desktop';
 }

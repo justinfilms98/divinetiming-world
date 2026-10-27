@@ -57,12 +57,11 @@ function getReducedMotion() {
 let cachedVariant: HeroVariant | null = null;
 function getHeroVariant(): HeroVariant {
   if (!cachedVariant) {
-    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; downlink?: number } }).connection;
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     cachedVariant = pickHeroVariant({
       viewportWidth: window.innerWidth,
       saveData: conn?.saveData,
       effectiveType: conn?.effectiveType,
-      downlink: conn?.downlink,
     });
   }
   return cachedVariant;
