@@ -62,6 +62,13 @@ function useMutedAutoplay(
   // first `waiting` and resumes on `canplaythrough`.
   const holdingRef = useRef(false);
   const [holding, setHolding] = useState(false);
+  // Marks pauses we cause, so a pause the browser makes on its own (power saving, background
+  // media policies) can be told apart and recovered from.
+  const selfPauseRef = useRef(false);
+  const resumeTriesRef = useRef(0);
+  // Only a clip that was actually playing counts as "paused by the browser"; a clip whose
+  // autoplay was refused is handled by the tap-to-play button and the carousel's safety timer.
+  const playedThisTurnRef = useRef(false);
   const onStalledRef = useRef(onStalled);
   useEffect(() => {
     onStalledRef.current = onStalled;
@@ -111,10 +118,13 @@ function useMutedAutoplay(
     const v = videoRef.current;
     if (!v || !url) return;
     if (!shouldPlay) {
+      if (!v.paused) selfPauseRef.current = true;
       v.pause();
       return;
     }
     holdingRef.current = false;
+    resumeTriesRef.current = 0;
+    playedThisTurnRef.current = false;
     attemptPlay();
     const raf = requestAnimationFrame(() => attemptPlay());
     const timer = window.setTimeout(() => {
@@ -131,6 +141,7 @@ function useMutedAutoplay(
 
   const onPlaying = useCallback(() => {
     holdingRef.current = false;
+    playedThisTurnRef.current = true;
     setHolding(false);
     setPlaying(true);
     setNeedsTap(false);
@@ -144,9 +155,29 @@ function useMutedAutoplay(
     if (holdUntilPlayable && v && !v.paused && !holdingRef.current) {
       holdingRef.current = true;
       setHolding(true);
+      selfPauseRef.current = true;
       v.pause();
     }
   }, [holdUntilPlayable, videoRef]);
+
+  const onPause = useCallback(() => {
+    const v = videoRef.current;
+    if (selfPauseRef.current) {
+      selfPauseRef.current = false;
+      return;
+    }
+    if (!v || v.ended || holdingRef.current || !shouldPlayRef.current || !playedThisTurnRef.current) return;
+    // The browser paused the showing clip by itself: resume, and if it refuses, move on rather
+    // than leaving a frozen frame until the carousel's safety timer.
+    if (resumeTriesRef.current < 2) {
+      resumeTriesRef.current += 1;
+      window.setTimeout(() => attemptPlay(), 300);
+    }
+    window.setTimeout(() => {
+      const el = videoRef.current;
+      if (el && el.paused && !el.ended && !holdingRef.current && shouldPlayRef.current) onStalledRef.current?.();
+    }, 1500);
+  }, [attemptPlay, videoRef]);
 
   const onCanPlay = useCallback(() => {
     if (holdingRef.current) return;
@@ -169,7 +200,7 @@ function useMutedAutoplay(
     setNeedsTap(false);
   }, [attemptPlay]);
 
-  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onCanPlayThrough, onTapPlay };
+  return { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onPause, onCanPlay, onCanPlayThrough, onTapPlay };
 }
 
 interface HeroAutoplayVideoProps {
@@ -252,7 +283,7 @@ function HeroAutoplayVideo({
     const v = videoRef.current;
     if (v && restartToken != null && v.currentTime > 0) v.currentTime = 0;
   }, [restartToken]);
-  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onCanPlayThrough, onTapPlay } =
+  const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onPause, onCanPlay, onCanPlayThrough, onTapPlay } =
     useMutedAutoplay(videoRef, url, shouldPlay, onStalled, holdUntilPlayable);
   const maybePlay = () => {
     if (shouldPlay) attemptPlay();
@@ -285,6 +316,7 @@ function HeroAutoplayVideo({
         onCanPlayThrough={onCanPlayThrough}
         onPlaying={onPlaying}
         onWaiting={onWaiting}
+        onPause={onPause}
         onEnded={onEnded}
       />
       {posterUrl && (!playing || stalled) && (
