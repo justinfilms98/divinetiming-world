@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { X, ImageIcon, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
 
 type GalleryStatus = 'draft' | 'published' | 'archived';
 
@@ -58,12 +59,15 @@ export default function AdminCollectionsPage() {
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
   const supabase = createClient();
+  const [listLoaded, setListLoaded] = useState(false);
+  const createNameRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('galleries')
       .select('*, gallery_media(id)')
       .order('display_order', { ascending: true });
+    setListLoaded(true);
     if (error) {
       setGalleries([]);
       return;
@@ -150,6 +154,14 @@ export default function AdminCollectionsPage() {
     setEditStatus((g.status as GalleryStatus) ?? 'draft');
     setCoverPickerOpen(false);
   };
+
+  useAdminDeepLink(galleries, listLoaded, {
+    edit: openEdit,
+    create: () => {
+      createNameRef.current?.scrollIntoView({ block: 'center' });
+      createNameRef.current?.focus();
+    },
+  });
 
   const closeEdit = () => {
     setEditingGallery(null);
@@ -400,6 +412,7 @@ export default function AdminCollectionsPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Story title</label>
               <input
+                ref={createNameRef}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}

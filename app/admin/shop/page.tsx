@@ -11,6 +11,7 @@ import { Plus, ShoppingBag, Edit, Trash2, DollarSign, X, AlertTriangle } from 'l
 import { revalidateAfterSave, revalidatePaths } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
 import { SHOP_CATEGORY_SUGGESTIONS } from '@/lib/shop/commerce';
 import {
   ProductVariantEditor,
@@ -175,6 +176,8 @@ export default function AdminShopPage() {
     setVariantDrafts(variantsToDrafts(product.product_variants));
     setModalOpen(true);
   };
+
+  useAdminDeepLink(products, !isLoading, { edit: openEdit, create: openCreate });
 
   const closeModal = () => {
     setModalOpen(false);

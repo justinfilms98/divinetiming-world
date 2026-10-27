@@ -8,6 +8,7 @@ import { Plus, Disc3, Trash2, X } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import type { Release, ReleaseStatus, ReleaseType } from '@/lib/types/content';
@@ -80,6 +81,8 @@ export default function AdminReleasesPage() {
     setPendingCoverAssetId(null);
     setModalOpen(true);
   };
+
+  useAdminDeepLink(releases, !isLoading, { edit: openEdit, create: openCreate });
 
   const closeModal = () => {
     setModalOpen(false);

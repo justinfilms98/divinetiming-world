@@ -8,6 +8,7 @@ import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown }
 import { revalidateAfterSave } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
@@ -98,6 +99,8 @@ export default function AdminEventsPage() {
     setPreviewThumbnail(event.resolved_thumbnail_url ?? event.thumbnail_url ?? null);
     setModalOpen(true);
   };
+
+  useAdminDeepLink(events, !isLoading, { edit: openEdit, create: openCreate });
 
   const handleThumbnailSelected = (files: UploadedFile[]) => {
     const file = files[0];
