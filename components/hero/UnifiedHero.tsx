@@ -83,6 +83,11 @@ export function UnifiedHero({
   const [activeIndex, setActiveIndex] = useState(0);
   // Outgoing slide stays mounted while it fades out, so the crossfade never shows black.
   const [leavingIndex, setLeavingIndex] = useState<number | null>(null);
+  // Slides that have already played stay mounted (paused) so the next loop replays from the
+  // element's buffer: the stored files are served with no-cache headers, so a remount
+  // would download each clip again on every loop.
+  const [visited, setVisited] = useState<number[]>([0]);
+  const [activation, setActivation] = useState(0);
   const [flare, setFlare] = useState(false);
   const [paused, setPaused] = useState(false);
   const carouselRef = useRef<HeroCarousel | null>(null);
@@ -107,6 +112,8 @@ export function UnifiedHero({
         const from = prevIndexRef.current;
         prevIndexRef.current = next;
         setActiveIndex(next);
+        setActivation((n) => n + 1);
+        setVisited((list) => (list.includes(next) ? list : [...list, next]));
         if (reducedMotionRef.current) return;
         setLeavingIndex(from);
         setFlare(true);
@@ -140,7 +147,8 @@ export function UnifiedHero({
     slide: typeof allSlides[number] | undefined,
     slideIndex = 0,
     sizesOverride?: string,
-    playing = true
+    playing = true,
+    restartToken?: number
   ) => {
     if (!slide?.mediaUrl) return null;
     const t = (slide.mediaType === 'image' || slide.mediaType === 'video' ? slide.mediaType : null) ?? 'default';
@@ -159,6 +167,7 @@ export function UnifiedHero({
           onEnded={() => carouselRef.current?.slideEnded(slideIndex)}
           onStalled={() => carouselRef.current?.slideStalled(slideIndex)}
           onError={() => carouselRef.current?.slideFailed(slideIndex)}
+          restartToken={restartToken}
         />
       </div>
     );
@@ -236,12 +245,13 @@ export function UnifiedHero({
         <div className="absolute inset-0 bg-black">
           {/*
             Mounted layers: the showing slide (plays), the next slide (standby:
-            metadata only, paused) and, during a crossfade, the outgoing slide.
+            metadata only, paused), the outgoing slide during a crossfade, and
+            slides already played (paused, reused on the next loop).
             Never more than one video downloads in full at a time.
           */}
           {allSlides.map((slide, idx) => {
             const isActive = idx === activeIndex;
-            if (!isActive && idx !== standbyIndex && idx !== leavingIndex) return null;
+            if (!isActive && idx !== standbyIndex && idx !== leavingIndex && !visited.includes(idx)) return null;
             return (
               <div
                 key={`hero-slide-${idx}-${slide?.mediaUrl ?? ''}`}
@@ -254,7 +264,7 @@ export function UnifiedHero({
                   willChange: 'opacity',
                 }}
               >
-                {renderSlide(slide, idx, undefined, isActive && !paused)}
+                {renderSlide(slide, idx, undefined, isActive && !paused, isActive ? activation : undefined)}
               </div>
             );
           })}

@@ -37,6 +37,8 @@ interface MediaAssetRendererProps {
   onEnded?: () => void;
   /** Hero video only: buffering exceeded the stall timeout while playing. */
   onStalled?: () => void;
+  /** Hero video only: each new value rewinds the clip to its start (a slide re-entering the carousel). */
+  restartToken?: number;
 }
 
 const STALL_TIMEOUT_MS = 8000;
@@ -150,6 +152,7 @@ interface HeroAutoplayVideoProps {
   loop?: boolean;
   onEnded?: () => void;
   onStalled?: () => void;
+  restartToken?: number;
 }
 
 function BufferedVideo({
@@ -206,9 +209,14 @@ function HeroAutoplayVideo({
   loop = true,
   onEnded,
   onStalled,
+  restartToken,
 }: HeroAutoplayVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const shouldPlay = playingProp !== false;
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && restartToken != null && v.currentTime > 0) v.currentTime = 0;
+  }, [restartToken]);
   const { playing, needsTap, buffering, stalled, attemptPlay, onPlaying, onWaiting, onCanPlay, onTapPlay } =
     useMutedAutoplay(videoRef, url, shouldPlay, onStalled);
   const maybePlay = () => {
@@ -321,6 +329,7 @@ function MediaAssetRendererInner({
   loop,
   onEnded,
   onStalled,
+  restartToken,
 }: MediaAssetRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [driveHealthChecked, setDriveHealthChecked] = useState(false);
@@ -403,6 +412,7 @@ function MediaAssetRendererInner({
         loop={loop}
         onEnded={onEnded}
         onStalled={onStalled}
+        restartToken={restartToken}
       />
     );
   }
