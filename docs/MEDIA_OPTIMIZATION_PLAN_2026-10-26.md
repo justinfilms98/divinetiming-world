@@ -71,8 +71,10 @@ width/height recorded (all 22 media records have empty dimensions), no "already 
 ### 1.5 Hero video delivery and caching
 
 - Served straight from Supabase Storage public URLs (Cloudflare in front).
-- Response headers: `Cache-Control: private, no-cache` → browsers must re-validate and Supabase's
-  CDN reports `DYNAMIC`, so repeat visits re-download.
+- *Corrected 2026-10-26 evening:* the earlier `private, no-cache` / `DYNAMIC` reading came from HEAD
+  requests. Real GET responses for the originals are `public, max-age=undefined` (hero 1) and
+  `no-cache` (heroes 2 and 3) with Supabase's CDN reporting `HIT`. So the CDN does cache them, but
+  browsers cannot reuse them and re-validate on every visit.
 - Images go through Vercel's `next/image` optimizer (resized WebP/AVIF, cached by Vercel), which
   fetches each original from Supabase once per size.
 - Hero carousel fix (preview `k6qhsbxu9`): one video downloads at a time, the next only loads
