@@ -25,6 +25,17 @@ function resolveImg(b: BlockRow): string | null {
   return b.external_image_asset?.preview_url ?? b.image_url ?? null;
 }
 
+async function fetchBlocks(): Promise<BlockRow[]> {
+  const res = await fetch('/api/admin/journey-blocks', { credentials: 'same-origin' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !Array.isArray(body.blocks)) return [];
+  return (body.blocks as BlockRow[]).map((b) => ({
+    ...b,
+    era_label: b.era_label ?? null,
+    status: b.status === 'published' ? 'published' : 'draft',
+  }));
+}
+
 export default function AdminJourneyPage() {
   const [blocks, setBlocks] = useState<BlockRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,25 +45,21 @@ export default function AdminJourneyPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/journey-blocks', { credentials: 'same-origin' });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok && Array.isArray(body.blocks)) {
-      setBlocks(
-        (body.blocks as BlockRow[]).map((b) => ({
-          ...b,
-          era_label: b.era_label ?? null,
-          status: b.status === 'published' ? 'published' : 'draft',
-        }))
-      );
-    } else {
-      setBlocks([]);
-    }
+    setBlocks(await fetchBlocks());
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetchBlocks().then((list) => {
+      if (cancelled) return;
+      setBlocks(list);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const createBlock = async () => {
     const res = await fetch('/api/admin/journey-blocks', {

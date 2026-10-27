@@ -32,6 +32,19 @@ function unwrapLibrary(payload: unknown): MediaLibraryAsset[] {
   return [];
 }
 
+type LibraryResult = { ok: true; assets: MediaLibraryAsset[] } | { ok: false; error: string };
+
+async function fetchLibrary(): Promise<LibraryResult> {
+  const res = await fetch('/api/admin/media-library?include_archived=1', {
+    credentials: 'same-origin',
+  }).catch(() => null);
+  const payload = res ? await res.json().catch(() => ({})) : {};
+  if (!res?.ok) {
+    return { ok: false, error: typeof payload.error === 'string' ? payload.error : 'Could not load library' };
+  }
+  return { ok: true, assets: unwrapLibrary(payload.data ?? payload) };
+}
+
 export default function AdminMediaPage() {
   const [assets, setAssets] = useState<MediaLibraryAsset[]>([]);
   const [filter, setFilter] = useState<LibraryFilter>('all');
@@ -47,24 +60,42 @@ export default function AdminMediaPage() {
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
 
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  const applyLibrary = useCallback(
+    (result: LibraryResult) => {
+      if (!result.ok) {
+        showToast('error', result.error);
+        setLoadState((s) => (s === 'ready' ? s : 'error'));
+        return;
+      }
+      setAssets(result.assets);
+      setLoadState('ready');
+    },
+    [showToast]
+  );
+
   const loadLibrary = useCallback(async () => {
-    const res = await fetch('/api/admin/media-library?include_archived=1', {
-      credentials: 'same-origin',
-    });
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      showToast('error', typeof payload.error === 'string' ? payload.error : 'Could not load library');
-      return;
-    }
-    setAssets(unwrapLibrary(payload.data ?? payload));
-  }, [showToast]);
+    applyLibrary(await fetchLibrary());
+  }, [applyLibrary]);
+
+  const retryLoad = () => {
+    setLoadState('loading');
+    loadLibrary();
+  };
 
   const displayUrl = (asset: MediaLibraryAsset) =>
     asset.preview_url || asset.thumbnail_url || '';
 
   useEffect(() => {
-    loadLibrary();
-  }, [loadLibrary]);
+    let cancelled = false;
+    fetchLibrary().then((result) => {
+      if (!cancelled) applyLibrary(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyLibrary]);
 
   const handleUpload = async (files: UploadedFile[]) => {
     if (files.length === 0) return;
@@ -156,14 +187,8 @@ export default function AdminMediaPage() {
   const applyFilters = (list: MediaLibraryAsset[]) =>
     sortAssets(list.filter(byType).filter(byArchive).filter(byCategory).filter(byTag).filter(bySearch));
 
-  const filteredCurrent = useMemo(
-    () => applyFilters(currentAssets),
-    [currentAssets, filter, searchQuery, sortOrder, archiveFilter, categoryFilter, tagFilter]
-  );
-  const filteredLegacy = useMemo(
-    () => applyFilters(legacyAssets),
-    [legacyAssets, filter, searchQuery, sortOrder, archiveFilter, categoryFilter, tagFilter]
-  );
+  const filteredCurrent = applyFilters(currentAssets);
+  const filteredLegacy = applyFilters(legacyAssets);
 
   const handleCopyUrl = async (url: string, id: string) => {
     await navigator.clipboard.writeText(url);
@@ -350,7 +375,30 @@ export default function AdminMediaPage() {
         </select>
       </div>
 
-      {assets.length === 0 ? (
+      {loadState === 'loading' && assets.length === 0 ? (
+        <div role="status" aria-live="polite" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
+          <span className="sr-only">Loading media library…</span>
+          {Array.from({ length: 10 }, (_, i) => (
+            <div key={i} aria-hidden className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="aspect-square bg-slate-100 motion-safe:animate-pulse" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 w-3/4 rounded bg-slate-100 motion-safe:animate-pulse" />
+                <div className="h-3 w-1/2 rounded bg-slate-100 motion-safe:animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : loadState === 'error' && assets.length === 0 ? (
+        <AdminCard>
+          <div className="text-center py-12 text-slate-600">
+            <p className="font-medium">The media library couldn&apos;t be loaded</p>
+            <p className="text-sm mt-1 text-slate-500">Your files are safe. Check your connection and try again.</p>
+            <button type="button" onClick={retryLoad} className="admin-tap mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium">
+              Try again
+            </button>
+          </div>
+        </AdminCard>
+      ) : assets.length === 0 ? (
         <AdminCard>
           <div className="text-center py-12 text-slate-500">
             <ImageIcon className="w-12 h-12 mx-auto mb-3 text-slate-300" />

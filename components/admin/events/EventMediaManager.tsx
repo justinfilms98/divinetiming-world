@@ -26,6 +26,14 @@ function resolveUrl(row: EventMediaRow): string | null {
   return row.external_media_asset?.preview_url ?? row.url ?? row.thumbnail_url ?? null;
 }
 
+async function fetchEventMedia(eventId: string): Promise<EventMediaRow[]> {
+  const res = await fetch(`/api/admin/event-media?event_id=${encodeURIComponent(eventId)}`, {
+    credentials: 'same-origin',
+  });
+  const body = await res.json().catch(() => ({}));
+  return res.ok && Array.isArray(body.media) ? (body.media as EventMediaRow[]) : [];
+}
+
 export function EventMediaManager({ eventId }: EventMediaManagerProps) {
   const [media, setMedia] = useState<EventMediaRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,21 +43,21 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/admin/event-media?event_id=${encodeURIComponent(eventId)}`, {
-      credentials: 'same-origin',
-    });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok && Array.isArray(body.media)) {
-      setMedia(body.media as EventMediaRow[]);
-    } else {
-      setMedia([]);
-    }
+    setMedia(await fetchEventMedia(eventId));
     setLoading(false);
   }, [eventId]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetchEventMedia(eventId).then((rows) => {
+      if (cancelled) return;
+      setMedia(rows);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
 
   const handleUploaded = async (files: UploadedFile[]) => {
     for (const f of files) {

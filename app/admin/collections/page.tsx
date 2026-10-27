@@ -179,7 +179,7 @@ export default function AdminCollectionsPage() {
       const assetIds = (mediaRows as { external_media_asset_id?: string | null }[])
         .map((m) => m.external_media_asset_id)
         .filter((id): id is string => !!id);
-      let previewByAssetId: Record<string, string> = {};
+      const previewByAssetId: Record<string, string> = {};
       if (assetIds.length > 0) {
         const { data: assets } = await supabase
           .from('external_media_assets')

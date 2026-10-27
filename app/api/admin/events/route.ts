@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { apiSuccess, apiError } from '@/lib/apiResponses';
 import { withResolvedThumbnails } from '@/lib/eventMedia';
+import { requestedStatus, statusForCreate } from '@/lib/admin/publicationStatus';
 import {
   EVENT_BOOKING_STATUSES,
   EVENT_TYPES,
@@ -10,6 +11,8 @@ import {
   type EventBookingStatus,
   type EventType,
 } from '@/lib/types/content';
+
+const EVENT_STATUSES = ['draft', 'published', 'archived'] as const;
 
 /** Kebab-case, lowercase slug. Used for URLs. */
 function generateEventSlug(title: string | null, city: string | null, date: string | null): string {
@@ -113,10 +116,9 @@ export async function POST(request: NextRequest) {
       external_thumbnail_asset_id: extThumbId,
       updated_at: now,
     };
-    const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
-    (eventData as Record<string, unknown>).status = status;
-
     if (id) {
+      const explicitStatus = requestedStatus(statusInput, EVENT_STATUSES);
+      if (explicitStatus) eventData.status = explicitStatus;
       const slugNorm = slugInput != null && String(slugInput).trim()
         ? toKebabSlug(String(slugInput).trim())
         : undefined;
@@ -157,7 +159,7 @@ export async function POST(request: NextRequest) {
     if (collision) return apiError('An event with this slug already exists', 409);
     const { data, error } = await supabase
       .from('events')
-      .insert({ ...eventData, display_order: order, slug, status })
+      .insert({ ...eventData, display_order: order, slug, status: statusForCreate(statusInput, EVENT_STATUSES) })
       .select()
       .single();
     if (error) return apiError('Operation failed.', 500);

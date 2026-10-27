@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Support both flat payload and { pageKey, hero: { ... } }
-    let slug: string = body.page_slug ?? body.pageKey ?? 'home';
+    const slug: string = body.page_slug ?? body.pageKey ?? 'home';
     let heroData: Record<string, unknown>;
 
     if (body.hero && typeof body.hero === 'object') {

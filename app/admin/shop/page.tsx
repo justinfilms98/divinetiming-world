@@ -128,19 +128,19 @@ export default function AdminShopPage() {
       .select('*, product_images(id, image_url, display_order, external_media_asset_id), product_variants(*)')
       .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
-    const sorted = (data || []).map((p: any) => ({
+    const sorted = ((data || []) as Product[]).map((p) => ({
       ...p,
-      product_images: (p.product_images || []).sort(
+      product_images: [...(p.product_images || [])].sort(
         (a: ProductImage, b: ProductImage) => (a.display_order ?? 0) - (b.display_order ?? 0)
       ),
-    })) as Product[];
+    }));
     const assetIds = new Set<string>();
     for (const p of sorted) {
       for (const img of p.product_images || []) {
         if (img.external_media_asset_id && !img.image_url) assetIds.add(img.external_media_asset_id);
       }
     }
-    let previewByAssetId: Record<string, string> = {};
+    const previewByAssetId: Record<string, string> = {};
     if (assetIds.size > 0) {
       const { data: assets } = await supabase
         .from('external_media_assets')
@@ -217,7 +217,7 @@ export default function AdminShopPage() {
           price: parseFloat((formData.get('price') as string) || '0'),
           is_featured: formData.get('is_featured') === 'on',
           badge: (formData.get('badge') as string) || null,
-          status: (formData.get('status') as string) || 'published',
+          status: (formData.get('status') as string) || undefined,
           sku: (formData.get('sku') as string)?.trim() || null,
           category: (formData.get('category') as string)?.trim() || null,
           shipping_weight_grams: (formData.get('shipping_weight_grams') as string) || null,
@@ -577,11 +577,11 @@ export default function AdminShopPage() {
                   defaultValue={(editingProduct as { status?: string })?.status ?? (editingProduct?.is_active ? 'published' : 'draft')}
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                 >
-                  <option value="published">Published (visible on Shop)</option>
                   <option value="draft">Draft (hidden)</option>
+                  <option value="published">Published (visible on Shop)</option>
                   <option value="archived">Archived (hidden)</option>
                 </select>
-                <p className="text-white/50 text-xs mt-1">Only published products appear on the public Shop page.</p>
+                <p className="text-white/50 text-xs mt-1">New products start as drafts. Only published products appear on the public Shop page.</p>
               </div>
 
               <div>

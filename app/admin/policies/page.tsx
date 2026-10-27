@@ -32,6 +32,29 @@ function looksUnreviewed(body: string): boolean {
   );
 }
 
+/** All four policies keyed by slug, or null when the request fails (keep what is on screen). */
+async function fetchPolicies(): Promise<Record<LegalPolicySlug, PolicyRow | null> | null> {
+  const res = await fetch('/api/admin/legal-policies', { credentials: 'same-origin' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !Array.isArray(body.policies)) return null;
+  const next: Record<LegalPolicySlug, PolicyRow | null> = {
+    privacy: null,
+    terms: null,
+    refund: null,
+    shipping: null,
+  };
+  for (const p of body.policies as PolicyRow[]) {
+    if (p.slug in next) {
+      next[p.slug] = {
+        ...p,
+        status: p.status === 'published' ? 'published' : 'draft',
+        effective_date: p.effective_date ?? null,
+      };
+    }
+  }
+  return next;
+}
+
 export default function AdminPoliciesPage() {
   const [policies, setPolicies] = useState<Record<LegalPolicySlug, PolicyRow | null>>({
     privacy: null,
@@ -47,32 +70,22 @@ export default function AdminPoliciesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/legal-policies', { credentials: 'same-origin' });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok && Array.isArray(body.policies)) {
-      const next: Record<LegalPolicySlug, PolicyRow | null> = {
-        privacy: null,
-        terms: null,
-        refund: null,
-        shipping: null,
-      };
-      for (const p of body.policies as PolicyRow[]) {
-        if (p.slug in next) {
-          next[p.slug] = {
-            ...p,
-            status: p.status === 'published' ? 'published' : 'draft',
-            effective_date: p.effective_date ?? null,
-          };
-        }
-      }
-      setPolicies(next);
-    }
+    const next = await fetchPolicies();
+    if (next) setPolicies(next);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetchPolicies().then((next) => {
+      if (cancelled) return;
+      if (next) setPolicies(next);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateLocal = (slug: LegalPolicySlug, patch: Partial<PolicyRow>) => {
     setPolicies((prev) => {

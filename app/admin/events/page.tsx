@@ -51,6 +51,12 @@ const FIELD_CLASS = 'w-full px-4 py-2 bg-white/5 border border-white/10 rounded-
 const SECTION_HEADING_CLASS = 'pt-4 border-t border-white/10 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C6A75E]/80';
 const SECONDARY_BTN_CLASS = 'admin-tap px-4 py-2.5 rounded-lg border border-white/20 text-white/80 hover:border-[#C6A75E]/60 hover:text-white text-sm font-medium transition-colors';
 
+async function fetchEvents(): Promise<Event[]> {
+  const res = await fetch('/api/admin/events', { credentials: 'same-origin' });
+  const body = await res.json().catch(() => ({}));
+  return res.ok && body.ok && Array.isArray(body.data) ? (body.data as Event[]) : [];
+}
+
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,22 +71,19 @@ export default function AdminEventsPage() {
   const dialog = useAdminDialog();
 
   useEffect(() => {
-    loadEvents();
+    let cancelled = false;
+    fetchEvents().then((list) => {
+      if (cancelled) return;
+      setEvents(list);
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loadEvents = async () => {
-    const res = await fetch('/api/admin/events', { credentials: 'same-origin' });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setEvents([]);
-      setIsLoading(false);
-      return;
-    }
-    if (body.ok && Array.isArray(body.data)) {
-      setEvents(body.data as Event[]);
-    } else {
-      setEvents([]);
-    }
+    setEvents(await fetchEvents());
     setIsLoading(false);
   };
 
@@ -146,7 +149,7 @@ export default function AdminEventsPage() {
       country: (formData.get('country') as string) || null,
       venue: formData.get('venue') as string,
       venue_url: (formData.get('venue_url') as string) || null,
-      status: (formData.get('status') as EventStatus) || 'published',
+      status: (formData.get('status') as EventStatus) || undefined,
       event_type: (formData.get('event_type') as string) || null,
       booking_status: (formData.get('booking_status') as string) || 'announced',
       ticket_url: (formData.get('ticket_url') as string) || null,
@@ -476,14 +479,14 @@ export default function AdminEventsPage() {
                 <label className="block text-white/70 text-sm font-medium mb-2">Visibility</label>
                 <select
                   name="status"
-                  defaultValue={editingEvent?.status ?? 'published'}
+                  defaultValue={editingEvent?.status ?? 'draft'}
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
                 >
-                  <option value="published">Published (visible on site)</option>
                   <option value="draft">Draft (hidden)</option>
+                  <option value="published">Published (visible on site)</option>
                   <option value="archived">Archived (hidden)</option>
                 </select>
-                <p className="text-white/50 text-xs mt-1">Only published events appear on the public Events page.</p>
+                <p className="text-white/50 text-xs mt-1">New events start as drafts. Only published events appear on the public Events page.</p>
               </div>
 
               <div>

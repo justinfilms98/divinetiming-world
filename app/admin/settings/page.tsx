@@ -17,14 +17,20 @@ export default function AdminSettingsPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    const { data } = await supabase.from('site_settings').select('*').single();
-    setSettings((data as Record<string, unknown> | null) ?? {});
-    setIsLoading(false);
-  };
+    let cancelled = false;
+    supabase
+      .from('site_settings')
+      .select('*')
+      .single()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSettings((data as Record<string, unknown> | null) ?? {});
+        setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

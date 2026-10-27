@@ -30,6 +30,12 @@ const STATUS_BADGE: Record<Exclude<ReleaseStatus, 'published'>, string> = {
   archived: 'bg-slate-500/20 text-slate-400',
 };
 
+async function fetchReleases(): Promise<Release[]> {
+  const res = await fetch('/api/admin/releases', { credentials: 'same-origin' });
+  const body = await res.json().catch(() => ({}));
+  return res.ok && body.ok && Array.isArray(body.data) ? (body.data as Release[]) : [];
+}
+
 export default function AdminReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,15 +49,21 @@ export default function AdminReleasesPage() {
   const dialog = useAdminDialog();
 
   const loadReleases = useCallback(async () => {
-    const res = await fetch('/api/admin/releases', { credentials: 'same-origin' });
-    const body = await res.json().catch(() => ({}));
-    setReleases(res.ok && body.ok && Array.isArray(body.data) ? (body.data as Release[]) : []);
+    setReleases(await fetchReleases());
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    loadReleases();
-  }, [loadReleases]);
+    let cancelled = false;
+    fetchReleases().then((list) => {
+      if (cancelled) return;
+      setReleases(list);
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openCreate = () => {
     setEditing(null);
