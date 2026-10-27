@@ -56,6 +56,8 @@ function getReducedMotion() {
 // Decided once per page view: switching renditions on resize would download the clip again.
 let cachedVariant: HeroVariant | null = null;
 function getHeroVariant(): HeroVariant {
+  // Bandwidth emergency switch (Vercel env var, needs a redeploy): stills only, no video downloads.
+  if (process.env.NEXT_PUBLIC_HERO_STILLS_ONLY === '1') return 'posters';
   if (!cachedVariant) {
     const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     cachedVariant = pickHeroVariant({
@@ -173,14 +175,41 @@ export function UnifiedHero({
     };
   }, [isCarousel, kindsKey]);
 
+  // Scrolled past or tab in the background: stop advancing and stop the video, so clips nobody
+  // is watching are not downloaded. Resumes where it left off when the hero is back in view.
+  const sectionRef = useRef<HTMLElement>(null);
+  const [autoPaused, setAutoPaused] = useState(false);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!isCarousel || !el || typeof IntersectionObserver === 'undefined') return;
+    let inView = true;
+    const update = () => setAutoPaused(!inView || document.visibilityState === 'hidden');
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        update();
+      },
+      { threshold: 0.15 }
+    );
+    io.observe(el);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      io.disconnect();
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, [isCarousel]);
+
+  const halted = paused || autoPaused;
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel || carousel.paused === halted) return;
+    if (halted) carousel.pause();
+    else carousel.resume();
+  }, [halted, kindsKey]);
+
   const goToSlide = (target: number) => carouselRef.current?.select(target);
 
-  const togglePaused = () => {
-    const next = !paused;
-    setPaused(next);
-    if (next) carouselRef.current?.pause();
-    else carouselRef.current?.resume();
-  };
+  const togglePaused = () => setPaused((p) => !p);
 
   // Only the showing slide plays and downloads; the next one preloads metadata.
   const standbyIndex = isCarousel ? (activeIndex + 1) % slideCount : null;
@@ -299,6 +328,7 @@ export function UnifiedHero({
 
   return (
     <section
+      ref={sectionRef}
       className={`relative w-full overflow-hidden rounded-b-2xl ${heightPreset === 'full' ? 'rounded-b-none' : ''}`}
     >
       <div className={`relative ${heightClasses[heightPreset]}`}>
@@ -324,7 +354,7 @@ export function UnifiedHero({
                   willChange: 'opacity',
                 }}
               >
-                {renderSlide(slide, idx, undefined, isActive && !paused, isActive ? activation : undefined)}
+                {renderSlide(slide, idx, undefined, isActive && !halted, isActive ? activation : undefined)}
               </div>
             );
           })}

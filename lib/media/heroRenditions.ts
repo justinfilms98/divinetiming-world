@@ -9,9 +9,9 @@ const STORAGE_BASE = 'https://lokewuvbrrvmlgdwivoa.supabase.co/storage/v1/object
 const DIR = 'hero/optimized/';
 
 export interface HeroRendition {
-  /** ≤1920 px wide, ~5.5 Mbit/s. */
+  /** ≤1920 px wide, ~4.5 Mbit/s (CRF 22). */
   desktop: string;
-  /** ≤1280 px wide, ~2.6 Mbit/s. */
+  /** ≤1280 px wide, ~2 Mbit/s (CRF 24). */
   mobile: string;
   /** First frame of the clip, so the poster-to-video handoff is seamless. */
   poster: string;
@@ -20,20 +20,20 @@ export interface HeroRendition {
 
 const RENDITIONS: Record<string, { desktop: string; mobile: string; poster: string; posterSmall: string }> = {
   'library/1779483817012-hero_1.mp4': {
-    desktop: 'hero-1-1080p-f1a49936b2.mp4',
-    mobile: 'hero-1-720p-f3daf77e46.mp4',
+    desktop: 'hero-1-1080p-5bae24087a.mp4',
+    mobile: 'hero-1-720p-979ccbcce0.mp4',
     poster: 'hero-1-poster-1920-cc726b6709.webp',
     posterSmall: 'hero-1-poster-1280-cb295f18e2.webp',
   },
   'library/1779482521222-hero_2.mp4': {
-    desktop: 'hero-2-1080p-e1c66eeca2.mp4',
-    mobile: 'hero-2-720p-07832e3852.mp4',
+    desktop: 'hero-2-1080p-552736446f.mp4',
+    mobile: 'hero-2-720p-dca495b116.mp4',
     poster: 'hero-2-poster-1920-c0f78ee6be.webp',
     posterSmall: 'hero-2-poster-1280-5c9ccc9110.webp',
   },
   'library/1779482501628-hero_3.mp4': {
-    desktop: 'hero-3-1080p-296e0ea290.mp4',
-    mobile: 'hero-3-720p-65665b1b0d.mp4',
+    desktop: 'hero-3-1080p-95ff580a74.mp4',
+    mobile: 'hero-3-720p-b664edcb7a.mp4',
     poster: 'hero-3-poster-1920-0a6fd06590.webp',
     posterSmall: 'hero-3-poster-1280-7d2e53fafb.webp',
   },
@@ -58,7 +58,7 @@ export interface HeroVariantEnv {
   effectiveType?: string;
 }
 
-// The phone rendition averages ~2.6 Mbit/s: below ~0.7 Mbit/s ("3g" and slower) even it can't
+// The phone rendition averages ~2 Mbit/s: below ~0.7 Mbit/s ("3g" and slower) even it can't
 // play in real time, so the carousel shows still frames instead of a stalling video.
 // `downlink` is deliberately ignored: a browser with no history reports ~1.5 Mbit/s on any line.
 export function pickHeroVariant(env: HeroVariantEnv): HeroVariant {
