@@ -15,9 +15,18 @@ import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import { compressImage } from '@/lib/utils/compressMedia';
-import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
+import type { HeroSlot } from '@/lib/types/content';
 import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
-import { activeHeroSlotCount, clearHeroSlot, heroSlotAt, heroSlotState, withHeroSlot } from '@/lib/hero/heroSlots';
+import {
+  activeHeroSlotCount,
+  clearHeroSlot,
+  heroSlotAt,
+  heroSlotFromMedia,
+  heroSlotState,
+  setHeroSlotEnabled,
+  withHeroSlot,
+} from '@/lib/hero/heroSlots';
+import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { describeSaveError } from '@/lib/admin/saveErrors';
 
 const PAGE_KEYS = ['home', 'events', 'media', 'shop', 'booking'] as const;
@@ -179,6 +188,8 @@ export function DashboardHeroEditor() {
   const [slotBusy, setSlotBusy] = useState<number | null>(null);
   const [slotUploading, setSlotUploading] = useState<number | null>(null);
   const [slotErrors, setSlotErrors] = useState<Record<number, string | null>>({});
+  /** Slot whose "Choose from library" picker is open. */
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const supabase = createClient();
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
@@ -477,44 +488,55 @@ export function DashboardHeroEditor() {
     }
   };
 
-  const handleSlotUploaded = async (slotNum: number, files: UploadedFile[]) => {
-    const file = files[0];
-    if (!file) return;
+  /** Put an uploaded or library file into slot N and show it. */
+  const setSlotMedia = async (
+    slotNum: number,
+    media: { url: string; mimeType?: string | null },
+    source: 'upload' | 'library'
+  ) => {
     const current = heroSectionsRef.current.home;
     if (!current?.id) {
-      showToast('error', 'Hero settings have not loaded yet, so the slot was not saved. The upload is safe in the Media Library — refresh and try again.');
+      showToast('error', 'Hero settings have not loaded yet, so the slot was not saved. Refresh and try again.');
       return;
     }
-    const isVideo = (file.mimeType || '').startsWith('video/');
-    const slot: HeroSlot = {
-      slot_index: slotNum as HeroSlotIndex,
-      enabled: true,
-      media_type: isVideo ? 'video' : 'image',
-      image_url: isVideo ? null : file.url,
-      image_storage_path: null,
-      video_url: isVideo ? file.url : null,
-      video_storage_path: null,
-      poster_storage_path: null,
-      embed_provider: null,
-      embed_id: null,
-      embed_url: null,
-      overlay_opacity: null,
-    };
+    const slot = heroSlotFromMedia(slotNum, media.url, media.mimeType);
+    if (!slot) {
+      showToast('error', `Slot ${slotNum} can only show an image or a video. Choose a different file.`);
+      return;
+    }
     await saveHomeSlots(
       slotNum,
       withHeroSlot(current.hero_slots, slotNum, slot),
-      `Slot ${slotNum} saved.`,
-      `The uploaded file is safe in the Media Library; upload it to slot ${slotNum} again to retry.`
+      `Slot ${slotNum} now shows this ${slot.media_type}.`,
+      source === 'upload'
+        ? `The uploaded file is safe in the Media Library; choose it for slot ${slotNum} again to retry.`
+        : 'The slot was not changed.'
     );
   };
 
-  const handleSlotRemove = async (slotNum: number, wasShowing: boolean) => {
+  const handleSlotUploaded = (slotNum: number, files: UploadedFile[]) => {
+    const file = files[0];
+    if (file) void setSlotMedia(slotNum, { url: file.url, mimeType: file.mimeType }, 'upload');
+  };
+
+  const handleSlotToggle = async (slotNum: number, show: boolean) => {
+    const current = heroSectionsRef.current.home;
+    if (!current) return;
+    await saveHomeSlots(
+      slotNum,
+      setHeroSlotEnabled(current.hero_slots, slotNum, show),
+      show
+        ? `Slot ${slotNum} is now showing on the homepage.`
+        : `Slot ${slotNum} is hidden from the homepage. Its media is kept — turn it back on any time.`
+    );
+  };
+
+  const handleSlotRemove = async (slotNum: number) => {
     const confirmed = await dialog.confirm({
-      title: `Empty slot ${slotNum}?`,
-      message: wasShowing
-        ? 'It will no longer appear on the homepage. The file stays in the Media Library and is not deleted.'
-        : 'This slot is already hidden from the homepage; this clears its leftover file reference. The file stays in the Media Library and is not deleted.',
-      confirmLabel: 'Empty slot',
+      title: `Remove the media from slot ${slotNum}?`,
+      message:
+        'The slot becomes empty and is not shown on the homepage. The file itself stays in the Media Library and is not deleted. To keep the media but stop showing it, use "Show on homepage" instead.',
+      confirmLabel: 'Remove media',
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -523,7 +545,7 @@ export function DashboardHeroEditor() {
     await saveHomeSlots(
       slotNum,
       clearHeroSlot(current.hero_slots, slotNum),
-      `Slot ${slotNum} emptied. The file is still in the Media Library.`
+      `Slot ${slotNum} is now empty. The file is still in the Media Library.`
     );
   };
 
@@ -717,19 +739,22 @@ export function DashboardHeroEditor() {
             <div className="mt-8 pt-6 border-t border-white/10">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <div className="min-w-0">
-                  <h3 className="text-white font-semibold text-sm">Carousel Slots</h3>
-                  <p className="text-white/50 text-xs mt-0.5">
-                    Upload 2–3 videos to enable cycling. Videos advance every 10 seconds with a cinematic transition.
+                  <h3 className="text-white font-semibold text-sm">Homepage slides</h3>
+                  <p className="text-white/60 text-sm mt-0.5 max-w-2xl">
+                    Up to three slots, each an image or a video. Show one slot for a single still or video; show two or three for a slideshow. Videos move on when they finish; images hold for 10 seconds.
                   </p>
                 </div>
-                {activeHeroSlotCount(hero?.hero_slots) >= 2 && (
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#C6A75E]/20 text-[#C6A75E] border border-[#C6A75E]/30">
-                    Carousel active
-                  </span>
-                )}
+                {(() => {
+                  const showing = activeHeroSlotCount(hero?.hero_slots);
+                  return (
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#C6A75E]/20 text-[#C6A75E] border border-[#C6A75E]/30" data-hero-mode>
+                      {showing === 0 ? 'No slides showing' : showing === 1 ? 'Single hero' : `Slideshow · ${showing} slides`}
+                    </span>
+                  );
+                })()}
               </div>
               <p className="text-white/50 text-xs mb-4">
-                Slot uploads and &quot;Empty slot&quot; save immediately. Emptying a slot never deletes the file — it stays in the Media Library.
+                Slot changes save immediately. Removing media never deletes the file — it stays in the Media Library.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -738,6 +763,9 @@ export function DashboardHeroEditor() {
                   const busy = slotBusy === slotNum || slotUploading === slotNum;
                   const slotError = slotErrors[slotNum];
                   const fileName = state.kind === 'empty' ? null : decodeURIComponent(state.url.split('/').pop() ?? '');
+
+                  const hasMedia = state.kind !== 'empty';
+                  const typeLabel = hasMedia ? (state.mediaType === 'video' ? 'Video' : 'Image') : null;
 
                   return (
                     <div
@@ -749,39 +777,53 @@ export function DashboardHeroEditor() {
                       data-slot-state={state.kind}
                     >
                       <div className="aspect-video relative bg-black/40">
-                        {state.kind === 'active' ? (
-                          state.mediaType === 'video' ? (
-                            <video
-                              src={state.url}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              muted
-                              playsInline
-                              preload="metadata"
-                            />
-                          ) : (
-                            <img
-                              src={state.url}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              alt={`Slot ${slotNum}`}
-                            />
-                          )
+                        {state.kind === 'active' && state.mediaType === 'video' ? (
+                          <video
+                            src={state.url}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : hasMedia && state.mediaType === 'image' ? (
+                          <img
+                            src={state.url}
+                            className={cn('absolute inset-0 w-full h-full object-cover', state.kind === 'off' && 'opacity-40 grayscale')}
+                            alt={`Slot ${slotNum}`}
+                          />
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-white/45">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-white/50">
                             <Video className="w-8 h-8" aria-hidden />
-                            <span className="text-sm">
-                              {state.kind === 'off' ? 'Switched off — not shown on the homepage' : 'Empty — not shown on the homepage'}
-                            </span>
-                            {state.kind === 'off' && fileName && (
-                              <span className="text-xs text-white/40 break-all">Still linked: {fileName}</span>
-                            )}
+                            <span className="text-sm">{hasMedia ? 'Hidden video' : 'Empty slot'}</span>
+                            {hasMedia && fileName && <span className="text-xs text-white/45 break-all">{fileName}</span>}
                           </div>
                         )}
                       </div>
                       <div className="p-3 space-y-2">
-                        <p className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                        <p className="text-white/70 text-xs font-medium uppercase tracking-wider">
                           Slot {slotNum}
-                          {state.kind === 'active' && <span className="ml-2 normal-case tracking-normal text-emerald-400">Showing</span>}
+                          {typeLabel && <span className="ml-2 normal-case tracking-normal text-white/50">{typeLabel}</span>}
+                          <span
+                            className={cn(
+                              'ml-2 normal-case tracking-normal',
+                              state.kind === 'active' ? 'text-emerald-400' : state.kind === 'off' ? 'text-amber-300' : 'text-white/45'
+                            )}
+                          >
+                            {state.kind === 'active' ? 'Showing' : state.kind === 'off' ? 'Hidden — media kept' : 'Empty'}
+                          </span>
                         </p>
+                        {hasMedia && (
+                          <label className="admin-tap flex min-h-11 cursor-pointer items-center gap-3 text-sm text-white/80">
+                            <input
+                              type="checkbox"
+                              className="h-5 w-5 accent-[#C6A75E]"
+                              checked={state.kind === 'active'}
+                              disabled={busy}
+                              onChange={(e) => handleSlotToggle(slotNum, e.target.checked)}
+                            />
+                            Show on homepage
+                          </label>
+                        )}
                         <UniversalUploader
                           acceptedTypes={['video', 'image']}
                           compression="hero"
@@ -791,22 +833,30 @@ export function DashboardHeroEditor() {
                             setSlotUploading(u ? slotNum : null);
                             setUploadInProgress(u);
                           }}
-                          buttonLabel={state.kind === 'active' ? 'Replace' : 'Upload'}
+                          buttonLabel={hasMedia ? 'Replace with a new file' : 'Upload a file'}
                         />
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setPickerSlot(slotNum)}
+                          className="admin-tap min-h-11 w-full sm:w-auto rounded-lg border border-white/15 px-3 text-sm text-white/80 hover:bg-white/5 disabled:opacity-40"
+                        >
+                          Choose from library
+                        </button>
                         {slotBusy === slotNum && <p className="text-white/60 text-sm" role="status">Saving slot {slotNum}…</p>}
                         {slotError && (
                           <p className="text-sm text-red-300" role="alert">
                             {slotError}
                           </p>
                         )}
-                        {state.kind !== 'empty' && (
+                        {hasMedia && (
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() => handleSlotRemove(slotNum, state.kind === 'active')}
+                            onClick={() => handleSlotRemove(slotNum)}
                             className="admin-tap min-h-11 px-3 -mx-1 rounded-lg text-red-400/80 hover:text-red-300 hover:bg-red-500/10 text-sm disabled:opacity-40"
                           >
-                            {state.kind === 'active' ? 'Empty slot' : 'Clear leftover file link'}
+                            Remove media
                           </button>
                         )}
                       </div>
@@ -814,6 +864,19 @@ export function DashboardHeroEditor() {
                   );
                 })}
               </div>
+              {pickerSlot !== null && (
+                <MediaLibraryPicker
+                  open
+                  filter="all"
+                  title={`Choose an image or video for slot ${pickerSlot}`}
+                  onClose={() => setPickerSlot(null)}
+                  onSelect={(asset) => {
+                    const slotNum = pickerSlot;
+                    setPickerSlot(null);
+                    void setSlotMedia(slotNum, { url: asset.preview_url, mimeType: asset.mime_type }, 'library');
+                  }}
+                />
+              )}
             </div>
           )}
 

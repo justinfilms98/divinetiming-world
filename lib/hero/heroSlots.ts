@@ -43,7 +43,7 @@ export function heroSlotMediaUrl(slot: HeroSlot | null | undefined): string | nu
 
 export type HeroSlotState =
   | { kind: 'active'; url: string; mediaType: HeroSlot['media_type'] }
-  /** Switched off but still referencing media (older "Remove" behaviour). Not shown publicly. */
+  /** Hidden from the homepage but its media is kept, so it can be shown again. */
   | { kind: 'off'; url: string; mediaType: HeroSlot['media_type'] }
   | { kind: 'empty' };
 
@@ -85,6 +85,49 @@ export function withHeroSlot(
 /** Empties slot N: media references cleared and switched off. The file itself stays in storage. */
 export function clearHeroSlot(slots: (HeroSlot | null)[] | null | undefined, slotNum: number): HeroSlot[] {
   return withHeroSlot(slots, slotNum, emptyHeroSlot(slotNum as HeroSlotIndex));
+}
+
+/**
+ * Show or hide slot N on the homepage without touching its media. Switching on an empty slot
+ * is a no-op (it stays off), so an enabled slot always has something to show.
+ */
+export function setHeroSlotEnabled(
+  slots: (HeroSlot | null)[] | null | undefined,
+  slotNum: number,
+  enabled: boolean
+): HeroSlot[] {
+  const current = heroSlotAt(slots, slotNum) ?? emptyHeroSlot(slotNum as HeroSlotIndex);
+  const on = enabled && heroSlotState(current).kind !== 'empty';
+  return withHeroSlot(slots, slotNum, { ...current, enabled: on });
+}
+
+const VIDEO_EXT = /\.(mp4|m4v|mov|webm)(\?|#|$)/i;
+const IMAGE_EXT = /\.(jpe?g|png|webp|avif|gif)(\?|#|$)/i;
+
+/** Image or video, from the MIME type, else the file extension. */
+export function heroMediaKind(url: string, mimeType?: string | null): 'image' | 'video' | null {
+  const mime = (mimeType || '').toLowerCase();
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('image/')) return 'image';
+  if (VIDEO_EXT.test(url)) return 'video';
+  if (IMAGE_EXT.test(url)) return 'image';
+  return null;
+}
+
+/**
+ * A switched-on slot showing `url` (uploaded or picked from the library). Changing a slot from
+ * image to video (or back) clears the other type's references. Null if the media isn't an image or video.
+ */
+export function heroSlotFromMedia(slotNum: number, url: string, mimeType?: string | null): HeroSlot | null {
+  const kind = heroMediaKind(url, mimeType);
+  if (!kind || !url.trim()) return null;
+  return {
+    ...emptyHeroSlot(slotNum as HeroSlotIndex),
+    enabled: true,
+    media_type: kind,
+    image_url: kind === 'image' ? url : null,
+    video_url: kind === 'video' ? url : null,
+  };
 }
 
 /** Count of slots that will actually appear on the homepage. */
