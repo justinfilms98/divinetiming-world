@@ -268,12 +268,28 @@ describe('demonstration content', () => {
     expect(isDemo('collections', 'd77dc441-678a-4b59-b566-4aadce501db5')).toBe(true);
     expect(isDemo('collections', 'some-real-collection')).toBe(false);
     const rows = [
-      { id: '99d1c43e-4d1c-4db7-b19c-649e44bfc19e', name: 'TEST TEST' },
+      { id: 'e923b6b6-ad3a-451a-8ccd-1b50d59a7fd2', name: 'Summer' },
       { id: 'real-1', name: 'test' },
     ];
-    const { real, demo } = splitDemo(rows, (id) => isDemo('events', id));
+    const { real, demo } = splitDemo(rows, (id) => isDemo('collections', id));
     expect(real.map((r) => r.id)).toEqual(['real-1']);
     expect(demo).toHaveLength(1);
+  });
+
+  it('counts the published Sunset of Elefantum I–VII events as real content', () => {
+    const elefantum = [
+      '99d1c43e-4d1c-4db7-b19c-649e44bfc19e',
+      'f048c471-cc2a-4835-91e2-e86a82e0b2f3',
+      '446e3048-1b0c-498d-8b06-8d2aadd1a029',
+      '3e48395b-74d4-4900-ac38-5b078f00b6db',
+      '5446d4f0-5d42-41ee-b329-6ca8ab8c4d89',
+      '2efad285-a4ef-4f3a-aca3-8f7a62148610',
+      '6a6cd2dc-6d17-463f-8c15-ffe65ac86b0d',
+    ].map((id) => ({ id, status: 'published' }));
+    const { real, demo } = splitDemo(elefantum, (id) => isDemo('events', id));
+    expect(demo).toHaveLength(0);
+    expect(real).toHaveLength(7);
+    expect(real.every((e) => e.status === 'published')).toBe(true);
   });
 
   it('keeps demo clicks out of totals and rankings but reports them separately', () => {

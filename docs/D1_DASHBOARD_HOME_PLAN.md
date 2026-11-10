@@ -58,7 +58,8 @@ Preview first; production only with approval.
 # Final D1 behaviour
 
 - **Demonstration content** is identified by exact record id in `lib/admin/demoContent.ts`
-  (7 events, 2 collections, 1 product — the owner-approved demo set). Never by title. Demo records
+  (2 collections, 1 product — the owner-approved demo set; the 7 original demo events became the
+  real "The Sunset of Elefantum" I–VII series on 2026-11-10 and are no longer demos). Never by title. Demo records
   keep their status and stay editable; the dashboard leaves them out of reminders, "Coming up",
   live/draft counts and fan-activity rankings, shows "N demo" counts, and the Events, Collections
   and Shop lists label them "Demo". The Shop still counts as live for the legal-pages rule while a
