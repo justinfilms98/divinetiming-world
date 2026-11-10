@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error';
 
@@ -17,6 +17,8 @@ interface AdminToastContextValue {
 const AdminToastContext = createContext<AdminToastContextValue | null>(null);
 
 const TOAST_DURATION_MS = 3000;
+/** Errors carry instructions, so they stay long enough to read (and can be dismissed). */
+const ERROR_TOAST_DURATION_MS = 12000;
 
 export function useAdminToast(): AdminToastContextValue {
   const ctx = useContext(AdminToastContext);
@@ -43,7 +45,13 @@ export function AdminToastProvider({ children }: { children: React.ReactNode }) 
     timeoutRef.current = setTimeout(() => {
       setToast(null);
       timeoutRef.current = null;
-    }, TOAST_DURATION_MS);
+    }, type === 'error' ? ERROR_TOAST_DURATION_MS : TOAST_DURATION_MS);
+  }, []);
+
+  const dismiss = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    setToast(null);
   }, []);
 
   return (
@@ -51,8 +59,8 @@ export function AdminToastProvider({ children }: { children: React.ReactNode }) 
       {children}
       {toast && (
         <div
-          role="status"
-          aria-live="polite"
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
           // Phones: above the bottom tab bar, full width. Desktop: top-right.
           className={`fixed z-[130] left-4 right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] md:left-auto md:bottom-auto md:top-4 md:right-4 md:max-w-sm flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
             toast.type === 'success'
@@ -65,11 +73,21 @@ export function AdminToastProvider({ children }: { children: React.ReactNode }) 
           ) : (
             <AlertCircle className="w-5 h-5 shrink-0" />
           )}
-          <span>
+          <span className="min-w-0 flex-1">
             {toast.type === 'success'
               ? toast.message || 'Saved'
               : toast.message || 'Something went wrong'}
           </span>
+          {toast.type === 'error' && (
+            <button
+              type="button"
+              onClick={dismiss}
+              className="admin-icon-btn shrink-0 -mr-2 rounded text-white/90 hover:bg-white/15"
+              aria-label="Dismiss message"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
     </AdminToastContext.Provider>
