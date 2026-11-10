@@ -2,8 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 
-const ALLOWLIST_EMAIL = 'divinetiming.world@gmail.com';
-
+/** Admins are the emails in public.admin_users (the same list the API and storage policies use). */
 export default async function AdminLayoutWrapper({
   children,
 }: {
@@ -16,10 +15,6 @@ export default async function AdminLayoutWrapper({
 
   if (!user?.email) {
     redirect('/login');
-  }
-
-  if (user.email.toLowerCase() !== ALLOWLIST_EMAIL.toLowerCase()) {
-    redirect('/');
   }
 
   const { data } = await supabase

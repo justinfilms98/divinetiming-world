@@ -29,9 +29,13 @@ export default function LoginPage() {
       return;
     }
 
-    // Check if user is admin
+    // Admins are the emails in admin_users; a signed-in user can read only their own row.
     const { data: { user } } = await supabase.auth.getUser();
-    if (user?.email?.toLowerCase() === 'divinetiming.world@gmail.com') {
+    const signedInEmail = user?.email?.toLowerCase();
+    const { data: adminRow } = signedInEmail
+      ? await supabase.from('admin_users').select('id').eq('email', signedInEmail).maybeSingle()
+      : { data: null };
+    if (adminRow) {
       router.push('/admin');
     } else {
       setError('Access denied. Admin access only.');
@@ -64,7 +68,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-[var(--accent)]"
-              placeholder="divinetiming.world@gmail.com"
+              placeholder="you@divinetiming.world"
             />
           </div>
 
