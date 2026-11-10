@@ -1,0 +1,19 @@
+diff --git a/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js b/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js
+index fae4753..dc33987 100644
+--- a/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js
++++ b/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js
+@@ -101,13 +101,7 @@ export class FFmpeg {
+      */
+     load = ({ classWorkerURL, ...config } = {}, { signal } = {}) => {
+         if (!this.#worker) {
+-            this.#worker = classWorkerURL ?
+-                new Worker(new URL(classWorkerURL, import.meta.url), {
+-                    type: "module",
+-                }) :
+-                // We need to duplicated the code here to enable webpack
+-                // to bundle worekr.js here.
+-                new Worker(new URL("./worker.js", import.meta.url), {
++            this.#worker = new Worker(new URL("./worker.js", import.meta.url), {
+                     type: "module",
+                 });
+             this.#registerHandlers();
