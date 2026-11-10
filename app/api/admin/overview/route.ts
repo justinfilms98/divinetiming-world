@@ -71,7 +71,9 @@ const getStorageUsage = unstable_cache(
     }
     return { bytes, files, measuredAt: new Date().toISOString() };
   },
-  ['admin-storage-usage'],
+  // The data cache is shared by every deployment of the project, so key it by database
+  // (otherwise a staging preview can show production's total, or the other way round).
+  ['admin-storage-usage', process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''],
   { revalidate: 900 }
 );
 
