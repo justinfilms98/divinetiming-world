@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
+import { AdminImage } from '@/components/admin/AdminImage';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaThumb } from '@/components/admin/MediaThumb';
 import { createClient } from '@/lib/supabase/client';
@@ -469,11 +470,9 @@ export default function AdminCollectionsPage() {
           <AdminCard key={g.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               {g.cover_image_url ? (
-                <img
-                  src={g.cover_image_url}
-                  alt=""
-                  className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                />
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                  <AdminImage src={g.cover_image_url} alt="" sizes="64px" />
+                </div>
               ) : (
                 <div className="w-16 h-16 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 text-xs flex-shrink-0">
                   No cover
@@ -619,7 +618,9 @@ export default function AdminCollectionsPage() {
                 <p className="text-xs text-slate-500 mb-2">Shown as the story cover. Choose from library or clear.</p>
                 <div className="flex items-center gap-3 flex-wrap">
                   {editingGallery.cover_image_url ? (
-                    <img src={editingGallery.cover_image_url} alt="" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+                      <AdminImage src={editingGallery.cover_image_url} alt="" sizes="80px" />
+                    </div>
                   ) : (
                     <div className="w-20 h-20 rounded-lg bg-slate-200 flex items-center justify-center">
                       <ImageIcon className="w-8 h-8 text-slate-400" />

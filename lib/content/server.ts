@@ -7,6 +7,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
 import { resolveHeroSlots } from '@/lib/hero/heroSlots';
+import { displayImageUrl } from '@/lib/media/webCopies';
 import { withResolvedThumbnails, resolveEventThumbnailUrl } from '@/lib/eventMedia';
 import {
   resolveGalleryCoverUrl,
@@ -110,7 +111,7 @@ export async function getEventMedia(eventId: string): Promise<EventMedia[]> {
   };
   return (data as Row[]).map((row) => {
     const resolved = row.external_media_asset?.preview_url ?? row.external_media_asset?.thumbnail_url ?? row.url ?? row.thumbnail_url ?? null;
-    return { ...row, resolved_url: resolved };
+    return { ...row, resolved_url: displayImageUrl(resolved) };
   });
 }
 
@@ -210,7 +211,7 @@ export async function getJourneyBlocks(): Promise<JourneyBlock[]> {
     era_label: row.era_label ?? null,
     body: row.body,
     image_url: row.image_url,
-    resolved_image_url: row.external_image_asset?.preview_url ?? row.image_url ?? null,
+    resolved_image_url: displayImageUrl(row.external_image_asset?.preview_url ?? row.image_url ?? null),
     align: row.align ?? 'left',
     display_order: row.display_order ?? 0,
     status: row.status === 'published' ? 'published' : 'draft',

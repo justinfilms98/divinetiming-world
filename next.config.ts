@@ -48,6 +48,10 @@ const nextConfig: NextConfig = {
   },
   // Direct CDN only. No /image proxy. Uploadcare + Drive for legacy; Supabase Storage for hero media.
   images: {
+    // Keep optimized copies for 31 days, so large originals are fetched from storage about once a
+    // month per region instead of whenever their short storage cache headers expire. Safe because
+    // media URLs are never overwritten: every upload gets a new timestamped or content-hashed path.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       { protocol: 'https', hostname: 'ucarecdn.com', pathname: '/**' },
       { protocol: 'https', hostname: 'ucarecdn.net', pathname: '/**' },

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Reveal } from '@/components/motion/Reveal';
 import { Container } from '@/components/ui/Container';
 import { Lightbox, type LightboxItem } from '@/components/media/Lightbox';
+import { OnDemandVideo } from '@/components/media/OnDemandVideo';
 import { BLUR_PLACEHOLDER } from '@/lib/utils/blur';
 import { cn } from '@/lib/ui/cn';
 
@@ -138,15 +139,16 @@ function StoryFrameFigure({
       </span>
 
       {frame.media_type === 'video' ? (
-        <video
-          src={frame.url}
-          poster={frame.thumbnail_url ?? undefined}
-          controls
-          playsInline
-          preload="metadata"
-          className="block w-full max-w-full rounded-[var(--radius-card-lg)] border border-[var(--accent)]/20 bg-black"
-          style={{ maxHeight: FRAME_MAX_HEIGHT }}
-        />
+        // Downloads only when played, so opening the story doesn't fetch every clip.
+        <div className="w-[min(100%,1100px)]">
+          <OnDemandVideo
+            src={frame.url}
+            poster={frame.thumbnail_url}
+            label={caption ? `Play video ${number}: ${caption}` : `Play video ${number} of ${title}`}
+            posterSizes={FRAME_SIZES}
+            className="max-w-full max-h-[88svh] object-contain rounded-[var(--radius-card-lg)] border border-[var(--accent)]/20"
+          />
+        </div>
       ) : (
         <button
           type="button"

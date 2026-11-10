@@ -5,6 +5,8 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { Trash2, ChevronUp, ChevronDown, Video } from 'lucide-react';
+import { AdminImage } from '@/components/admin/AdminImage';
+import { isVideoUrl } from '@/lib/media/mediaUrls';
 
 interface EventMediaRow {
   id: string;
@@ -158,20 +160,22 @@ export function EventMediaManager({ eventId }: EventMediaManagerProps) {
               <div key={m.id} className="relative group rounded-lg overflow-hidden border border-white/10 bg-white/5 aspect-square">
                 {url ? (
                   m.media_type === 'video' ? (
+                    // A poster if one exists, otherwise an icon: the grid never downloads the video itself.
                     <>
-                      <video
-                        src={url}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] uppercase tracking-wider flex items-center gap-1">
+                      {m.thumbnail_url && !isVideoUrl(m.thumbnail_url) ? (
+                        <AdminImage src={m.thumbnail_url} alt={m.caption ?? ''} sizes="(max-width: 640px) 50vw, 200px" />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 px-2 text-center text-white/60">
+                          <Video className="w-7 h-7" aria-hidden />
+                          <span className="text-xs break-all line-clamp-2">{decodeURIComponent(url.split('/').pop() ?? '')}</span>
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-xs uppercase tracking-wider flex items-center gap-1">
                         <Video className="w-3 h-3" /> Video
                       </div>
                     </>
                   ) : (
-                    <img src={url} alt={m.caption ?? ''} className="w-full h-full object-cover" />
+                    <AdminImage src={url} alt={m.caption ?? ''} sizes="(max-width: 640px) 50vw, 200px" />
                   )
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">

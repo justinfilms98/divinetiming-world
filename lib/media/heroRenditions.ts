@@ -5,7 +5,8 @@
  * is immutable: a re-encode gets a new name, never an overwrite.
  */
 
-const STORAGE_BASE = 'https://lokewuvbrrvmlgdwivoa.supabase.co/storage/v1/object/public/media/';
+// The project's own storage, so a staging build never streams production's renditions.
+const STORAGE_BASE = `${(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://lokewuvbrrvmlgdwivoa.supabase.co').replace(/\/$/, '')}/storage/v1/object/public/media/`;
 const DIR = 'hero/optimized/';
 
 export interface HeroRendition {
