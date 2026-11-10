@@ -1,5 +1,18 @@
 import type { NextConfig } from "next";
 
+// Staging branch only: refuse to build unless it points at the isolated staging database,
+// so this branch can never produce a preview connected to production data.
+const STAGING_SUPABASE_REF = 'goapnjajsjslxbjqthyo';
+if (
+  process.env.VERCEL_GIT_COMMIT_REF === 'staging/d2a' &&
+  !(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').includes(STAGING_SUPABASE_REF)
+) {
+  throw new Error(
+    `staging/d2a must be built with the staging Supabase project (${STAGING_SUPABASE_REF}). ` +
+      'Add the branch-scoped Preview environment variables in Vercel, then redeploy.'
+  );
+}
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
