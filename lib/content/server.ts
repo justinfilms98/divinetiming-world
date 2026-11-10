@@ -5,7 +5,8 @@
 
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import { resolveHeroMediaUrl, resolveHeroLogoUrl, resolveHeroSlotImageUrl, resolveHeroSlotVideoUrl, resolveHeroSlotPosterUrl } from '@/lib/storageUrls';
+import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
+import { resolveHeroSlots } from '@/lib/hero/heroSlots';
 import { withResolvedThumbnails, resolveEventThumbnailUrl } from '@/lib/eventMedia';
 import {
   resolveGalleryCoverUrl,
@@ -17,9 +18,6 @@ import type {
   PageSettings,
   HeroSection,
   HeroCarouselSlide,
-  HeroSlot,
-  HeroSlotResolved,
-  HeroSlotIndex,
   Event,
   EventMedia,
   Gallery,
@@ -46,74 +44,6 @@ export type { PageSettings, HeroSection, HeroCarouselSlide, Event, Gallery, Gall
 
 const HERO_SELECT =
   'page_slug, media_type, media_url, media_storage_path, hero_logo_url, hero_logo_storage_path, overlay_opacity, label_text, headline, subtext, cta_text, cta_url, animation_type, animation_enabled, id, created_at, updated_at, external_media_asset_id, hero_slots';
-
-/** Normalize and resolve hero_slots (max 3). Supports Phase 9.1 shape and legacy type/youtube_id shape. */
-function resolveHeroSlots(raw: unknown): HeroSlotResolved[] | null {
-  if (raw == null) return null;
-  let arr: (HeroSlot & { type?: string; youtube_id?: string | null; video_url?: string | null })[];
-  if (Array.isArray(raw)) {
-    arr = raw.slice(0, 3) as (HeroSlot & { type?: string; youtube_id?: string | null; video_url?: string | null })[];
-  } else if (typeof raw === 'object' && raw !== null) {
-    arr = [];
-    for (let i = 0; i < 3; i++) {
-      const slot = (raw as Record<string, unknown>)[i] ?? (raw as Record<string, unknown>)[`slot_${i + 1}`];
-      if (slot != null && typeof slot === 'object') arr.push(slot as (HeroSlot & { video_url?: string | null }));
-    }
-  } else {
-    return null;
-  }
-  const resolved: HeroSlotResolved[] = [];
-  for (let i = 0; i < arr.length; i++) {
-    const s = arr[i];
-    if (!s || typeof s !== 'object') continue;
-    const slotIndex = (i + 1) as HeroSlotIndex;
-    const opacity = s.overlay_opacity != null ? Math.max(0, Math.min(0.7, Number(s.overlay_opacity))) : null;
-    const enabled = s.enabled !== false;
-
-    if (s.media_type === 'image' || (s as { type?: string }).type === 'image') {
-      const resolved_image_url = resolveHeroSlotImageUrl(s.image_storage_path) ?? s.image_url ?? null;
-      if (enabled && resolved_image_url) {
-        resolved.push({
-          slot_index: slotIndex,
-          enabled: true,
-          media_type: 'image',
-          resolved_image_url,
-          overlay_opacity: opacity,
-        });
-      }
-    } else if (s.media_type === 'video') {
-      const fromPath = resolveHeroSlotVideoUrl(s.video_storage_path);
-      const directUrl = (s as { video_url?: string | null }).video_url;
-      const resolved_video_url = fromPath ?? (typeof directUrl === 'string' && directUrl.trim() ? directUrl.trim() : null) ?? null;
-      const resolved_poster_url = resolveHeroSlotPosterUrl(s.poster_storage_path) ?? null;
-      if (enabled && resolved_video_url) {
-        resolved.push({
-          slot_index: slotIndex,
-          enabled: true,
-          media_type: 'video',
-          resolved_video_url,
-          resolved_poster_url: resolved_poster_url ?? undefined,
-          overlay_opacity: opacity,
-        });
-      }
-    } else if (s.media_type === 'embed' || (s as { type?: string }).type === 'youtube') {
-      const embedUrl = s.embed_url ?? (s.embed_provider === 'youtube' && s.embed_id ? `https://www.youtube.com/embed/${s.embed_id}` : null)
-        ?? (s.embed_provider === 'vimeo' && s.embed_id ? `https://player.vimeo.com/video/${s.embed_id}` : null);
-      const legacyYoutubeId = (s as { youtube_id?: string | null }).youtube_id;
-      const resolved_embed_url = embedUrl ?? (legacyYoutubeId ? `https://www.youtube.com/embed/${legacyYoutubeId}` : null);
-      if (enabled && resolved_embed_url) {
-        resolved.push({
-          slot_index: slotIndex,
-          enabled: true,
-          media_type: 'embed',
-          resolved_embed_url,
-          overlay_opacity: opacity,
-        });
-      }
-    }
-  }
-  return resolved.length ? resolved : null;
-}
 
 export async function getPageSettings(pageSlug: string): Promise<PageSettings | null> {
   const supabase = await createClient();

@@ -4,6 +4,17 @@ import { requireAdmin } from '@/lib/admin/auth';
 
 /** Journey blocks CRUD (admin only). Mirrors gallery-media patterns. */
 
+const BLOCK_SELECT = '*, external_image_asset:external_media_assets(id, preview_url)';
+
+async function readJson(request: NextRequest): Promise<Record<string, unknown> | null> {
+  try {
+    const body = await request.json();
+    return body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET() {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
@@ -11,7 +22,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('journey_blocks')
-    .select('*, external_image_asset:external_media_assets(id, preview_url)')
+    .select(BLOCK_SELECT)
     .order('display_order', { ascending: true });
   if (error) {
     console.error('Admin journey-blocks GET error:', error);
@@ -26,9 +37,10 @@ export async function POST(request: NextRequest) {
   const supabase = auth.supabase!;
 
   try {
-    const body = await request.json();
+    const body = await readJson(request);
+    if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     const { id, title, body: bodyText, image_url, external_image_asset_id, align, display_order, era_label } =
-      body;
+      body as Record<string, string | number | null | undefined>;
     const status = body.status === 'published' ? 'published' : 'draft';
     const era = typeof era_label === 'string' && era_label.trim() ? era_label.trim() : null;
 
@@ -47,9 +59,12 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .select()
+        .select(BLOCK_SELECT)
         .single();
       if (error) {
+        if (error.code === 'PGRST116') {
+          return NextResponse.json({ error: 'This chapter no longer exists. Refresh the page.' }, { status: 404 });
+        }
         console.error('Admin journey-blocks PUT error:', error);
         return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
@@ -57,12 +72,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ block: data });
     }
 
-    const { data: maxOrder } = await supabase
+    const { data: maxOrder, error: orderError } = await supabase
       .from('journey_blocks')
       .select('display_order')
       .order('display_order', { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (orderError) {
+      console.error('Admin journey-blocks order read error:', orderError);
+      return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
+    }
     const order = display_order ?? (maxOrder?.display_order ?? -1) + 1;
 
     const { data, error } = await supabase
@@ -77,7 +96,7 @@ export async function POST(request: NextRequest) {
         display_order: order,
         status,
       })
-      .select()
+      .select(BLOCK_SELECT)
       .single();
     if (error) {
       console.error('Admin journey-blocks POST error:', error);
@@ -91,24 +110,54 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/** Reorder. Succeeds only if every listed chapter was updated. */
 export async function PATCH(request: NextRequest) {
   const auth = await requireAdmin();
   if (auth.error) return auth.error;
   const supabase = auth.supabase!;
 
   try {
-    const body = await request.json();
-    const { items } = body as { items?: { id: string; display_order: number }[] };
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'items array required' }, { status: 400 });
+    const body = await readJson(request);
+    const items = body?.items;
+    const valid =
+      Array.isArray(items) &&
+      items.length > 0 &&
+      items.every(
+        (i) => i && typeof i === 'object' && typeof i.id === 'string' && i.id && Number.isInteger(i.display_order)
+      );
+    if (!valid) {
+      return NextResponse.json({ error: 'items must be a list of { id, display_order }' }, { status: 400 });
     }
-    for (const item of items) {
-      await supabase
+
+    const failed: string[] = [];
+    const missing: string[] = [];
+    const now = new Date().toISOString();
+    for (const item of items as { id: string; display_order: number }[]) {
+      const { data, error } = await supabase
         .from('journey_blocks')
-        .update({ display_order: item.display_order, updated_at: new Date().toISOString() })
-        .eq('id', item.id);
+        .update({ display_order: item.display_order, updated_at: now })
+        .eq('id', item.id)
+        .select('id');
+      if (error) {
+        console.error('Admin journey-blocks PATCH error:', item.id, error);
+        failed.push(item.id);
+      } else if (!Array.isArray(data) || data.length === 0) {
+        missing.push(item.id);
+      }
     }
-    revalidatePath('/journey');
+
+    const changed = items.length - failed.length - missing.length;
+    if (changed > 0) revalidatePath('/journey');
+    if (failed.length || missing.length) {
+      return NextResponse.json(
+        {
+          error: `The new order was not fully saved (${changed} of ${items.length} chapters updated). Refresh the page and try again.`,
+          failed,
+          missing,
+        },
+        { status: failed.length ? 500 : 404 }
+      );
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Admin journey-blocks PATCH error:', err);

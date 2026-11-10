@@ -8,13 +8,17 @@ import {
   type UploadedFile,
 } from '@/components/admin/uploader/UniversalUploader';
 import { revalidatePaths } from '@/lib/revalidate';
-import { resolveHeroMediaUrl, resolveHeroLogoUrl, resolveHeroSlotVideoUrl, resolveHeroSlotImageUrl } from '@/lib/storageUrls';
+import { resolveHeroMediaUrl, resolveHeroLogoUrl } from '@/lib/storageUrls';
 import { Save, Check, Copy, ImageIcon, Video, Upload, HelpCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/ui/cn';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useUnsavedChangesGuard } from '@/components/admin/useUnsavedChangesGuard';
 import { compressImage } from '@/lib/utils/compressMedia';
 import type { HeroSlot, HeroSlotIndex } from '@/lib/types/content';
 import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
+import { activeHeroSlotCount, clearHeroSlot, heroSlotAt, heroSlotState, withHeroSlot } from '@/lib/hero/heroSlots';
+import { describeSaveError } from '@/lib/admin/saveErrors';
 
 const PAGE_KEYS = ['home', 'events', 'media', 'shop', 'booking'] as const;
 const PAGE_LABELS: Record<string, string> = {
@@ -167,21 +171,68 @@ export function DashboardHeroEditor() {
   /** Poster for single hero (video only). Synced from hero_slots[0].poster_storage_path; updated on poster upload. */
   const [posterStoragePath, setPosterStoragePath] = useState<string | null>(null);
   const [ctaError, setCtaError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  /** Pages with edits not yet saved with the Save button. */
+  const [dirtyPages, setDirtyPages] = useState<ReadonlySet<string>>(new Set());
+  /** Home carousel slot whose change is being saved (slot actions save immediately). */
+  const [slotBusy, setSlotBusy] = useState<number | null>(null);
+  const [slotUploading, setSlotUploading] = useState<number | null>(null);
+  const [slotErrors, setSlotErrors] = useState<Record<number, string | null>>({});
   const supabase = createClient();
   const { showToast } = useAdminToast();
+  const dialog = useAdminDialog();
+  /** Latest state for async slot handlers, so two quick slot actions never overwrite each other. */
+  const heroSectionsRef = useRef(heroSections);
+  useEffect(() => {
+    heroSectionsRef.current = heroSections;
+  }, [heroSections]);
 
   useEffect(() => {
-    loadHeroes();
-  }, []);
+    let cancelled = false;
+    supabase
+      .from('hero_sections')
+      .select('*')
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setLoadError(error.message || 'Could not load hero settings.');
+          return;
+        }
+        const map: Record<string, HeroSection> = {};
+        (data || []).forEach((h: HeroSection) => {
+          map[h.page_slug] = h;
+        });
+        setLoadError(null);
+        setHeroSections(map);
+        heroSectionsRef.current = map;
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only on explicit retry
+  }, [loadAttempt]);
 
-  const loadHeroes = async () => {
-    const { data } = await supabase.from('hero_sections').select('*');
-    const map: Record<string, HeroSection> = {};
-    (data || []).forEach((h: HeroSection) => {
-      map[h.page_slug] = h;
-    });
-    setHeroSections(map);
-  };
+  const markDirty = useCallback(
+    (page: string) => setDirtyPages((prev) => (prev.has(page) ? prev : new Set(prev).add(page))),
+    []
+  );
+  const markClean = useCallback(
+    (page: string) =>
+      setDirtyPages((prev) => {
+        if (!prev.has(page)) return prev;
+        const next = new Set(prev);
+        next.delete(page);
+        return next;
+      }),
+    []
+  );
+
+  const hasUnsaved = dirtyPages.size > 0;
+  useUnsavedChangesGuard(
+    hasUnsaved,
+    `You have unsaved hero changes on: ${[...dirtyPages].map((p) => PAGE_LABELS[p] ?? p).join(', ')}. Leaving now discards them.`
+  );
 
   const hero = selectedPage ? heroSections[selectedPage] : null;
   const heroMediaDisplayUrl = hero ? resolveHeroMediaUrl(hero) : null;
@@ -235,13 +286,14 @@ export function DashboardHeroEditor() {
         });
         if (uploadErr) throw new Error(uploadErr.message || 'Storage upload failed');
         setPosterStoragePath(path);
+        markDirty(selectedPage);
       } catch (err) {
-        showToast('error', err instanceof Error ? err.message : 'Poster upload failed');
+        showToast('error', `Poster not uploaded: ${err instanceof Error ? err.message : 'upload failed'}. Nothing was changed — try again.`);
       } finally {
         setPosterUploading(false);
       }
     },
-    [selectedPage, showToast]
+    [selectedPage, showToast, markDirty]
   );
 
   const handleReplaceMedia = (files: UploadedFile[]) => {
@@ -258,10 +310,12 @@ export function DashboardHeroEditor() {
         external_media_asset_id: file.id ?? null,
       } as HeroSection,
     }));
+    markDirty(selectedPage);
   };
 
   const handleRemoveMedia = () => {
     if (!selectedPage) return;
+    markDirty(selectedPage);
     setHeroSections((prev) => ({
       ...prev,
       [selectedPage]: {
@@ -277,6 +331,7 @@ export function DashboardHeroEditor() {
 
   const updateHero = (updates: Partial<HeroSection>) => {
     if (!selectedPage) return;
+    markDirty(selectedPage);
     setHeroSections((prev) => ({
       ...prev,
       [selectedPage]: { ...(prev[selectedPage] || {}), ...updates } as HeroSection,
@@ -351,7 +406,10 @@ export function DashboardHeroEditor() {
           setCtaError(msg);
           return;
         }
-        showToast('error', 'Error saving: ' + msg);
+        showToast(
+          'error',
+          describeSaveError({ status: res.status, serverMessage: msg, subject: `the ${PAGE_LABELS[selectedPage] ?? selectedPage} hero` })
+        );
         return;
       }
       if (data.hero && typeof data.hero === 'object' && !Array.isArray(data.hero)) {
@@ -361,13 +419,112 @@ export function DashboardHeroEditor() {
           [selectedPage]: { ...prev[selectedPage], ...heroUpdate },
         }));
       }
+      markClean(selectedPage);
       const path = selectedPage === 'home' ? '/' : `/${selectedPage}`;
       await revalidatePaths([path]);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } catch {
+      showToast(
+        'error',
+        describeSaveError({ status: 0, subject: `the ${PAGE_LABELS[selectedPage] ?? selectedPage} hero` })
+      );
     } finally {
       setSaving(false);
     }
+  };
+
+  /**
+   * Saves only the home carousel slots. The server changes nothing else, and only the returned
+   * slots are merged back, so unsaved logo, overlay and text edits stay in the editor.
+   */
+  const saveHomeSlots = async (
+    slotNum: number,
+    nextSlots: HeroSlot[],
+    successMessage: string,
+    failureNote = 'The slot was not changed.'
+  ): Promise<boolean> => {
+    setSlotBusy(slotNum);
+    setSlotErrors((prev) => ({ ...prev, [slotNum]: null }));
+    const fail = (status: number, serverMessage?: unknown) => {
+      const msg = `${describeSaveError({ status, serverMessage, subject: `slot ${slotNum}`, editsKept: false })} ${failureNote}`;
+      setSlotErrors((prev) => ({ ...prev, [slotNum]: msg }));
+      showToast('error', msg);
+      return false;
+    };
+    try {
+      const res = await fetch('/api/admin/hero', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ page_slug: 'home', hero_slots: nextSlots }),
+      });
+      const data = await parseJsonResponse(res, 'Slot save failed');
+      if (!res.ok) return fail(res.status, data?.error);
+      const savedHero = data.hero as Partial<HeroSection> | undefined;
+      const savedSlots = Array.isArray(savedHero?.hero_slots) ? savedHero.hero_slots : nextSlots;
+      setHeroSections((prev) => {
+        const next = { ...prev, home: { ...prev.home, hero_slots: savedSlots } as HeroSection };
+        heroSectionsRef.current = next;
+        return next;
+      });
+      showToast('success', successMessage);
+      return true;
+    } catch {
+      return fail(0);
+    } finally {
+      setSlotBusy(null);
+    }
+  };
+
+  const handleSlotUploaded = async (slotNum: number, files: UploadedFile[]) => {
+    const file = files[0];
+    if (!file) return;
+    const current = heroSectionsRef.current.home;
+    if (!current?.id) {
+      showToast('error', 'Hero settings have not loaded yet, so the slot was not saved. The upload is safe in the Media Library — refresh and try again.');
+      return;
+    }
+    const isVideo = (file.mimeType || '').startsWith('video/');
+    const slot: HeroSlot = {
+      slot_index: slotNum as HeroSlotIndex,
+      enabled: true,
+      media_type: isVideo ? 'video' : 'image',
+      image_url: isVideo ? null : file.url,
+      image_storage_path: null,
+      video_url: isVideo ? file.url : null,
+      video_storage_path: null,
+      poster_storage_path: null,
+      embed_provider: null,
+      embed_id: null,
+      embed_url: null,
+      overlay_opacity: null,
+    };
+    await saveHomeSlots(
+      slotNum,
+      withHeroSlot(current.hero_slots, slotNum, slot),
+      `Slot ${slotNum} saved.`,
+      `The uploaded file is safe in the Media Library; upload it to slot ${slotNum} again to retry.`
+    );
+  };
+
+  const handleSlotRemove = async (slotNum: number, wasShowing: boolean) => {
+    const confirmed = await dialog.confirm({
+      title: `Empty slot ${slotNum}?`,
+      message: wasShowing
+        ? 'It will no longer appear on the homepage. The file stays in the Media Library and is not deleted.'
+        : 'This slot is already hidden from the homepage; this clears its leftover file reference. The file stays in the Media Library and is not deleted.',
+      confirmLabel: 'Empty slot',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    const current = heroSectionsRef.current.home;
+    if (!current) return;
+    await saveHomeSlots(
+      slotNum,
+      clearHeroSlot(current.hero_slots, slotNum),
+      `Slot ${slotNum} emptied. The file is still in the Media Library.`
+    );
   };
 
   const overlayPct = hero
@@ -434,7 +591,19 @@ export function DashboardHeroEditor() {
         </p>
       </div>
 
-      {!hero ? (
+      {loadError ? (
+        <div className="rounded-xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-200" role="alert">
+          <p className="font-medium">Couldn&apos;t load the hero settings. Nothing has been changed.</p>
+          <p className="mt-1 text-red-200/80">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => setLoadAttempt((n) => n + 1)}
+            className="admin-tap mt-3 min-h-11 rounded-lg border border-red-300/40 px-4 text-sm font-medium text-white hover:bg-white/10"
+          >
+            Try again
+          </button>
+        </div>
+      ) : !hero ? (
         <p className="text-slate-500 text-sm">Loading…</p>
       ) : (
         <div className="space-y-6">
@@ -553,30 +722,37 @@ export function DashboardHeroEditor() {
                     Upload 2–3 videos to enable cycling. Videos advance every 10 seconds with a cinematic transition.
                   </p>
                 </div>
-                {(hero?.hero_slots?.filter((s) => s.enabled).length ?? 0) >= 2 && (
+                {activeHeroSlotCount(hero?.hero_slots) >= 2 && (
                   <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#C6A75E]/20 text-[#C6A75E] border border-[#C6A75E]/30">
                     Carousel active
                   </span>
                 )}
               </div>
+              <p className="text-white/50 text-xs mb-4">
+                Slot uploads and &quot;Empty slot&quot; save immediately. Emptying a slot never deletes the file — it stays in the Media Library.
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[1, 2, 3].map((slotNum) => {
-                  const slotIndex = slotNum - 1;
-                  const existingSlot = hero?.hero_slots?.[slotIndex];
-                  const slotUrl = existingSlot?.media_type === 'video'
-                    ? (existingSlot.video_url ?? resolveHeroSlotVideoUrl(existingSlot.video_storage_path))
-                    : existingSlot?.media_type === 'image'
-                    ? (existingSlot.image_url ?? resolveHeroSlotImageUrl(existingSlot.image_storage_path))
-                    : null;
+                  const state = heroSlotState(heroSlotAt(hero?.hero_slots, slotNum));
+                  const busy = slotBusy === slotNum || slotUploading === slotNum;
+                  const slotError = slotErrors[slotNum];
+                  const fileName = state.kind === 'empty' ? null : decodeURIComponent(state.url.split('/').pop() ?? '');
 
                   return (
-                    <div key={slotNum} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    <div
+                      key={slotNum}
+                      className={cn(
+                        'rounded-xl border overflow-hidden',
+                        state.kind === 'active' ? 'border-white/10 bg-white/[0.03]' : 'border-dashed border-white/15 bg-transparent'
+                      )}
+                      data-slot-state={state.kind}
+                    >
                       <div className="aspect-video relative bg-black/40">
-                        {slotUrl ? (
-                          existingSlot?.media_type === 'video' ? (
+                        {state.kind === 'active' ? (
+                          state.mediaType === 'video' ? (
                             <video
-                              src={slotUrl}
+                              src={state.url}
                               className="absolute inset-0 w-full h-full object-cover"
                               muted
                               playsInline
@@ -584,87 +760,53 @@ export function DashboardHeroEditor() {
                             />
                           ) : (
                             <img
-                              src={slotUrl}
+                              src={state.url}
                               className="absolute inset-0 w-full h-full object-cover"
                               alt={`Slot ${slotNum}`}
                             />
                           )
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/30">
-                            <Video className="w-8 h-8" />
-                            <span className="text-xs">Slot {slotNum} empty</span>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-white/45">
+                            <Video className="w-8 h-8" aria-hidden />
+                            <span className="text-sm">
+                              {state.kind === 'off' ? 'Switched off — not shown on the homepage' : 'Empty — not shown on the homepage'}
+                            </span>
+                            {state.kind === 'off' && fileName && (
+                              <span className="text-xs text-white/40 break-all">Still linked: {fileName}</span>
+                            )}
                           </div>
                         )}
                       </div>
                       <div className="p-3 space-y-2">
-                        <p className="text-white/60 text-xs font-medium uppercase tracking-wider">Slot {slotNum}</p>
+                        <p className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                          Slot {slotNum}
+                          {state.kind === 'active' && <span className="ml-2 normal-case tracking-normal text-emerald-400">Showing</span>}
+                        </p>
                         <UniversalUploader
                           acceptedTypes={['video', 'image']}
                           compression="hero"
                           hideStorageTip
-                          onSelected={async (files) => {
-                            const file = files[0];
-                            if (!file || !hero?.id) return;
-                            const existing = hero?.hero_slots ? [...hero.hero_slots] : [];
-                            const isVideo = (file.mimeType || '').startsWith('video/');
-                            const newSlot: HeroSlot = isVideo
-                              ? {
-                                  slot_index: slotNum as HeroSlotIndex,
-                                  enabled: true,
-                                  media_type: 'video',
-                                  video_url: file.url,
-                                  video_storage_path: null,
-                                  poster_storage_path: null,
-                                  overlay_opacity: null,
-                                }
-                              : {
-                                  slot_index: slotNum as HeroSlotIndex,
-                                  enabled: true,
-                                  media_type: 'image',
-                                  image_url: file.url,
-                                  image_storage_path: null,
-                                  overlay_opacity: null,
-                                };
-                            while (existing.length < slotNum) existing.push(null as unknown as HeroSlot);
-                            existing[slotIndex] = newSlot;
-                            const validSlots = existing.filter(Boolean);
-                            const res = await fetch('/api/admin/hero', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'same-origin',
-                              body: JSON.stringify({
-                                page_slug: 'home',
-                                hero_slots: validSlots,
-                              }),
-                            });
-                            if (res.ok) {
-                              await loadHeroes();
-                              setSaved(true);
-                              setTimeout(() => setSaved(false), 3000);
-                            } else {
-                              showToast('error', 'Failed to save slot');
-                            }
+                          onSelected={(files) => handleSlotUploaded(slotNum, files)}
+                          onUploadingChange={(u) => {
+                            setSlotUploading(u ? slotNum : null);
+                            setUploadInProgress(u);
                           }}
-                          buttonLabel={slotUrl ? 'Replace' : 'Upload'}
+                          buttonLabel={state.kind === 'active' ? 'Replace' : 'Upload'}
                         />
-                        {slotUrl && (
+                        {slotBusy === slotNum && <p className="text-white/60 text-sm" role="status">Saving slot {slotNum}…</p>}
+                        {slotError && (
+                          <p className="text-sm text-red-300" role="alert">
+                            {slotError}
+                          </p>
+                        )}
+                        {state.kind !== 'empty' && (
                           <button
                             type="button"
-                            onClick={async () => {
-                              if (!hero?.id) return;
-                              const existing = hero?.hero_slots ? [...hero.hero_slots] : [];
-                              existing[slotIndex] = { ...existing[slotIndex], enabled: false } as HeroSlot;
-                              await fetch('/api/admin/hero', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'same-origin',
-                                body: JSON.stringify({ page_slug: 'home', hero_slots: existing }),
-                              });
-                              await loadHeroes();
-                            }}
-                            className="admin-tap px-2 -mx-2 text-red-400/70 hover:text-red-400 text-xs"
+                            disabled={busy}
+                            onClick={() => handleSlotRemove(slotNum, state.kind === 'active')}
+                            className="admin-tap min-h-11 px-3 -mx-1 rounded-lg text-red-400/80 hover:text-red-300 hover:bg-red-500/10 text-sm disabled:opacity-40"
                           >
-                            Remove
+                            {state.kind === 'active' ? 'Empty slot' : 'Clear leftover file link'}
                           </button>
                         )}
                       </div>
@@ -739,7 +881,10 @@ export function DashboardHeroEditor() {
                       {posterUrl && (
                         <button
                           type="button"
-                          onClick={() => setPosterStoragePath(null)}
+                          onClick={() => {
+                            setPosterStoragePath(null);
+                            markDirty(selectedPage);
+                          }}
                           className="admin-tap px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium border border-red-200 w-fit"
                         >
                           Remove poster
@@ -833,10 +978,15 @@ export function DashboardHeroEditor() {
             {saved && (
               <span className="w-full sm:w-auto text-sm text-green-600 font-medium">Changes saved. Refresh the public page to confirm.</span>
             )}
+            {!saved && dirtyPages.has(selectedPage) && (
+              <span className="w-full sm:w-auto text-sm text-amber-300 font-medium" role="status">
+                Unsaved changes — press Save to keep them.
+              </span>
+            )}
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving || uploadInProgress}
+              disabled={saving || uploadInProgress || slotBusy !== null}
               className="admin-btn-primary admin-tap flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-medium text-sm disabled:opacity-50 text-white"
               aria-live="polite"
               aria-busy={saving || uploadInProgress}
