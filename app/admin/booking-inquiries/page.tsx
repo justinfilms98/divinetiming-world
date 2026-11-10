@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Mail, Inbox, Phone } from 'lucide-react';
@@ -114,6 +114,20 @@ export default function AdminBookingInquiriesPage() {
     [inquiries, filter]
   );
 
+  // Dashboard links: `?status=new` sets the filter, `#inquiry-<id>` scrolls to that inquiry.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (loading || deepLinked.current) return;
+    const timer = window.setTimeout(() => {
+      deepLinked.current = true;
+      const status = new URLSearchParams(window.location.search).get('status');
+      if (status && (STATUSES as readonly string[]).includes(status)) setFilter(status as InquiryStatus);
+      const hash = window.location.hash.slice(1);
+      if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ block: 'center' }));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
+
   if (loading) {
     return (
       <AdminPage title="Booking Inquiries" subtitle="Submitted inquiries from the booking form">
@@ -168,7 +182,8 @@ export default function AdminBookingInquiriesPage() {
       ) : (
         <div className="space-y-4">
           {visible.map((inq) => (
-            <AdminCard key={inq.id} className="p-4 sm:p-6">
+            <div key={inq.id} id={`inquiry-${inq.id}`} className="scroll-mt-24">
+            <AdminCard className="p-4 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
@@ -258,6 +273,7 @@ export default function AdminBookingInquiriesPage() {
                 <p className="text-slate-400 text-xs shrink-0">{formatDate(inq.created_at)}</p>
               </div>
             </AdminCard>
+            </div>
           ))}
         </div>
       )}

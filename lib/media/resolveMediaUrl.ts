@@ -6,6 +6,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { getImageUrl, getThumbnailUrl, getVideoPreviewUrl } from '@/lib/integrations/googleDrive';
+import { displayImageUrl } from '@/lib/media/webCopies';
 
 export interface ResolvedMedia {
   url: string;
@@ -15,6 +16,14 @@ export interface ResolvedMedia {
 }
 
 export async function resolveMediaUrl(
+  directUrl: string | null,
+  externalAssetId: string | null
+): Promise<ResolvedMedia | null> {
+  const resolved = await resolveMediaSource(directUrl, externalAssetId);
+  return resolved && { ...resolved, url: displayImageUrl(resolved.url), thumbnailUrl: displayImageUrl(resolved.thumbnailUrl) };
+}
+
+async function resolveMediaSource(
   directUrl: string | null,
   externalAssetId: string | null
 ): Promise<ResolvedMedia | null> {

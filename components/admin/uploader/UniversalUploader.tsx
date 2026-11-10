@@ -10,6 +10,17 @@ import {
   type CompressionPreset,
 } from '@/lib/utils/compressMedia';
 import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
+import { isAcceptedFile, prepareFileForUpload } from '@/lib/media/uploadPolicy';
+
+/** Optimization failed for `file`; nothing in `files` has been uploaded. */
+type OptimizationFailure = {
+  files: File[];
+  file: File;
+  reason: string;
+  canUploadOriginal: boolean;
+  originalLimit: number;
+  allowOriginal: Set<File>;
+};
 
 
 export type UploadedFile = {
@@ -90,6 +101,7 @@ export function UniversalUploader({
   const [success, setSuccess] = useState(false);
   const [successDetail, setSuccessDetail] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [failure, setFailure] = useState<OptimizationFailure | null>(null);
 
   const maxBytes = getMaxBytes(maxSizeBytes);
   const accept = acceptOverride ?? acceptAttribute(acceptedTypes);
@@ -107,20 +119,14 @@ export function UniversalUploader({
   }, [uploading]);
 
   const processFiles = useCallback(
-    async (files: FileList | File[]) => {
+    async (files: FileList | File[], allowOriginal: Set<File> = new Set()) => {
       const list = Array.isArray(files) ? files : Array.from(files);
       if (!list.length) return;
-      if (acceptOverride) {
-        const allowed = acceptOverride.split(',').map((s) => s.trim().toLowerCase());
-        const invalid = list.find((f) => {
-          const t = (f.type || '').toLowerCase();
-          const ok = allowed.some((a) => a === t || a === '*/*' || (a.endsWith('/*') && t.startsWith(a.replace(/\/\*$/, '/'))));
-          return !ok;
-        });
-        if (invalid) {
-          setError(`"${invalid.name}" is not an allowed type. Allowed: ${acceptOverride}`);
-          return;
-        }
+      const invalid = list.find((f) => !isAcceptedFile(f, acceptedTypes, acceptOverride));
+      if (invalid) {
+        const allowedLabel = acceptOverride ?? acceptedTypes.map((t) => `${t}s`).join(' or ');
+        setError(`"${invalid.name}" is not an allowed type here. Allowed: ${allowedLabel}.`);
+        return;
       }
       const oversized = list.find((f) => f.size > maxBytes);
       if (oversized) {
@@ -128,6 +134,7 @@ export function UniversalUploader({
         return;
       }
       setError(null);
+      setFailure(null);
       setSuccess(false);
       setSuccessDetail(null);
       setUploading(true);
@@ -136,39 +143,52 @@ export function UniversalUploader({
       const uploaded: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       const compressionNotes: string[] = [];
       try {
-        const supabase = createClient();
+        // 1) Optimize everything first, so a failure leaves nothing half-uploaded.
+        const ready: File[] = [];
         for (let i = 0; i < list.length; i++) {
-          let file = list[i]!;
-          const fileBaseProgress = (i / total) * 100;
-          const fileSpan = 100 / total;
-
-          if (!file.size || file.size <= 0) {
-            setError(`"${file.name}" is empty (0 bytes). Please re-select the file.`);
+          const original = list[i]!;
+          if (!original.size || original.size <= 0) {
+            setError(`"${original.name}" is empty (0 bytes). Please re-select the file.`);
             return;
           }
-
-          if (compressionEnabled && (file.type.startsWith('video/') || file.type.startsWith('image/'))) {
-            const originalSize = file.size;
-            if (willCompress(file, compressionPreset)) {
-              setStatusLabel(
-                file.type.startsWith('video/')
-                  ? 'Compressing video for web…'
-                  : 'Optimizing image…'
-              );
-              file = await compressMedia(file, {
+          const fileBaseProgress = (i / total) * 100;
+          const fileSpan = 100 / total;
+          if (compressionEnabled && willCompress(original, compressionPreset) && !allowOriginal.has(original)) {
+            setStatusLabel(original.type.startsWith('video/') ? 'Compressing video for web…' : 'Optimizing image…');
+          }
+          const prepared = await prepareFileForUpload(original, {
+            compress: compressionEnabled,
+            preset: compressionPreset,
+            maxBytes,
+            allowOriginal: allowOriginal.has(original),
+            compressFn: (f) =>
+              compressMedia(f, {
                 preset: compressionPreset,
                 imageMaxSizeMB: compressionPreset === 'hero' ? 2 : undefined,
-                onProgress: (p) => {
-                  setProgress(fileBaseProgress + (p / 100) * fileSpan * 0.4);
-                },
-              });
-              if (file.size < originalSize) {
-                compressionNotes.push(
-                  `${file.name}: ${formatBytes(originalSize)} → ${formatBytes(file.size)}`
-                );
-              }
-            }
+                onProgress: (p) => setProgress(fileBaseProgress + (p / 100) * fileSpan * 0.4),
+              }),
+          });
+          if (prepared.kind === 'failed') {
+            setFailure({
+              files: list,
+              file: original,
+              reason: prepared.reason,
+              canUploadOriginal: prepared.canUploadOriginal,
+              originalLimit: prepared.originalLimit,
+              allowOriginal,
+            });
+            return;
           }
+          if (prepared.note) compressionNotes.push(prepared.note);
+          ready.push(prepared.file);
+        }
+
+        // 2) Upload.
+        const supabase = createClient();
+        for (let i = 0; i < ready.length; i++) {
+          const file = ready[i]!;
+          const fileBaseProgress = (i / total) * 100;
+          const fileSpan = 100 / total;
 
           if (file.size > maxBytes) {
             setError(
@@ -259,7 +279,7 @@ export function UniversalUploader({
           onSelected(multiple ? normalized : normalized.slice(0, 1));
           setSuccess(true);
           if (compressionNotes.length) {
-            setSuccessDetail(`Compressed: ${compressionNotes.join('; ')}`);
+            setSuccessDetail(compressionNotes.join('; '));
           }
           setTimeout(() => {
             setSuccess(false);
@@ -281,7 +301,7 @@ export function UniversalUploader({
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [multiple, onSelected, maxBytes, acceptOverride, onUploadingChange, compressionEnabled, compressionPreset]
+    [multiple, onSelected, maxBytes, acceptOverride, acceptedTypes, onUploadingChange, compressionEnabled, compressionPreset]
   );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,6 +343,48 @@ export function UniversalUploader({
           <button type="button" onClick={() => setError(null)} className="admin-icon-btn hover:bg-red-100 rounded shrink-0" aria-label="Dismiss">
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+      {failure && !uploading && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 space-y-2" role="alert">
+          <p className="font-medium break-words">&ldquo;{failure.file.name}&rdquo; was not uploaded.</p>
+          <p className="break-words">
+            {failure.reason}. Nothing was uploaded. Try again, or try on a computer — large videos can need more memory than a phone allows.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => processFiles(failure.files, failure.allowOriginal)}
+              className="admin-tap min-h-11 rounded-lg bg-amber-900 px-4 text-sm font-medium text-white hover:bg-amber-800"
+            >
+              Try again
+            </button>
+            {failure.canUploadOriginal ? (
+              <button
+                type="button"
+                onClick={() => processFiles(failure.files, new Set([...failure.allowOriginal, failure.file]))}
+                className="admin-tap min-h-11 rounded-lg border border-amber-400 bg-amber-100 px-4 text-sm font-medium text-amber-900 hover:bg-amber-200"
+              >
+                Upload original anyway — not optimized ({formatBytes(failure.file.size)})
+              </button>
+            ) : (
+              <p className="w-full text-xs text-amber-800">
+                The original ({formatBytes(failure.file.size)}) is over the {formatBytes(failure.originalLimit)} limit for unoptimized uploads.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setFailure(null)}
+              className="admin-tap min-h-11 rounded-lg px-4 text-sm font-medium text-amber-900 hover:bg-amber-100"
+            >
+              Cancel
+            </button>
+          </div>
+          {failure.canUploadOriginal && (
+            <p className="text-xs text-amber-800">
+              An unoptimized file loads more slowly for visitors and uses more of the site&apos;s monthly bandwidth.
+            </p>
+          )}
         </div>
       )}
       {success && (

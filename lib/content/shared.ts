@@ -4,6 +4,7 @@
  */
 
 import { normalizeHeroEmbed } from '@/lib/embed';
+import { emptyHeroSlot } from '@/lib/hero/heroSlots';
 import type {
   PageSettings,
   HeroSection,
@@ -29,13 +30,19 @@ export function normalizeHeroSlots(raw: unknown): HeroSlot[] | { error: string }
   const out: HeroSlot[] = [];
   for (let i = 0; i < Math.min(raw.length, 3); i++) {
     const r = raw[i];
-    if (!r || typeof r !== 'object') continue;
+    const slot_index = (i + 1) as HeroSlotIndex;
+    // Keep the position: an empty entry stays as an empty, switched-off slot so later slots don't shift.
+    if (!r || typeof r !== 'object') {
+      out.push(emptyHeroSlot(slot_index));
+      continue;
+    }
     const obj = r as Record<string, unknown>;
     const media_type = (obj.media_type as HeroSlot['media_type']) ?? 'image';
-    const slot_index = (i + 1) as HeroSlotIndex;
-    let overlay = typeof obj.overlay_opacity === 'number' ? obj.overlay_opacity : Number(obj.overlay_opacity);
-    if (Number.isNaN(overlay)) overlay = 0.4;
-    overlay = Math.max(0, Math.min(0.7, overlay));
+    let overlay: number | null = null;
+    if (obj.overlay_opacity != null && obj.overlay_opacity !== '') {
+      const n = Number(obj.overlay_opacity);
+      overlay = Number.isNaN(n) ? null : Math.max(0, Math.min(0.7, n));
+    }
     const enabled = obj.enabled !== false;
 
     if (media_type === 'embed') {

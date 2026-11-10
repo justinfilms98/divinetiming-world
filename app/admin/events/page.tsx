@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { AdminImage } from '@/components/admin/AdminImage';
 import { EmptyState } from '@/components/admin/EmptyState';
 import { Plus, Calendar, Edit, Trash2, ExternalLink, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { revalidateAfterSave } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
+import { DemoBadge } from '@/components/admin/DemoBadge';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
@@ -98,6 +101,8 @@ export default function AdminEventsPage() {
     setPreviewThumbnail(event.resolved_thumbnail_url ?? event.thumbnail_url ?? null);
     setModalOpen(true);
   };
+
+  useAdminDeepLink(events, !isLoading, { edit: openEdit, create: openCreate });
 
   const handleThumbnailSelected = (files: UploadedFile[]) => {
     const file = files[0];
@@ -317,6 +322,7 @@ export default function AdminEventsPage() {
                       <MediaAssetRenderer
                         url={event.resolved_thumbnail_url ?? event.thumbnail_url!}
                         mediaType="image"
+                        sizes="(max-width: 768px) 100vw, 192px"
                         alt={event.title || event.city}
                         fallback={
                           <div className="absolute inset-0 flex items-center justify-center bg-white/5">
@@ -350,6 +356,7 @@ export default function AdminEventsPage() {
                           {event.status === 'draft' ? 'Draft' : 'Archived'}
                         </span>
                       )}
+                      <DemoBadge kind="events" id={event.id} />
                       {event.is_featured && (
                         <span className="px-2 py-0.5 bg-[var(--accent)]/20 text-[var(--accent)] text-xs rounded">
                           Featured
@@ -456,11 +463,11 @@ export default function AdminEventsPage() {
                 return (
                   <div className="w-full">
                     {thumb ? (
-                      <div className="w-full aspect-video rounded-xl overflow-hidden border border-[#C6A75E]/30 bg-white/5">
-                        <img
+                      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[#C6A75E]/30 bg-white/5">
+                        <AdminImage
                           src={thumb}
                           alt="Thumbnail preview"
-                          className="w-full h-full object-cover"
+                          sizes="(max-width: 768px) 100vw, 640px"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       </div>
@@ -519,10 +526,10 @@ export default function AdminEventsPage() {
                 {(previewThumbnail || editingEvent?.thumbnail_url || editingEvent?.resolved_thumbnail_url) ? (
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-white/5">
-                      <img
+                      <AdminImage
                         src={previewThumbnail || editingEvent?.thumbnail_url || editingEvent?.resolved_thumbnail_url || ''}
                         alt=""
-                        className="w-full h-full object-cover"
+                        sizes="96px"
                         onError={(e) => {
                           const t = e.target as HTMLImageElement;
                           t.style.display = 'none';

@@ -6,6 +6,7 @@
 
 import 'server-only';
 import { resolveMediaUrl } from '@/lib/media/resolveMediaUrl';
+import { displayImageUrl } from '@/lib/media/webCopies';
 
 function isValidHttpsUrl(url: string | null | undefined): boolean {
   if (!url || typeof url !== 'string') return false;
@@ -22,7 +23,7 @@ export type GalleryRow = {
  * Order: cover_image_url (https) → external_cover_asset_id.
  */
 export async function resolveGalleryCoverUrl(gallery: GalleryRow): Promise<string | null> {
-  if (isValidHttpsUrl(gallery.cover_image_url)) return gallery.cover_image_url!.trim();
+  if (isValidHttpsUrl(gallery.cover_image_url)) return displayImageUrl(gallery.cover_image_url!.trim());
   if (gallery.external_cover_asset_id) {
     const resolved = await resolveMediaUrl(null, gallery.external_cover_asset_id);
     if (resolved?.thumbnailUrl) return resolved.thumbnailUrl;
@@ -46,8 +47,8 @@ export async function resolveGalleryMediaUrl(item: GalleryMediaRow): Promise<{ u
     if (resolved)
       return { url: resolved.url, thumbnailUrl: resolved.thumbnailUrl ?? resolved.url };
   }
-  const url = isValidHttpsUrl(item.url) ? item.url!.trim() : null;
-  const thumbnailUrl = isValidHttpsUrl(item.thumbnail_url) ? item.thumbnail_url!.trim() : (url ?? null);
+  const url = isValidHttpsUrl(item.url) ? displayImageUrl(item.url!.trim()) : null;
+  const thumbnailUrl = isValidHttpsUrl(item.thumbnail_url) ? displayImageUrl(item.thumbnail_url!.trim()) : (url ?? null);
   return { url, thumbnailUrl };
 }
 

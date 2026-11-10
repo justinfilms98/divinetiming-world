@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { supabasePublicObjectUrl } from '@/lib/storageUrls';
 import { HERO_UPLOAD_MAX_BYTES, HERO_ALLOWED_TYPES } from '@/lib/storageUpload';
 import { apiError } from '@/lib/apiResponses';
+import { heroUploadPath } from '@/lib/hero/heroUploadPath';
+import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
 
 const BUCKET = 'media';
 
@@ -45,15 +47,13 @@ export async function POST(request: NextRequest) {
     }
 
     const ext = getExt(mime);
-    const storagePath = type === 'logo'
-      ? `hero/logos/${slug}-logo.${ext}`
-      : `hero/${slug}.${ext}`;
+    const storagePath = heroUploadPath(slug, type, ext);
 
     const buffer = await file.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(storagePath, buffer, { contentType: mime, upsert: true });
+      .upload(storagePath, buffer, { contentType: mime, cacheControl: IMMUTABLE_CACHE_SECONDS, upsert: false });
 
     if (uploadError) {
       if (process.env.NODE_ENV === 'development') console.error('[hero/upload]', uploadError.message);

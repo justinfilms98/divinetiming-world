@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminPage } from '@/components/admin/AdminPage';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
+import { AdminImage } from '@/components/admin/AdminImage';
 import { UniversalUploader, type UploadedFile } from '@/components/admin/uploader/UniversalUploader';
 import { MediaThumb } from '@/components/admin/MediaThumb';
 import { createClient } from '@/lib/supabase/client';
 import { X, ImageIcon, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
+import { DemoBadge } from '@/components/admin/DemoBadge';
 
 type GalleryStatus = 'draft' | 'published' | 'archived';
 
@@ -58,12 +61,15 @@ export default function AdminCollectionsPage() {
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
   const supabase = createClient();
+  const [listLoaded, setListLoaded] = useState(false);
+  const createNameRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('galleries')
       .select('*, gallery_media(id)')
       .order('display_order', { ascending: true });
+    setListLoaded(true);
     if (error) {
       setGalleries([]);
       return;
@@ -150,6 +156,14 @@ export default function AdminCollectionsPage() {
     setEditStatus((g.status as GalleryStatus) ?? 'draft');
     setCoverPickerOpen(false);
   };
+
+  useAdminDeepLink(galleries, listLoaded, {
+    edit: openEdit,
+    create: () => {
+      createNameRef.current?.scrollIntoView({ block: 'center' });
+      createNameRef.current?.focus();
+    },
+  });
 
   const closeEdit = () => {
     setEditingGallery(null);
@@ -400,6 +414,7 @@ export default function AdminCollectionsPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Story title</label>
               <input
+                ref={createNameRef}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -455,11 +470,9 @@ export default function AdminCollectionsPage() {
           <AdminCard key={g.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               {g.cover_image_url ? (
-                <img
-                  src={g.cover_image_url}
-                  alt=""
-                  className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                />
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                  <AdminImage src={g.cover_image_url} alt="" sizes="64px" />
+                </div>
               ) : (
                 <div className="w-16 h-16 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 text-xs flex-shrink-0">
                   No cover
@@ -478,6 +491,7 @@ export default function AdminCollectionsPage() {
                       {g.status === 'draft' ? 'Draft' : 'Archived'}
                     </span>
                   ) : null}
+                  <DemoBadge kind="collections" id={g.id} />
                 </div>
                 <p className="text-sm text-slate-500 break-all">{g.theme ? `${g.theme} · ` : ''}{g.slug}</p>
                 <p className="text-xs text-slate-500">
@@ -604,7 +618,9 @@ export default function AdminCollectionsPage() {
                 <p className="text-xs text-slate-500 mb-2">Shown as the story cover. Choose from library or clear.</p>
                 <div className="flex items-center gap-3 flex-wrap">
                   {editingGallery.cover_image_url ? (
-                    <img src={editingGallery.cover_image_url} alt="" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+                      <AdminImage src={editingGallery.cover_image_url} alt="" sizes="80px" />
+                    </div>
                   ) : (
                     <div className="w-20 h-20 rounded-lg bg-slate-200 flex items-center justify-center">
                       <ImageIcon className="w-8 h-8 text-slate-400" />

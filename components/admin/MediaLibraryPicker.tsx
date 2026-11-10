@@ -20,6 +20,15 @@ function unwrapLibrary(payload: unknown): LibraryAsset[] {
   return [];
 }
 
+/**
+ * Poster for a video tile: a real thumbnail only. Falling back to the video URL would make an
+ * <img> fetch the whole original clip just to fail drawing it.
+ */
+function videoPosterOf(asset: LibraryAsset): string | null {
+  const t = asset.thumbnail_url;
+  return t && !/\.(mp4|mov|m4v|webm)(\?|$)/i.test(t) ? t : null;
+}
+
 interface MediaLibraryPickerProps {
   open: boolean;
   onClose: () => void;
@@ -146,7 +155,7 @@ export function MediaLibraryPicker({
                   src={selectedAsset.thumbnail_url || selectedAsset.preview_url || null}
                   isImage={(selectedAsset.mime_type || '').startsWith('image/')}
                   alt={selectedAsset.name || ''}
-                  posterUrl={(selectedAsset.mime_type || '').startsWith('video/') ? (selectedAsset.thumbnail_url || selectedAsset.preview_url) : null}
+                  posterUrl={(selectedAsset.mime_type || '').startsWith('video/') ? videoPosterOf(selectedAsset) : null}
                   className="!aspect-square w-full h-full"
                 />
               </div>
@@ -206,7 +215,7 @@ export function MediaLibraryPicker({
                       src={thumb || null}
                       isImage={isImage}
                       alt={asset.name || ''}
-                      posterUrl={!isImage ? thumb : null}
+                      posterUrl={!isImage ? videoPosterOf(asset) : null}
                       className="!rounded-none w-full"
                     />
                   </button>
