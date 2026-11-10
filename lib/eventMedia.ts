@@ -8,6 +8,7 @@
 import 'server-only';
 import { supabasePublicObjectUrl } from '@/lib/storageUrls';
 import { resolveMediaUrl } from '@/lib/media/resolveMediaUrl';
+import { displayImageUrl } from '@/lib/media/webCopies';
 import type { Event } from '@/lib/types/content';
 
 function isValidHttpsUrl(url: string | null | undefined): boolean {
@@ -20,6 +21,10 @@ function isValidHttpsUrl(url: string | null | undefined): boolean {
  * Prefer Supabase storage path, then legacy thumbnail_url (https), then external_thumbnail_asset_id.
  */
 export async function resolveEventThumbnailUrl(event: Event): Promise<string | null> {
+  return displayImageUrl(await resolveEventThumbnailSource(event));
+}
+
+async function resolveEventThumbnailSource(event: Event): Promise<string | null> {
   const row = event as Event & { thumbnail_storage_path?: string | null };
 
   if (row.thumbnail_storage_path) {

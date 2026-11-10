@@ -27,6 +27,8 @@ import {
   withHeroSlot,
 } from '@/lib/hero/heroSlots';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
+import { OnDemandVideo } from '@/components/media/OnDemandVideo';
+import { heroRenditionFor } from '@/lib/media/heroRenditions';
 import { describeSaveError } from '@/lib/admin/saveErrors';
 
 const PAGE_KEYS = ['home', 'events', 'media', 'shop', 'booking'] as const;
@@ -78,6 +80,26 @@ function HeroEclipseFallback() {
   );
 }
 
+/**
+ * Hero video preview that downloads nothing until played, and plays the optimized copy when one
+ * exists (the originals are ~19 MB each).
+ */
+function HeroVideoPreview({ url, label, className }: { url: string; label: string; className?: string }) {
+  const rendition = heroRenditionFor(url);
+  return (
+    <OnDemandVideo
+      src={rendition?.mobile ?? url}
+      poster={rendition?.posterSmall}
+      label={label}
+      tone="admin"
+      muted
+      fill
+      posterSizes="(max-width: 768px) 100vw, 480px"
+      className={className}
+    />
+  );
+}
+
 /** Admin-only hero media preview: native img/video, onError shows placeholder + URL + Copy. */
 function AdminHeroMediaPreview({
   url,
@@ -120,15 +142,7 @@ function AdminHeroMediaPreview({
   }
 
   if (isVideo) {
-    return (
-      <video
-        src={url}
-        controls
-        preload="metadata"
-        className={`absolute inset-0 w-full h-full object-cover ${className}`}
-        onError={() => setError(true)}
-      />
-    );
+    return <HeroVideoPreview url={url} label="Play hero video preview" className={className} />;
   }
 
   return (
@@ -778,13 +792,7 @@ export function DashboardHeroEditor() {
                     >
                       <div className="aspect-video relative bg-black/40">
                         {state.kind === 'active' && state.mediaType === 'video' ? (
-                          <video
-                            src={state.url}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            muted
-                            playsInline
-                            preload="metadata"
-                          />
+                          <HeroVideoPreview url={state.url} label={`Play slot ${slotNum} video preview`} />
                         ) : hasMedia && state.mediaType === 'image' ? (
                           <img
                             src={state.url}
