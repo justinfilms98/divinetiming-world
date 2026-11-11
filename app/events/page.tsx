@@ -10,6 +10,7 @@ import { Container } from '@/components/ui/Container';
 import { eventJsonLd } from '@/lib/seo/jsonld';
 import { eventDetailHref } from '@/lib/eventDetailHref';
 import { touringSummary } from '@/lib/events/display';
+import { eventsHistoryIntro, resolveEventsCopy } from '@/lib/site/eventsCopy';
 import { absoluteImageUrl, BASE_URL, DEFAULT_OG_IMAGE, SITE_NAME } from '@/lib/site';
 import type { Event } from '@/lib/types/content';
 import type { Metadata } from 'next';
@@ -81,6 +82,8 @@ export default async function EventsPage() {
   const overlayOpacity = heroSection?.overlay_opacity ?? 0.5;
 
   const summary = touringSummary(past);
+  const copy = resolveEventsCopy(pageSettings?.section_copy);
+  const history = eventsHistoryIntro(copy, summary);
 
   return (
     <div className="flex flex-col w-full max-w-[100vw] overflow-x-clip">
@@ -107,13 +110,9 @@ export default async function EventsPage() {
         <Container className="section-padding">
           <Reveal>
             <SectionHeading
-              label="Upcoming"
-              title="Next dates"
-              intro={
-                upcoming.length > 0
-                  ? 'Tickets go through the promoter or venue for each date.'
-                  : undefined
-              }
+              label={copy.upcoming_label}
+              title={copy.upcoming_title}
+              intro={upcoming.length > 0 ? copy.upcoming_intro : undefined}
             />
           </Reveal>
 
@@ -127,9 +126,7 @@ export default async function EventsPage() {
             </div>
           ) : (
             <Reveal className="mt-8">
-              <p className="type-body text-[var(--text-muted)] prose-readability">
-                No dates announced right now. New shows are posted here first.
-              </p>
+              <p className="type-body text-[var(--text-muted)] prose-readability">{copy.empty_text}</p>
               <SectionCta href="/booking" className="mt-8">
                 Enquire about booking
               </SectionCta>
@@ -144,15 +141,12 @@ export default async function EventsPage() {
           <div className="hero-grain" aria-hidden />
           <Container className="relative section-padding">
             <Reveal>
-              <SectionHeading
-                label="Touring history"
-                title="Where we've played"
-                intro={
-                  summary
-                    ? `${summary} — and counting. Every date below was a real room.`
-                    : 'Previous dates, kept on the record.'
-                }
-              />
+              <SectionHeading label={copy.past_label} title={copy.past_title} intro={history.intro} />
+              {history.summaryLine && (
+                <p className="mt-3 type-label text-[var(--text-muted)] tracking-[var(--letter-spacing-caps)] uppercase">
+                  {history.summaryLine}
+                </p>
+              )}
             </Reveal>
 
             <PastEventsList events={past} />
