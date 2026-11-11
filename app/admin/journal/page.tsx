@@ -39,7 +39,8 @@ export default function AdminJournalPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
-  const [publicEnabled, setPublicEnabled] = useState(false);
+  /** Null until the switch has been read, so the notice never shows the wrong state. */
+  const [publicEnabled, setPublicEnabled] = useState<boolean | null>(null);
 
   const apply = useCallback((result: Awaited<ReturnType<typeof fetchEpisodes>>) => {
     if (result.ok) {
@@ -137,11 +138,13 @@ export default function AdminJournalPage() {
         </button>
       }
     >
-      <p className={`mb-4 rounded-lg border p-3 text-sm ${publicEnabled ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-200' : 'border-white/10 bg-white/5 text-white/70'}`} role="status">
-        {publicEnabled
-          ? 'The public Journal is on: published and coming-soon episodes appear at /journal.'
-          : 'The public Journal is switched off, so nothing here is visible on the site yet. Prepare episodes now; they appear once the Journal launches.'}
-      </p>
+      {publicEnabled !== null && (
+        <p className={`mb-4 rounded-lg border p-3 text-sm ${publicEnabled ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-200' : 'border-white/10 bg-white/5 text-white/70'}`} role="status">
+          {publicEnabled
+            ? 'The public Journal is on: published and coming-soon episodes appear at /journal.'
+            : 'The public Journal is switched off, so nothing here is visible on the site yet. Prepare episodes now; they appear once the Journal launches.'}
+        </p>
+      )}
 
       {loading ? (
         <div className="text-white/50">Loading…</div>
