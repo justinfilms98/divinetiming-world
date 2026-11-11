@@ -99,7 +99,7 @@ describe('Social links in the footer and mobile menu', () => {
 
   it('labels can never be clipped: one per row in the menu, Instagram handles on their own row in two columns', () => {
     const html = renderToStaticMarkup(createElement(SocialLinks, { links: getFooterLinks(PRODUCTION_NOW) }));
-    expect(html).toContain('grid grid-cols-1 @[18rem]:grid-cols-2 @[38rem]:grid-cols-3');
+    expect(html).toContain('grid grid-cols-1 @[19rem]:grid-cols-2 @[38rem]:grid-cols-3');
     // A plain col-span-2 inside the one-column grid would add a second column.
     expect(html).not.toMatch(/class="min-w-0 col-span-2/);
     expect((html.match(/min-h-\[44px\]/g) ?? []).length).toBe(6);

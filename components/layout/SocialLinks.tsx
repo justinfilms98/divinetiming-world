@@ -4,8 +4,8 @@ import { cn } from '@/lib/ui/cn';
 
 /**
  * Icon-and-label social links in the owner-approved order. Sized by the space it sits in, not
- * the screen, so labels are never clipped: one per row below 18rem (the mobile menu), two
- * columns from 18rem with each Instagram handle on its own row, two rows of three from 38rem.
+ * the screen, so labels are never clipped: one per row below 19rem (the mobile menu), two
+ * columns from 19rem with each Instagram handle on its own row, two rows of three from 38rem.
  */
 export function SocialLinks({
   links,
@@ -19,9 +19,9 @@ export function SocialLinks({
   if (links.length === 0) return null;
   return (
     <div className={cn('@container w-full', className)}>
-      <ul className="grid grid-cols-1 @[18rem]:grid-cols-2 @[38rem]:grid-cols-3 gap-2.5" aria-label="Social and music links">
+      <ul className="grid grid-cols-1 @[19rem]:grid-cols-2 @[38rem]:grid-cols-3 gap-2.5" aria-label="Social and music links">
         {links.map((link) => (
-          <li key={link.key} className={cn('min-w-0', link.handle && '@[18rem]:col-span-2 @[38rem]:col-span-1')}>
+          <li key={link.key} className={cn('min-w-0', link.handle && '@[19rem]:col-span-2 @[38rem]:col-span-1')}>
             <a
               href={link.href}
               target="_blank"
