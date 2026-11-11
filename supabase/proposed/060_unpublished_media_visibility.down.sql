@@ -1,4 +1,4 @@
--- Rollback for unpublished_media_visibility.sql: restores the exact policies in place on
+-- Rollback for 060_unpublished_media_visibility.sql: restores the exact policies in place on
 -- 2026-11-11 (read from production and staging, which matched). Re-opens the exposure.
 
 drop policy if exists "Anon read published gallery_media" on public.gallery_media;

@@ -1,7 +1,8 @@
 -- ============================================================
--- Unpublished media visibility (security). PROPOSED, NOT APPLIED.
--- Apply as the next migration number after owner approval (recommended 060,
--- ahead of the Journal, which would then become 061).
+-- 060 Unpublished media visibility (security).
+-- PROPOSED FOR PRODUCTION, NOT APPLIED THERE. Applied to staging on 2026-11-11
+-- for testing (staging migration 20261111085819). Move to supabase/migrations/
+-- only after owner approval. The Journal migration becomes 061.
 --
 -- 1. Child media rows follow their parent's visibility. Before this, anyone
 --    could read every row of gallery_media, event_media, product_images and
@@ -14,7 +15,8 @@
 --
 -- Nothing is deleted or moved; no data changes. Server code using the
 -- service role (admin APIs, overview storage totals) is unaffected.
--- Rollback: unpublished_media_visibility.down.sql restores the prior policies.
+-- Rollback: 060_unpublished_media_visibility.down.sql restores the prior policies
+-- byte for byte (verified on staging).
 -- ============================================================
 
 -- ---------- gallery_media: only media of published collections ----------
