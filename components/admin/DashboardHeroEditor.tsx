@@ -27,6 +27,7 @@ import {
   withHeroSlot,
 } from '@/lib/hero/heroSlots';
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
+import { isLogoCompatible, LOGO_MAX_BYTES, LOGO_MIN_WIDTH, withLogo } from '@/lib/hero/logoAssets';
 import { OnDemandVideo } from '@/components/media/OnDemandVideo';
 import { heroRenditionFor } from '@/lib/media/heroRenditions';
 import { describeSaveError } from '@/lib/admin/saveErrors';
@@ -171,7 +172,7 @@ function AdminHeroMediaPreview({
 }
 
 /** Admin-only logo preview with onError fallback and Copy URL. */
-function AdminHeroLogoPreview({ url }: { url: string }) {
+function AdminHeroLogoPreview({ url, onMeasured }: { url: string; onMeasured?: (width: number) => void }) {
   const [error, setError] = useState(false);
   const copyUrl = useCallback(() => {
     navigator.clipboard.writeText(url);
@@ -194,6 +195,7 @@ function AdminHeroLogoPreview({ url }: { url: string }) {
       src={url}
       alt="Hero logo preview"
       className="max-w-full max-h-full object-contain"
+      onLoad={(e) => onMeasured?.(e.currentTarget.naturalWidth)}
       onError={() => setError(true)}
     />
   );
@@ -220,6 +222,9 @@ export function DashboardHeroEditor() {
   const [slotErrors, setSlotErrors] = useState<Record<number, string | null>>({});
   /** Slot whose "Choose from library" picker is open. */
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
+  const [logoPickerOpen, setLogoPickerOpen] = useState(false);
+  /** Natural width of the logo preview, for the "too small" hint. */
+  const [logoWidth, setLogoWidth] = useState<number | null>(null);
   const supabase = createClient();
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
@@ -367,6 +372,17 @@ export function DashboardHeroEditor() {
         media_type: 'default',
         external_media_asset_id: null,
       } as HeroSection,
+    }));
+  };
+
+  /** New logo from an upload or the library; takes effect on Save, like other hero edits. */
+  const chooseLogo = (url: string) => {
+    if (!selectedPage) return;
+    markDirty(selectedPage);
+    setLogoWidth(null);
+    setHeroSections((prev) => ({
+      ...prev,
+      [selectedPage]: withLogo(prev[selectedPage] || ({ page_slug: selectedPage } as HeroSection), url),
     }));
   };
 
@@ -739,23 +755,35 @@ export function DashboardHeroEditor() {
               {(heroLogoDisplayUrl ?? hero.hero_logo_url ?? null) ? (
                 <div className="flex flex-wrap items-start gap-3">
                   <div className="relative rounded-lg overflow-hidden bg-slate-100 border border-slate-200 w-32 h-16 flex items-center justify-center">
-                    <AdminHeroLogoPreview url={heroLogoDisplayUrl ?? hero.hero_logo_url!} />
+                    <AdminHeroLogoPreview
+                      url={heroLogoDisplayUrl ?? hero.hero_logo_url!}
+                      onMeasured={setLogoWidth}
+                    />
                   </div>
                   <p className="text-xs text-slate-500 truncate min-w-0 max-w-full sm:max-w-xs" title={heroLogoDisplayUrl ?? hero.hero_logo_url ?? undefined}>
                     Source: {hero.hero_logo_storage_path ? `Storage: ${hero.hero_logo_storage_path}` : hero.hero_logo_url}
                   </p>
                   <div className="flex flex-col gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setLogoPickerOpen(true)}
+                      disabled={uploadInProgress}
+                      className="admin-tap inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 w-fit disabled:opacity-50"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      Choose from library
+                    </button>
                     <UniversalUploader
                       acceptedTypes={['image']}
                       acceptOverride="image/png"
                       multiple={false}
-                      maxSizeBytes={2 * 1024 * 1024}
+                      maxSizeBytes={LOGO_MAX_BYTES}
                       onSelected={(files) => {
                         const url = files[0]?.url;
-                        if (url) updateHero({ hero_logo_url: url });
+                        if (url) chooseLogo(url);
                       }}
                       onUploadingChange={setUploadInProgress}
-                      buttonLabel="Replace logo"
+                      buttonLabel="Upload a new logo"
                       hideStorageTip
                     />
                     <button
@@ -768,18 +796,49 @@ export function DashboardHeroEditor() {
                   </div>
                 </div>
               ) : (
-                <UniversalUploader
-                  acceptedTypes={['image']}
-                  acceptOverride="image/png"
-                  multiple={false}
-                  maxSizeBytes={2 * 1024 * 1024}
-                  onSelected={(files) => {
-                    const url = files[0]?.url;
-                    if (url) updateHero({ hero_logo_url: url });
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLogoPickerOpen(true)}
+                    disabled={uploadInProgress}
+                    className="admin-tap inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 w-fit disabled:opacity-50"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Choose from library
+                  </button>
+                  <UniversalUploader
+                    acceptedTypes={['image']}
+                    acceptOverride="image/png"
+                    multiple={false}
+                    maxSizeBytes={LOGO_MAX_BYTES}
+                    onSelected={(files) => {
+                      const url = files[0]?.url;
+                      if (url) chooseLogo(url);
+                    }}
+                    onUploadingChange={setUploadInProgress}
+                    buttonLabel="Upload logo (PNG)"
+                    hideStorageTip
+                  />
+                </div>
+              )}
+              {(heroLogoDisplayUrl ?? hero.hero_logo_url) && logoWidth != null && logoWidth < LOGO_MIN_WIDTH && (
+                <p className="mt-2 text-xs text-amber-600" role="status">
+                  This logo is {logoWidth}px wide. {LOGO_MIN_WIDTH}px or wider stays sharp on large screens.
+                </p>
+              )}
+              {logoPickerOpen && (
+                <MediaLibraryPicker
+                  open
+                  filter="image"
+                  accept={isLogoCompatible}
+                  currentUrl={heroLogoDisplayUrl}
+                  title="Choose a logo (PNG) from the library"
+                  emptyMessage="No PNG images in the library yet. Upload a logo instead."
+                  onClose={() => setLogoPickerOpen(false)}
+                  onSelect={(asset) => {
+                    setLogoPickerOpen(false);
+                    if (asset.preview_url !== heroLogoDisplayUrl) chooseLogo(asset.preview_url);
                   }}
-                  onUploadingChange={setUploadInProgress}
-                  buttonLabel="Upload logo (PNG)"
-                  hideStorageTip
                 />
               )}
             </div>
