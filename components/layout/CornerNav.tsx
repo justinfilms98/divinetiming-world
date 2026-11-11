@@ -14,7 +14,8 @@ import type { SiteSettings } from '@/lib/types/content';
 
 const navItems = publicNavItems();
 /** A seventh link needs a little less spacing to fit beside the logo on tablets. */
-const NAV_GAP = navItems.length > 6 ? 'gap-5 lg:gap-8' : 'gap-8';
+const NAV_GAP = navItems.length > 6 ? 'gap-4 lg:gap-8' : 'gap-8';
+const LOGO_SIZE = navItems.length > 6 ? 'md:text-base lg:text-lg' : 'md:text-lg';
 
 const MENU_DURATION = 0.28;
 const MENU_EASE = [0.4, 0, 0.2, 1] as const;
@@ -88,7 +89,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           {/* Logo — centered on mobile via grid, centered on desktop via flex */}
           <Link
             href="/"
-            className="justify-self-center md:static inline-flex items-center min-h-[44px] gap-1.5 text-base md:text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm"
+            className={`justify-self-center md:static inline-flex items-center min-h-[44px] gap-1.5 text-base ${LOGO_SIZE} font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm`}
             style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
             aria-label="DIVINE:TIMING home"
             aria-current={pathname === '/' ? 'page' : undefined}
