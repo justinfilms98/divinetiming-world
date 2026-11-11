@@ -9,20 +9,12 @@ import { getFooterLinks } from '@/lib/site/footerLinks';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 import { useScrollLock } from '@/lib/ui/useScrollLock';
 import { SpiralMark } from '@/components/brand/SpiralMark';
+import { isNavItemActive, NAV_LEFT_COUNT, publicNavItems } from '@/lib/site/navigation';
 import type { SiteSettings } from '@/lib/types/content';
 
-// Order follows the brief's primary IA: Music, Live, Story, Media, Shop, Book.
-const navItems = [
-  { label: 'MUSIC', href: '/music' },
-  { label: 'EVENTS', href: '/events' },
-  { label: 'JOURNEY', href: '/journey' },
-  { label: 'MEDIA', href: '/media' },
-  { label: 'SHOP', href: '/shop' },
-  { label: 'BOOK', href: '/booking' },
-];
-
-/** Desktop nav splits around the centre logo; derived so adding a link rebalances. */
-const NAV_SPLIT = Math.ceil(navItems.length / 2);
+const navItems = publicNavItems();
+/** A seventh link needs a little less spacing to fit beside the logo on tablets. */
+const NAV_GAP = navItems.length > 6 ? 'gap-5 lg:gap-8' : 'gap-8';
 
 const MENU_DURATION = 0.28;
 const MENU_EASE = [0.4, 0, 0.2, 1] as const;
@@ -76,9 +68,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           <div className="md:hidden w-11 shrink-0" aria-hidden />
 
           {/* Desktop: left nav links */}
-          <div className="hidden md:flex items-center gap-8 min-w-0">
-            {navItems.slice(0, NAV_SPLIT).map((item) => {
-              const isActive = pathname === item.href;
+          <div className={`hidden md:flex items-center ${NAV_GAP} min-w-0`}>
+            {navItems.slice(0, NAV_LEFT_COUNT).map((item) => {
+              const isActive = isNavItemActive(item, pathname);
               return (
                 <Link
                   key={item.href}
@@ -107,9 +99,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           </Link>
 
           {/* Desktop: right nav links */}
-          <div className="hidden md:flex items-center gap-8 min-w-0 justify-end">
-            {navItems.slice(NAV_SPLIT).map((item) => {
-              const isActive = pathname === item.href;
+          <div className={`hidden md:flex items-center ${NAV_GAP} min-w-0 justify-end`}>
+            {navItems.slice(NAV_LEFT_COUNT).map((item) => {
+              const isActive = isNavItemActive(item, pathname);
               return (
                 <Link
                   key={item.href}
@@ -213,7 +205,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                     Home
                   </Link>
                   {navItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = isNavItemActive(item, pathname);
                     return (
                       <Link
                         key={item.href}

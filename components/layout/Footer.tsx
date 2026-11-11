@@ -7,7 +7,7 @@ import { SpiralMark } from '@/components/brand/SpiralMark';
 import { SocialLinks } from '@/components/layout/SocialLinks';
 import { getFooterLinks } from '@/lib/site/footerLinks';
 import type { SiteSettings } from '@/lib/types/content';
-import { isLabelPublicEnabled } from '@/lib/features';
+import { isJournalPublicEnabled, isLabelPublicEnabled } from '@/lib/features';
 
 const SITEMAP_LINKS = [
   { label: 'Music', href: '/music' },
@@ -15,6 +15,7 @@ const SITEMAP_LINKS = [
   { label: 'Media', href: '/media' },
   { label: 'Shop', href: '/shop' },
   { label: 'Journey', href: '/journey' },
+  ...(isJournalPublicEnabled() ? [{ label: 'Journal', href: '/journal' }] : []),
   { label: 'Book', href: '/booking' },
   { label: 'Contact', href: '/contact' },
   { label: 'Press Kit', href: '/presskit' },

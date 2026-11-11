@@ -8,6 +8,10 @@ import { describeSaveError } from '@/lib/admin/saveErrors';
 import { revalidatePaths } from '@/lib/revalidate';
 import { HOME_SECTIONS, resolveHomeSections, type HomeSectionId, type HomeSectionVisibility } from '@/lib/site/homeSections';
 import { cn } from '@/lib/ui/cn';
+import { isJournalPublicEnabled } from '@/lib/features';
+
+/** The Journal switch appears once the public Journal is enabled. */
+const VISIBLE_SECTIONS = HOME_SECTIONS.filter((s) => s.id !== 'journal' || isJournalPublicEnabled());
 
 type LoadState = 'loading' | 'ready' | 'needs-migration' | 'error';
 
@@ -81,7 +85,7 @@ export function HomepageSectionsCard() {
       )}
       {state === 'ready' && (
         <ul className="divide-y divide-white/10">
-          {HOME_SECTIONS.map((section) => {
+          {VISIBLE_SECTIONS.map((section) => {
             const on = sections[section.id];
             return (
               <li key={section.id} className="flex items-center justify-between gap-4 py-2">
