@@ -25,7 +25,7 @@ export function AdminTabBar() {
     <>
       <nav
         aria-label="Admin sections"
-        className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0a0a0a]/95 backdrop-blur-md"
+        className="admin-tab-bar md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0a0a0a]/95 backdrop-blur-md"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <ul className="grid grid-cols-5">

@@ -241,6 +241,26 @@ html.admin-active body {
     bottom: 1rem;
   }
 }
+/*
+ * Phones: a focused field scrolls clear of the top bar, the sticky Save bar and the tab bar.
+ * While typing (keyboard up) the tab bar hides and the Save bar drops to the bottom edge.
+ */
+@media (max-width: 767px) {
+  html.admin-active {
+    scroll-padding-top: calc(4.5rem + env(safe-area-inset-top));
+    scroll-padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+  }
+  .admin-sticky-actions--page {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  html.admin-typing .admin-tab-bar {
+    display: none;
+  }
+  html.admin-typing .admin-sticky-actions--page {
+    bottom: env(safe-area-inset-bottom);
+  }
+}
 @media (max-width: 639px) {
   .admin-sticky-actions > * {
     flex: 1 1 auto;
