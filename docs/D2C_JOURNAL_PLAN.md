@@ -161,24 +161,37 @@ Whichever option is chosen, also:
 
 No new npm packages are needed.
 
-## 11. Implementation notes from the code review
+## 11. Implementation requirements (from the code review)
 
-Gaps to handle in the build:
-- **Admin navigation test:** `adminNavigation.test.ts` fails unless every admin page is linked exactly once. The Journal entry in `ADMIN_NAV_GROUPS` must ship in the same commit as `/admin/journal`.
-- **Active nav link:** `CornerNav` highlights only an exact match (`pathname === href`). JOURNAL needs a prefix match so `/journal/episode-3-barcelona` highlights it.
-- **Real 404s:** missing or draft detail pages currently return HTTP 200, because `loading.tsx` streams the status first (roadmap, known bug). `/journal/[slug]` should have no `loading.tsx`, so draft and archived episodes return a real 404.
-- **Refreshing pages:** `/api/revalidate` doesn't allow `/journal`. The admin API should call `revalidatePath` on the server, as releases does, rather than relying on the browser helper.
-- **Test database:** `test/fakeSupabase.ts` has no `.in()` or `.or()`. Public fetchers filtering `status in (published, coming_soon)` need it extended, or two `.eq()` queries.
-- **Episode links:** use the strict `lib/embed.ts` parser for video links. The two looser YouTube parsers elsewhere accept different URL forms and should not be copied.
-- **Structured data:** `lib/seo/jsonld.ts` has no `VideoObject` helper yet; add one with tests.
+These are requirements for the D2-C build. Each has a test or a check that proves it.
+
+- **Admin navigation.** The Journal entry in `ADMIN_NAV_GROUPS` ships in the same commit as `/admin/journal`. The existing coverage test (`adminNavigation.test.ts`: every admin page linked exactly once) stays in place and must pass unchanged.
+- **Public navigation highlight.** `CornerNav` matches only exact paths today (`pathname === href`). JOURNAL uses a path-prefix match: `/journal` or anything under `/journal/`, but not `/journalism`.
+  - The prefix match goes in one shared helper, and the existing links keep exact matching.
+  - Test: `/journal/episode-3-barcelona` highlights JOURNAL and nothing else.
+- **Genuine 404s.** Draft, archived and unknown episodes must return **HTTP 404**, not a not-found screen with HTTP 200 (the existing `loading.tsx` streaming problem on other detail pages).
+  - `/journal/[slug]` has no `loading.tsx`, and calls `notFound()` before anything streams.
+  - Verified with real HTTP requests against staging, not screenshots: `curl -s -o /dev/null -w "%{http_code}"` for a published, a coming-soon, a draft, an archived and an unknown slug (expected 200, 200, 404, 404, 404).
+- **Cache refresh from the server.** Journal saves call `revalidatePath` inside the admin API, as the releases route does (`revalidateRelease()`): `/journal`, the episode's own page (old and new slug when it changes), `/` if a homepage section is added, and `/sitemap.xml`. The browser `/api/revalidate` helper isn't relied on, because it doesn't allow `/journal`.
+- **Test database.** Extend `test/fakeSupabase.ts` with `.in(column, values)`, so public fetchers can filter `status in ('published', 'coming_soon')` and be tested as written. Add a test for the stand-in itself.
+- **Video safety.** Video links are parsed only by `normalizeHeroEmbed()` in `lib/embed.ts` (strict YouTube and Vimeo). No new or duplicate URL parsing.
+  - The database's id-format check (migration) and the server-side check agree.
+  - Raw embed HTML and unknown hosts are rejected with a clear message.
+- **Structured data and metadata.**
+  - A `VideoObject` JSON-LD helper is added to `lib/seo/jsonld.ts` with tests. It is emitted **only** when the episode is `published` **and** has a valid video row.
+  - Coming-soon pages get no video data, use `noindex, follow`, and expose only the fields already public for coming-soon episodes.
+  - `generateMetadata` and the sitemap read through the same published/coming-soon fetchers as the page. Draft and archived episodes can never reach titles, descriptions, OG images, JSON-LD or the sitemap.
+  - Tests cover each status.
+- **Migration numbering.** If the unpublished-media security fix is approved first (recommended), it takes 060 and this Journal migration becomes **061**, with the same content.
+
+Other notes:
 - **Covers:** store the URL as well as the asset id, as releases and events do. Anonymous visitors can't read `internal` library rows (the default since migration 058), so a join alone would show no cover.
 - **Vimeo images:** `next.config.ts` image hosts don't include Vimeo thumbnails. That's fine while covers come from the Media Library; add the host only if provider thumbnails are used.
-- **Draft preview:** an admin-only preview through Next.js `draftMode()` (roadmap proposal) can follow in a later step.
+- **Draft preview:** an admin-only preview through Next.js `draftMode()` (roadmap proposal) can follow later.
 
-Existing issues found, outside the Journal, not changed:
-- **`event_media`:** it has no published-only read policy, so media attached to a draft event is publicly readable. A small follow-up migration would fix it.
-- **YouTube Videos:** `POST /api/admin/videos` defaults new videos to `published` instead of draft. It also refreshes only `/media`, not the homepage Films section.
-- **Roadmap:** `docs/ROADMAP_2026-10-26.md` still calls migration 059 unapplied; it was applied to production on 2026-11-11 (UTC).
+Issues found outside the Journal are tracked separately:
+- **Unpublished media visibility:** confirmed. Draft Collection media is publicly readable and storage listing is open. Audit and proposed fix: `SECURITY_UNPUBLISHED_MEDIA_AUDIT_2026-11-11.md` (branch `security/unpublished-media`). Recommended before the Journal; the Journal's own tables are designed not to repeat it.
+- **YouTube Videos draft-by-default and roadmap correction:** `FOLLOWUPS_2026-11-11.md` and the roadmap (branch `docs/followups-2026-11-11`).
 
 ## 12. Owner decisions needed
 
