@@ -161,7 +161,26 @@ Whichever option is chosen, also:
 
 No new npm packages are needed.
 
-## 11. Owner decisions needed
+## 11. Implementation notes from the code review
+
+Gaps to handle in the build:
+- **Admin navigation test:** `adminNavigation.test.ts` fails unless every admin page is linked exactly once. The Journal entry in `ADMIN_NAV_GROUPS` must ship in the same commit as `/admin/journal`.
+- **Active nav link:** `CornerNav` highlights only an exact match (`pathname === href`). JOURNAL needs a prefix match so `/journal/episode-3-barcelona` highlights it.
+- **Real 404s:** missing or draft detail pages currently return HTTP 200, because `loading.tsx` streams the status first (roadmap, known bug). `/journal/[slug]` should have no `loading.tsx`, so draft and archived episodes return a real 404.
+- **Refreshing pages:** `/api/revalidate` doesn't allow `/journal`. The admin API should call `revalidatePath` on the server, as releases does, rather than relying on the browser helper.
+- **Test database:** `test/fakeSupabase.ts` has no `.in()` or `.or()`. Public fetchers filtering `status in (published, coming_soon)` need it extended, or two `.eq()` queries.
+- **Episode links:** use the strict `lib/embed.ts` parser for video links. The two looser YouTube parsers elsewhere accept different URL forms and should not be copied.
+- **Structured data:** `lib/seo/jsonld.ts` has no `VideoObject` helper yet; add one with tests.
+- **Covers:** store the URL as well as the asset id, as releases and events do. Anonymous visitors can't read `internal` library rows (the default since migration 058), so a join alone would show no cover.
+- **Vimeo images:** `next.config.ts` image hosts don't include Vimeo thumbnails. That's fine while covers come from the Media Library; add the host only if provider thumbnails are used.
+- **Draft preview:** an admin-only preview through Next.js `draftMode()` (roadmap proposal) can follow in a later step.
+
+Existing issues found, outside the Journal, not changed:
+- **`event_media`:** it has no published-only read policy, so media attached to a draft event is publicly readable. A small follow-up migration would fix it.
+- **YouTube Videos:** `POST /api/admin/videos` defaults new videos to `published` instead of draft. It also refreshes only `/media`, not the homepage Films section.
+- **Roadmap:** `docs/ROADMAP_2026-10-26.md` still calls migration 059 unapplied; it was applied to production on 2026-11-11 (UTC).
+
+## 12. Owner decisions needed
 
 1. Navigation placement (section 8), and whether the name "Journal" next to "Journey" is right.
 2. Episodes 1 and 2: do they exist (for example on YouTube), and should they be added before 3 and 4?
