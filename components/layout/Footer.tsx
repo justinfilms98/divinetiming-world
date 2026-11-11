@@ -121,11 +121,11 @@ export function Footer({
               <p className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-[var(--text)] font-medium mb-3 md:mb-4">
                 Connect
               </p>
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-stretch lg:gap-5">
-                <SocialLinks links={socialLinks} className="min-w-0 sm:flex-1 sm:max-w-[40rem] lg:max-w-none" />
+              <div className="flex flex-col gap-5">
+                <SocialLinks links={socialLinks} className="min-w-0 sm:max-w-[44rem] lg:max-w-none" />
                 <Link
                   href="/contact"
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-[var(--radius-button)] border-2 border-[var(--accent)]/40 bg-[var(--accent)]/10 text-sm font-semibold text-[var(--text)] hover:bg-[var(--accent)]/20 hover:border-[var(--accent)]/60 transition-colors duration-200 focus-ring w-full sm:w-auto lg:self-start shrink-0 whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-[var(--radius-button)] border-2 border-[var(--accent)]/40 bg-[var(--accent)]/10 text-sm font-semibold text-[var(--text)] hover:bg-[var(--accent)]/20 hover:border-[var(--accent)]/60 transition-colors duration-200 focus-ring w-full sm:w-auto sm:self-start shrink-0 whitespace-nowrap"
                 >
                   Reach out
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
