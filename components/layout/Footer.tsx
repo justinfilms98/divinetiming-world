@@ -58,7 +58,7 @@ export function Footer({
             from ~970px to ~430px while keeping the editorial structure on
             desktop (4-col at lg+).
           */}
-          <div className="grid grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)] gap-x-6 gap-y-8 md:gap-x-10 md:gap-y-10 lg:gap-12">
+          <div className="grid grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)] gap-x-6 gap-y-8 md:gap-x-10 md:gap-y-10 lg:gap-12">
             {/* Brand — spans full width on mobile, single col on desktop */}
             <div className="col-span-2 lg:col-span-1">
               <div className="flex items-center gap-3">
