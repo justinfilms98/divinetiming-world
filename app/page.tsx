@@ -22,6 +22,8 @@ import {
 } from '@/lib/content/server';
 import { getHeroSingleSource, getHeroAllSlots } from '@/lib/content/heroSingleSource';
 import { getPlatformLinks } from '@/lib/platformLinks';
+import { resolveHomeSections } from '@/lib/site/homeSections';
+import { resolveHeroButtons } from '@/lib/hero/heroButtons';
 import { musicGroupJsonLd } from '@/lib/seo/jsonld';
 import { absoluteImageUrl, BASE_URL, DEFAULT_OG_IMAGE, SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 import type { Metadata } from 'next';
@@ -49,19 +51,21 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [heroSection, siteSettings, pageSettings, upcomingEvents, products, videos, latestRelease] = await Promise.all([
+  const [heroSection, siteSettings, pageSettings] = await Promise.all([
     getHeroSection('home'),
     getSiteSettings(),
     getPageSettings('home'),
-    getEvents({ upcomingOnly: true }),
-    getProducts(),
-    getVideos(),
-    getLatestRelease(),
   ]);
-  // Music is the first thing a fan should reach. Admins can still override both
-  // label and destination via hero_sections.cta_text/cta_url.
-  const primaryCtaText = heroSection?.cta_text?.trim() || 'Listen now';
-  const primaryCtaUrl = heroSection?.cta_url?.trim() || '/music';
+  const sections = resolveHomeSections(siteSettings?.home_sections);
+  // Switched-off sections don't query their data at all.
+  const [upcomingEvents, products, videos, latestRelease] = await Promise.all([
+    sections.upcoming_events || sections.experience ? getEvents({ upcomingOnly: true }) : Promise.resolve([]),
+    sections.shop ? getProducts() : Promise.resolve([]),
+    sections.films ? getVideos() : Promise.resolve([]),
+    sections.now_playing ? getLatestRelease() : Promise.resolve(null),
+  ]);
+  // Listen → /music and Join the tribe → /#tribe unless an admin set the buttons.
+  const heroButtons = resolveHeroButtons(heroSection, sections);
 
   const featuredEvents = upcomingEvents.slice(0, 3);
   const featuredProducts = [...products]
@@ -112,10 +116,10 @@ export default async function HomePage() {
       )}
       <HeroContent
         subtext={heroSection?.subtext ?? undefined}
-        ctaText={primaryCtaText}
-        ctaUrl={primaryCtaUrl}
-        secondaryCtaText="Book the act"
-        secondaryCtaUrl="/booking"
+        ctaText={heroButtons.primary?.text}
+        ctaUrl={heroButtons.primary?.url}
+        secondaryCtaText={heroButtons.secondary?.text}
+        secondaryCtaUrl={heroButtons.secondary?.url}
       />
       <HeroPlatformRow overrides={siteSettings ?? undefined} delay={0.5} />
     </div>
@@ -155,14 +159,14 @@ export default async function HomePage() {
         dark sections read as contrast rather than a second theme.
       */}
       <div className="flex flex-col w-full">
-        <NowPlayingSection release={latestRelease} />
-        <ExperienceSection backgroundUrl={experienceBackdrop} />
-        <UpcomingEventsSection events={featuredEvents} />
-        <ManifestoSection />
-        <FilmsSection videos={featuredVideos} />
-        <TribeSection />
-        <ShopHighlightSection products={featuredProducts} />
-        <BookingCtaSection bookingEmail={siteSettings?.booking_email ?? null} />
+        {sections.now_playing && <NowPlayingSection release={latestRelease} />}
+        {sections.experience && <ExperienceSection backgroundUrl={experienceBackdrop} />}
+        {sections.upcoming_events && <UpcomingEventsSection events={featuredEvents} />}
+        {sections.manifesto && <ManifestoSection />}
+        {sections.films && <FilmsSection videos={featuredVideos} />}
+        {sections.tribe && <TribeSection />}
+        {sections.shop && <ShopHighlightSection products={featuredProducts} />}
+        {sections.booking && <BookingCtaSection bookingEmail={siteSettings?.booking_email ?? null} />}
       </div>
     </div>
   );

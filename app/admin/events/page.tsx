@@ -15,6 +15,7 @@ import { UniversalUploader, type UploadedFile } from '@/components/admin/uploade
 import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { MediaAssetRenderer } from '@/components/ui/MediaAssetRenderer';
 import { EventMediaManager } from '@/components/admin/events/EventMediaManager';
+import { EventsPageTextCard } from '@/components/admin/EventsPageTextCard';
 import {
   EVENT_BOOKING_STATUSES,
   EVENT_BOOKING_STATUS_LABELS,
@@ -285,6 +286,7 @@ export default function AdminEventsPage() {
         </button>
       }
     >
+      <EventsPageTextCard />
       {events.length === 0 ? (
         <AdminCard>
           <EmptyState

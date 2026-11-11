@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -20,6 +20,42 @@ interface HeroContentProps {
 const FADE_UP_DURATION = 0.52;
 const FADE_UP_DELAY = 0.12;
 const FADE_UP_Y = 14;
+
+/** External links open in a new tab; "#id" and "/#id" scroll smoothly when the section is on this page. */
+function HeroCtaLink({ url, className, children }: { url: string; className: string; children: ReactNode }) {
+  if (url.startsWith('http')) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
+  const hash = url.startsWith('#') ? url : url.startsWith('/#') ? url.slice(1) : null;
+  if (hash) {
+    return (
+      <a
+        href={url}
+        className={className}
+        onClick={(e) => {
+          if (url.startsWith('/#') && window.location.pathname !== '/') return;
+          const el = document.querySelector(hash);
+          if (el) {
+            e.preventDefault();
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.replaceState(null, '', hash);
+          }
+        }}
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={url} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 export function HeroContent({
   eyebrow,
@@ -67,39 +103,14 @@ export function HeroContent({
         )}
         <div className="flex flex-wrap justify-center gap-4 gap-y-3">
           {ctaText && ctaUrl && (
-            ctaUrl.startsWith('http') ? (
-              <a
-                href={ctaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hero-cta-primary"
-              >
-                {ctaText}
-              </a>
-            ) : ctaUrl.startsWith('#') ? (
-              <a
-                href={ctaUrl}
-                className="hero-cta-primary"
-                onClick={(e) => {
-                  const el = document.querySelector(ctaUrl);
-                  if (el) {
-                    e.preventDefault();
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
-              >
-                {ctaText}
-              </a>
-            ) : (
-              <Link href={ctaUrl} className="hero-cta-primary">
-                {ctaText}
-              </Link>
-            )
+            <HeroCtaLink url={ctaUrl} className="hero-cta-primary">
+              {ctaText}
+            </HeroCtaLink>
           )}
           {secondaryCtaText && secondaryCtaUrl && (
-            <Link href={secondaryCtaUrl} className="hero-cta-secondary">
+            <HeroCtaLink url={secondaryCtaUrl} className="hero-cta-secondary">
               {secondaryCtaText}
-            </Link>
+            </HeroCtaLink>
           )}
         </div>
       </div>

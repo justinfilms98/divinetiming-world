@@ -46,6 +46,16 @@ Except for Tiptap and the dev-only lint tooling, every fix below is a **lockfile
 
 ## Batch 2: Tiptap / ProseMirror editor (About page editor)
 
+**Status:** verified on staging, awaiting production approval. Branch `security/tiptap-3.33`; staging `staging/d2a` 6b9c9e0.
+
+- **What changed:**
+  - All five direct `@tiptap/*` packages (including `@tiptap/pm`) moved from 3.20.0 to 3.33.1 together.
+  - `prosemirror-view` is now 1.42.9, which fixes the paste XSS.
+  - Tiptap's ProseMirror bundle no longer depends on `prosemirror-markdown`, so `markdown-it` and `linkify-it` are removed rather than upgraded.
+- **Editor output:** 24 paste cases plus the existing bio give byte-identical `getHTML()` output before and after. The staging bundle was confirmed to contain 1.42.9-only code, and no paste payload ran script.
+- **Toolbar:** Bold, Italic, both lists and the Link dialog work. Link refuses `javascript:` and `data:` addresses.
+- **Tests:** 8 sanitizer tests now cover the editor's real output.
+
 | Package | Installed | Advisories | Lowest patched | Used? |
 |---|---|---|---|---|
 | `@tiptap/core` | 3.20.0 | moderate XSS / prototype pollution (`mergeAttributes`); high ReDoS (Markdown attribute parsing) | 3.30.4 / **3.30.5**. Target 3.33.1 | Admin-only (browser editor on `/admin/about`) |
@@ -58,6 +68,22 @@ Except for Tiptap and the dev-only lint tooling, every fix below is a **lockfile
 - **Testing:**
   - On staging: open `/admin/about`, type, bold, italic, lists, add a link and an image, paste from a web page and from Word, save, reload.
   - Compare the stored HTML before and after (it then passes through batch 1's sanitizer), and check the public About page.
+
+## Remaining after Batches 1 and 2 (production `main` 76ce431)
+
+Batches 1 and 2 are deployed. `npm audit --omit=dev` now lists **7 production packages**, none critical: 3 high, 4 moderate. Batches 3 and 4 aren't scheduled; they'll go through a separate maintenance cycle unless one of these turns out to be directly exploitable.
+
+| Package | Severity | Comes from | Reached in production? | Risk today |
+|---|---|---|---|---|
+| `ws` 8.18.3 | high (memory-exhaustion DoS), moderate (memory disclosure) | `@supabase/realtime-js` | No. The site opens no Realtime channels; `ws` is only used when a Realtime socket connects | Low. Becomes relevant if live updates are ever added |
+| `qs` 6.14.0 | 5 moderate/low DoS | `stripe`, `googleapis-common` | Server-side only. Stripe and Google libraries encode outgoing requests built by our code. Stripe isn't live | Low. No visitor input reaches `qs.parse` |
+| `minimatch` 9.0.5 | high (ReDoS ×4) | `glob` → `rimraf` → `gaxios` → `googleapis` | No. Filesystem globbing inside the HTTP client is never called by our Drive/YouTube code | Low |
+| `brace-expansion` 2.0.2 | high (DoS ×7) | same chain as `minimatch` | No | Low |
+| `glob` 10.5.0 | moderate | `rimraf` → `gaxios` | No | Low |
+| `rimraf` 5.0.10 | moderate (inherits from `glob`) | `gaxios` | No | Low |
+| `gaxios` 7.1.3 | moderate (inherits from `rimraf`) | `googleapis` (admin Drive/YouTube integrations) | Its HTTP client is used by admin-only integrations; the vulnerable part (`rimraf`) isn't | Low. `gaxios` 7.3.1 (lockfile-only) removes the whole chain |
+
+Batch 3 below fixes all seven with lockfile-only updates.
 
 ## Batch 3: other runtime dependencies (transitive)
 

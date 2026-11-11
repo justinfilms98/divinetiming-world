@@ -15,6 +15,8 @@ export interface PageSettings {
   booking_about_asset_id?: string | null;
   booking_about_image_url?: string | null;
   booking_sponsors?: string | null;
+  /** Migration 059: editable section text, `{ field: string | boolean }`. */
+  section_copy?: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +40,9 @@ export interface HeroSection {
   subtext: string | null;
   cta_text: string | null;
   cta_url: string | null;
+  /** Migration 059: homepage second button; absent until it runs. */
+  secondary_cta_text?: string | null;
+  secondary_cta_url?: string | null;
   animation_type: 'warp' | 'clock' | 'none';
   animation_enabled: boolean;
   created_at: string;
@@ -392,6 +397,12 @@ export interface SiteSettings {
   apple_music_url: string | null;
   booking_phone: string | null;
   booking_email: string | null;
+  /** Migration 059: absent until it runs; null = not configured. */
+  instagram_secondary_url?: string | null;
+  soundcloud_url?: string | null;
+  beatport_url?: string | null;
+  /** Migration 059: `{ section_id: boolean }`; a missing key means shown. */
+  home_sections?: unknown;
   created_at: string;
   updated_at: string;
 }

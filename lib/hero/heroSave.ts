@@ -7,6 +7,7 @@
 
 import { validateHeroLogoUrl } from '@/lib/hero-validation';
 import { normalizeHeroSlots } from '@/lib/content/shared';
+import { checkCtaLabel, checkCtaUrl } from '@/lib/site/externalLinks';
 
 export const HERO_INSERT_DEFAULTS = {
   media_type: 'default',
@@ -29,6 +30,8 @@ const FIELD_KEYS: Record<string, readonly string[]> = {
   subtext: ['subtext'],
   cta_text: ['ctaLabel', 'cta_text'],
   cta_url: ['ctaHref', 'cta_url'],
+  secondary_cta_text: ['secondaryCtaLabel', 'secondary_cta_text'],
+  secondary_cta_url: ['secondaryCtaHref', 'secondary_cta_url'],
   animation_type: ['animation_type'],
   animation_enabled: ['animation_enabled'],
   hero_slots: ['hero_slots'],
@@ -44,6 +47,8 @@ const NULLABLE_TEXT = [
   'subtext',
   'cta_text',
   'cta_url',
+  'secondary_cta_text',
+  'secondary_cta_url',
 ] as const;
 
 export type HeroUpdateResult =
@@ -53,6 +58,8 @@ export type HeroUpdateResult =
 export interface ExistingHeroCta {
   cta_text?: string | null;
   cta_url?: string | null;
+  secondary_cta_text?: string | null;
+  secondary_cta_url?: string | null;
 }
 
 function pick(src: Record<string, unknown>, keys: readonly string[]): { present: boolean; value: unknown } {
@@ -133,11 +140,26 @@ export function buildHeroUpdate(body: unknown, existing?: ExistingHeroCta | null
     update.hero_slots = result;
   }
 
-  if ('cta_text' in update || 'cta_url' in update) {
-    const text = 'cta_text' in update ? update.cta_text : existing?.cta_text;
-    const url = 'cta_url' in update ? update.cta_url : existing?.cta_url;
+  const buttons = [
+    { text: 'cta_text', url: 'cta_url', name: 'CTA' },
+    { text: 'secondary_cta_text', url: 'secondary_cta_url', name: 'Second button' },
+  ] as const;
+  for (const b of buttons) {
+    if (!(b.text in update) && !(b.url in update)) continue;
+    if (b.url in update) {
+      const link = checkCtaUrl(update[b.url]);
+      if (!link.ok) return { ok: false, error: `${b.name}: ${link.error}` };
+      update[b.url] = link.value;
+    }
+    if (b.text in update) {
+      const label = checkCtaLabel(update[b.text]);
+      if (!label.ok) return { ok: false, error: `${b.name}: ${label.error}` };
+      update[b.text] = label.value;
+    }
+    const text = b.text in update ? update[b.text] : existing?.[b.text];
+    const url = b.url in update ? update[b.url] : existing?.[b.url];
     const ctaError = validateCta(text, url);
-    if (ctaError) return { ok: false, error: ctaError };
+    if (ctaError) return { ok: false, error: b.name === 'CTA' ? ctaError : `${b.name} label is required when its link is set.` };
   }
 
   update.updated_at = new Date().toISOString();
