@@ -43,8 +43,9 @@ import { sortCollectionStories } from '@/lib/content/shared';
 
 export type { PageSettings, HeroSection, HeroCarouselSlide, Event, Gallery, GalleryMedia, Product, MediaPageVideo, GalleryForHub, Release };
 
-const HERO_SELECT =
-  'page_slug, media_type, media_url, media_storage_path, hero_logo_url, hero_logo_storage_path, overlay_opacity, label_text, headline, subtext, cta_text, cta_url, animation_type, animation_enabled, id, created_at, updated_at, external_media_asset_id, hero_slots';
+// All columns, so columns added later (e.g. migration 059's second button) are read when present
+// and never break the query when a deploy runs ahead of its migration.
+const HERO_SELECT = '*';
 
 export async function getPageSettings(pageSlug: string): Promise<PageSettings | null> {
   const supabase = await createClient();

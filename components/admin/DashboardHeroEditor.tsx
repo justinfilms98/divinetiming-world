@@ -30,6 +30,8 @@ import { MediaLibraryPicker } from '@/components/admin/MediaLibraryPicker';
 import { OnDemandVideo } from '@/components/media/OnDemandVideo';
 import { heroRenditionFor } from '@/lib/media/heroRenditions';
 import { describeSaveError } from '@/lib/admin/saveErrors';
+import { checkCtaLabel, checkCtaUrl } from '@/lib/site/externalLinks';
+import { DEFAULT_PRIMARY_BUTTON, DEFAULT_SECONDARY_BUTTON } from '@/lib/hero/heroButtons';
 
 const PAGE_KEYS = ['home', 'events', 'media', 'shop', 'booking'] as const;
 const PAGE_LABELS: Record<string, string> = {
@@ -67,9 +69,22 @@ interface HeroSection {
   subtext: string | null;
   cta_text: string | null;
   cta_url: string | null;
+  /** Migration 059; absent from the row until it runs. */
+  secondary_cta_text?: string | null;
+  secondary_cta_url?: string | null;
   animation_type: string;
   animation_enabled: boolean;
   hero_slots?: HeroSlot[] | null;
+}
+
+/** Inline error for a hero button's label/link, or null when it can be saved. */
+function heroButtonError(text: string | null | undefined, url: string | null | undefined): string | null {
+  const link = checkCtaUrl(url);
+  if (!link.ok) return link.error;
+  const label = checkCtaLabel(text);
+  if (!label.ok) return label.error;
+  if (link.value && !label.value) return 'Add a label for this button, or clear its link.';
+  return null;
 }
 
 function HeroEclipseFallback() {
@@ -194,6 +209,7 @@ export function DashboardHeroEditor() {
   /** Poster for single hero (video only). Synced from hero_slots[0].poster_storage_path; updated on poster upload. */
   const [posterStoragePath, setPosterStoragePath] = useState<string | null>(null);
   const [ctaError, setCtaError] = useState<string | null>(null);
+  const [secondaryCtaError, setSecondaryCtaError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   /** Pages with edits not yet saved with the Save button. */
@@ -389,11 +405,25 @@ export function DashboardHeroEditor() {
     const current = selectedPage ? heroSections[selectedPage] : null;
     if (!current) return;
     setCtaError(null);
+    setSecondaryCtaError(null);
     const ctaUrlTrim = (current.cta_url ?? '').trim();
     const ctaTextTrim = (current.cta_text ?? '').trim();
     if (ctaUrlTrim && !ctaTextTrim) {
       setCtaError('CTA label is required when CTA URL is set.');
       return;
+    }
+    const primaryProblem = heroButtonError(current.cta_text, current.cta_url);
+    if (primaryProblem) {
+      setCtaError(primaryProblem);
+      return;
+    }
+    const sendSecondary = selectedPage === 'home' && 'secondary_cta_text' in current;
+    if (sendSecondary) {
+      const secondaryProblem = heroButtonError(current.secondary_cta_text, current.secondary_cta_url);
+      if (secondaryProblem) {
+        setSecondaryCtaError(secondaryProblem);
+        return;
+      }
     }
     const normalizedSlots = selectedPage === 'home'
       ? (Array.isArray(current.hero_slots) ? current.hero_slots : [])
@@ -419,6 +449,9 @@ export function DashboardHeroEditor() {
           subtext: current.subtext ?? null,
           cta_text: current.cta_text ?? null,
           cta_url: current.cta_url ?? null,
+          ...(sendSecondary
+            ? { secondary_cta_text: current.secondary_cta_text ?? null, secondary_cta_url: current.secondary_cta_url ?? null }
+            : {}),
           animation_type: current.animation_type ?? 'warp',
           animation_enabled: current.animation_enabled ?? true,
           hero_slots: normalizedSlots,
@@ -429,6 +462,10 @@ export function DashboardHeroEditor() {
         const msg = data?.error || res.statusText || 'Save failed';
         if (res.status === 400 && typeof msg === 'string' && msg.includes('CTA')) {
           setCtaError(msg);
+          return;
+        }
+        if (res.status === 400 && typeof msg === 'string' && msg.startsWith('Second button')) {
+          setSecondaryCtaError(msg);
           return;
         }
         showToast(
@@ -1018,7 +1055,7 @@ export function DashboardHeroEditor() {
                   value={hero.cta_text ?? ''}
                   onChange={(e) => { setCtaError(null); updateHero({ cta_text: e.target.value }); }}
                   className={cn('admin-input w-full px-3 py-2', ctaError && 'border-red-400')}
-                  placeholder="e.g. Book now"
+                  placeholder={selectedPage === 'home' ? DEFAULT_PRIMARY_BUTTON.text : 'e.g. Book now'}
                   aria-invalid={!!ctaError}
                   aria-describedby={ctaError ? 'cta-error' : 'cta-help'}
                 />
@@ -1027,7 +1064,11 @@ export function DashboardHeroEditor() {
                     {ctaError}
                   </p>
                 )}
-                <p id="cta-help" className="text-xs text-white/40 mt-1">Required when a URL is set. Both fields are needed to show the button.</p>
+                <p id="cta-help" className="text-xs text-white/40 mt-1">
+                  {selectedPage === 'home'
+                    ? `Leave both empty to use ${DEFAULT_PRIMARY_BUTTON.text} → ${DEFAULT_PRIMARY_BUTTON.url}.`
+                    : 'Required when a URL is set. Both fields are needed to show the button.'}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-1" htmlFor="hero-cta-url">
@@ -1039,10 +1080,55 @@ export function DashboardHeroEditor() {
                   value={hero.cta_url ?? ''}
                   onChange={(e) => { setCtaError(null); updateHero({ cta_url: e.target.value }); }}
                   className="admin-input w-full px-3 py-2"
-                  placeholder="https://... or /booking"
+                  placeholder={selectedPage === 'home' ? DEFAULT_PRIMARY_BUTTON.url : 'https://... or /booking'}
                 />
               </div>
             </div>
+            {selectedPage === 'home' && ('secondary_cta_text' in hero ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-1" htmlFor="hero-cta2-label">
+                    Second button label
+                  </label>
+                  <input
+                    id="hero-cta2-label"
+                    type="text"
+                    maxLength={40}
+                    value={hero.secondary_cta_text ?? ''}
+                    onChange={(e) => { setSecondaryCtaError(null); updateHero({ secondary_cta_text: e.target.value }); }}
+                    className={cn('admin-input w-full px-3 py-2', secondaryCtaError && 'border-red-400')}
+                    placeholder={DEFAULT_SECONDARY_BUTTON.text}
+                    aria-invalid={!!secondaryCtaError}
+                    aria-describedby={secondaryCtaError ? 'cta2-error' : 'cta2-help'}
+                  />
+                  {secondaryCtaError && (
+                    <p id="cta2-error" className="text-xs text-red-400 mt-1" role="alert">
+                      {secondaryCtaError}
+                    </p>
+                  )}
+                  <p id="cta2-help" className="text-xs text-white/40 mt-1">
+                    Leave both empty to use {DEFAULT_SECONDARY_BUTTON.text} → {DEFAULT_SECONDARY_BUTTON.url} (scrolls to the signup).
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-1" htmlFor="hero-cta2-url">
+                    Second button link
+                  </label>
+                  <input
+                    id="hero-cta2-url"
+                    type="text"
+                    inputMode="url"
+                    value={hero.secondary_cta_url ?? ''}
+                    onChange={(e) => { setSecondaryCtaError(null); updateHero({ secondary_cta_url: e.target.value }); }}
+                    className="admin-input w-full px-3 py-2"
+                    placeholder={DEFAULT_SECONDARY_BUTTON.url}
+                  />
+                  <p className="text-xs text-white/40 mt-1">A page (/booking), a homepage section (/#tribe) or https://…</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-white/40">The second hero button becomes editable after the database update (migration 059).</p>
+            ))}
           </div>
 
           <div className="admin-sticky-actions admin-sticky-actions--page items-center">

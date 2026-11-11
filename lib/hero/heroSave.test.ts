@@ -174,3 +174,56 @@ describe('buildHeroUpdate', () => {
     expect(buildHeroUpdate({ page_slug: 'home', subtext: 42 })).toMatchObject({ ok: false });
   });
 });
+
+describe('POST /api/admin/hero — second button (D2-B)', () => {
+  beforeEach(() => {
+    db = createFakeDb({ hero_sections: [{ ...HOME_ROW, secondary_cta_text: null, secondary_cta_url: null }] });
+    auth.result = { supabase: fakeSupabase(db), user: { email: 'owner@example.com' } };
+  });
+
+  it('saves the second button without touching slots, logo, overlay, copy or the first button', async () => {
+    const before = { ...homeRow() };
+    const res = await post({ page_slug: 'home', secondary_cta_text: ' Join the tribe ', secondary_cta_url: '/#tribe' });
+    expect(res.status).toBe(200);
+    const after = homeRow();
+    expect(after).toMatchObject({ secondary_cta_text: 'Join the tribe', secondary_cta_url: '/#tribe' });
+    for (const key of ['hero_slots', 'hero_logo_url', 'overlay_opacity', 'subtext', 'label_text', 'cta_text', 'cta_url']) {
+      expect(after[key]).toEqual(before[key]);
+    }
+  });
+
+  it('a full editor Save keeps all three carousel slots exactly as they were', async () => {
+    const res = await post({ ...HOME_ROW, page_slug: 'home', secondary_cta_text: 'Book the act', secondary_cta_url: '/booking' });
+    expect(res.status).toBe(200);
+    expect(homeRow().hero_slots).toEqual(LIVE_HOME_SLOTS);
+  });
+
+  it.each([
+    [{ secondary_cta_url: 'javascript:alert(1)', secondary_cta_text: 'x' }, /Second button/],
+    [{ secondary_cta_url: '//evil.example', secondary_cta_text: 'x' }, /Second button/],
+    [{ secondary_cta_url: '/booking' }, /Second button label is required/],
+    [{ secondary_cta_text: 'x'.repeat(41), secondary_cta_url: '/booking' }, /40 characters/],
+    [{ cta_url: 'data:text/html,x', cta_text: 'x' }, /CTA/],
+  ])('rejects %j and changes nothing', async (body, message) => {
+    const before = structuredClone(homeRow());
+    const res = await post({ page_slug: 'home', ...body });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(message);
+    expect(homeRow()).toEqual(before);
+  });
+
+  it('clearing both fields stores null, so the public page uses the default', async () => {
+    db.tables.hero_sections![0]!.secondary_cta_text = 'Old';
+    db.tables.hero_sections![0]!.secondary_cta_url = '/old';
+    const res = await post({ page_slug: 'home', secondary_cta_text: '', secondary_cta_url: '  ' });
+    expect(res.status).toBe(200);
+    expect(homeRow()).toMatchObject({ secondary_cta_text: null, secondary_cta_url: null });
+  });
+
+  it('explains a missing migration instead of failing generically', async () => {
+    db.failOn = (op) => (op === 'update' ? { message: "Could not find the 'secondary_cta_text' column of 'hero_sections' in the schema cache", code: 'PGRST204' } : null);
+    const res = await post({ page_slug: 'home', secondary_cta_text: 'Join', secondary_cta_url: '/#tribe' });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/migration 059/);
+  });
+});
