@@ -38,6 +38,9 @@ export interface HeroSection {
   subtext: string | null;
   cta_text: string | null;
   cta_url: string | null;
+  /** Migration 059: homepage second button; absent until it runs. */
+  secondary_cta_text?: string | null;
+  secondary_cta_url?: string | null;
   animation_type: 'warp' | 'clock' | 'none';
   animation_enabled: boolean;
   created_at: string;

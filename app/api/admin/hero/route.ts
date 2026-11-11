@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { buildHeroUpdate, heroSlugFromBody, HERO_INSERT_DEFAULTS } from '@/lib/hero/heroSave';
+import { isMissingColumnError, MIGRATION_059_REQUIRED } from '@/lib/site/schemaErrors';
 
 /**
  * Save a page hero. Accepts a flat payload or `{ pageKey, hero: { ... } }`.
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existing, error: readError } = await supabase
       .from('hero_sections')
-      .select('id, cta_text, cta_url')
+      .select('*')
       .eq('page_slug', slug)
       .maybeSingle();
     if (readError) {
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
         .select()
         .single();
       if (error) {
+        if (isMissingColumnError(error)) return NextResponse.json({ error: MIGRATION_059_REQUIRED }, { status: 409 });
         console.error('Admin hero update error:', error);
         return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
     if (error) {
+      if (isMissingColumnError(error)) return NextResponse.json({ error: MIGRATION_059_REQUIRED }, { status: 409 });
       console.error('Admin hero insert error:', error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }

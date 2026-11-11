@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { checkSocialUrl, SOCIAL_HOSTS } from '@/lib/site/externalLinks';
 import { isMissingColumnError, MIGRATION_059_REQUIRED } from '@/lib/site/schemaErrors';
+import { checkHomeSectionsInput } from '@/lib/site/homeSections';
 
 /** Migration 059 links: only written when present in the request; empty clears. */
 const SOCIAL_FIELDS = [
@@ -56,11 +57,21 @@ export async function POST(request: NextRequest) {
     // site_settings is a single-row table; UPDATE requires a WHERE clause
     const { data: existing } = await supabase
       .from('site_settings')
-      .select('id')
+      .select('*')
       .limit(1)
       .single();
     if (!existing?.id) {
       return NextResponse.json({ error: 'site_settings row not found', hint: 'Run migrations' }, { status: 500 });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'home_sections')) {
+      if (!('home_sections' in existing)) return NextResponse.json({ error: MIGRATION_059_REQUIRED }, { status: 409 });
+      const checked = checkHomeSectionsInput(body.home_sections);
+      if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
+      const saved = existing.home_sections && typeof existing.home_sections === 'object' && !Array.isArray(existing.home_sections)
+        ? (existing.home_sections as Record<string, unknown>)
+        : {};
+      updates.home_sections = { ...saved, ...checked.value };
     }
 
     const { data, error } = await supabase
