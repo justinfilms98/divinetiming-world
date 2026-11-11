@@ -138,18 +138,21 @@ export function EventsPageTextCard() {
                   </div>
                 );
               })}
-              <label className="flex items-center justify-between gap-4 min-h-[44px]">
-                <span>
-                  <span className="block text-sm font-medium text-white/70">Show the shows/cities line</span>
-                  <span className="block text-xs text-white/40">The automatic &ldquo;N shows · N cities&rdquo; summary under Touring history.</span>
+              <div className="flex items-center justify-between gap-4 min-h-[44px]">
+                <div className="min-w-0">
+                  <p id="events-copy-summary-label" className="text-sm font-medium text-white/70">Show the shows/cities line</p>
+                  <p className="text-xs text-white/40">The automatic &ldquo;N shows · N cities&rdquo; summary under Touring history.</p>
+                </div>
+                <span className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    aria-labelledby="events-copy-summary-label"
+                    checked={draft.show_touring_summary}
+                    onChange={(e) => setDraft((d) => ({ ...d, show_touring_summary: e.target.checked }))}
+                    className="w-6 h-6 accent-amber-400"
+                  />
                 </span>
-                <input
-                  type="checkbox"
-                  checked={draft.show_touring_summary}
-                  onChange={(e) => setDraft((d) => ({ ...d, show_touring_summary: e.target.checked }))}
-                  className="w-6 h-6 accent-amber-400 shrink-0"
-                />
-              </label>
+              </div>
               {error && (
                 <p className="text-sm text-red-400" role="alert">
                   {error}
