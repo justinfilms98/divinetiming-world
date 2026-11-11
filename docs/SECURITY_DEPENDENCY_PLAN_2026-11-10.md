@@ -25,6 +25,15 @@ Except for Tiptap and the dev-only lint tooling, every fix below is a **lockfile
 
 ## Batch 1: `sanitize-html` (highest priority)
 
+**Status:** verified on staging, awaiting production approval. Branch `security/sanitize-html-2.18.1`; staging `staging/d2a` 3a6d4cb.
+
+- 2.18.1 clears all five advisories.
+- `deepmerge` left the tree; `launder` replaces it.
+- The newer `postcss` it requires also clears `source-map-js`.
+- In the old/new comparison, all 46 inputs gave identical output, including the live production bio. The 44 regression tests in `lib/sanitize-bio-html.test.ts` pass on both versions.
+- The built CSS is byte-identical to production.
+- Not changed in this batch: protocol-relative links (`//host`) are kept, as before (sanitize-html's `allowProtocolRelative` default). They behave like the `https://` links already allowed. Optional later hardening: set `allowProtocolRelative: false`.
+
 | | |
 |---|---|
 | Installed | 2.17.1 (direct, `^2.17.1`) |
