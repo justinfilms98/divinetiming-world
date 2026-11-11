@@ -69,3 +69,24 @@ export function getFooterLinks(settings?: FooterLinkSettings | null): FooterLink
 
   return links;
 }
+
+export interface HeroPlatformLink {
+  key: string;
+  icon: 'spotify' | 'appleMusic' | 'youtube' | 'instagram' | 'soundcloud';
+  label: string;
+  href: string;
+}
+
+/**
+ * Hero icon row: Spotify, SoundCloud, YouTube, Instagram. SoundCloud takes Apple Music's place
+ * once its link is set; until then (or if it's invalid) Apple Music stays, so the row never shrinks.
+ * The Apple Music setting itself is untouched and still used elsewhere.
+ */
+export function getHeroPlatformLinks(settings?: FooterLinkSettings | null): HeroPlatformLink[] {
+  const soundcloud = validSocial(settings?.soundcloud_url, SOCIAL_HOSTS.soundcloud);
+  return getPlatformLinks(settings ?? undefined).map((link) =>
+    link.id === 'appleMusic' && soundcloud
+      ? { key: 'soundcloud', icon: 'soundcloud', label: 'SoundCloud', href: soundcloud }
+      : { key: link.id, icon: link.id, label: link.label, href: link.href }
+  );
+}

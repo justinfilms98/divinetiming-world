@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { getPlatformLinks, PlatformIcon } from '@/lib/platformLinks';
-import type { PlatformLinkOverrides } from '@/lib/platformLinks';
+import { PlatformIcon } from '@/lib/platformLinks';
+import { getHeroPlatformLinks, type FooterLinkSettings } from '@/lib/site/footerLinks';
 
 interface HeroPlatformRowProps {
   /** Optional overrides (e.g. siteSettings) for platform URLs */
-  overrides?: PlatformLinkOverrides | null;
+  overrides?: FooterLinkSettings | null;
   /** Animation delay in seconds */
   delay?: number;
 }
@@ -22,7 +22,7 @@ export function HeroPlatformRow({ overrides, delay = 0.35 }: HeroPlatformRowProp
     setReducedMotion(mq.matches);
   }, []);
 
-  const links = getPlatformLinks(overrides ?? undefined);
+  const links = getHeroPlatformLinks(overrides);
   if (links.length === 0) return null;
 
   return (
@@ -36,14 +36,14 @@ export function HeroPlatformRow({ overrides, delay = 0.35 }: HeroPlatformRowProp
     >
       {links.map((link) => (
         <a
-          key={link.id}
+          key={link.key}
           href={link.href}
           target="_blank"
           rel="noopener noreferrer"
           className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-xl border border-white/25 bg-white/5 text-white/90 hover:bg-white/15 hover:border-white/40 hover:text-white transition-all duration-200 focus-ring active:scale-[0.97]"
           aria-label={`Listen on ${link.label}`}
         >
-          <PlatformIcon id={link.id} className="w-5 h-5" />
+          <PlatformIcon id={link.icon} className="w-5 h-5" />
         </a>
       ))}
     </motion.div>

@@ -241,6 +241,26 @@ html.admin-active body {
     bottom: 1rem;
   }
 }
+/*
+ * Phones: a focused field scrolls clear of the top bar, the sticky Save bar and the tab bar.
+ * While typing (keyboard up) the tab bar hides and the Save bar drops to the bottom edge.
+ */
+@media (max-width: 767px) {
+  html.admin-active {
+    scroll-padding-top: calc(4.5rem + env(safe-area-inset-top));
+    scroll-padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+  }
+  .admin-sticky-actions--page {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  html.admin-typing .admin-tab-bar {
+    display: none;
+  }
+  html.admin-typing .admin-sticky-actions--page {
+    bottom: env(safe-area-inset-bottom);
+  }
+}
 @media (max-width: 639px) {
   .admin-sticky-actions > * {
     flex: 1 1 auto;
@@ -325,6 +345,8 @@ html.admin-active body {
 .admin-root .focus\:border-slate-500:focus { border-color: #C6A75E; }
 
 .admin-root .bg-white { background-color: rgba(255, 255, 255, 0.05); color: #f5f0e8; }
+/* Dialog panels must be opaque; the translucent bg-white remap lets the page show through. */
+.admin-root .admin-picker-panel { background-color: #0f0c10; }
 
 .admin-root .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.12); }
 .admin-root .text-red-600 { color: #f87171; }
