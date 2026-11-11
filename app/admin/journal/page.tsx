@@ -10,7 +10,6 @@ import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { JournalEpisodeEditor, type GalleryOption } from '@/components/admin/journal/JournalEpisodeEditor';
 import { createClient } from '@/lib/supabase/client';
 import { describeSaveError } from '@/lib/admin/saveErrors';
-import { isJournalPublicEnabled } from '@/lib/features';
 import { episodeLabel } from '@/lib/journal/rules';
 import { JOURNAL_STATUS_LABELS, type AdminJournalEpisode, type JournalStatus } from '@/lib/journal/types';
 
@@ -40,7 +39,7 @@ export default function AdminJournalPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const { showToast } = useAdminToast();
   const dialog = useAdminDialog();
-  const publicEnabled = isJournalPublicEnabled();
+  const [publicEnabled, setPublicEnabled] = useState(false);
 
   const apply = useCallback((result: Awaited<ReturnType<typeof fetchEpisodes>>) => {
     if (result.ok) {
@@ -59,6 +58,13 @@ export default function AdminJournalPage() {
     fetchEpisodes().then((result) => {
       if (!cancelled) apply(result);
     });
+    createClient()
+      .from('journal_settings')
+      .select('public_enabled')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setPublicEnabled(data?.public_enabled === true);
+      });
     createClient()
       .from('galleries')
       .select('id, name, status')

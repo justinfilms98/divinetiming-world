@@ -1,5 +1,3 @@
-import { isJournalPublicEnabled } from '@/lib/features';
-
 export interface PublicNavItem {
   label: string;
   href: string;
@@ -7,8 +5,11 @@ export interface PublicNavItem {
   matchChildren?: boolean;
 }
 
-/** Order follows the brief's primary IA. JOURNAL joins the right-hand group once the Journal is public. */
-export function publicNavItems(journalEnabled = isJournalPublicEnabled()): PublicNavItem[] {
+/**
+ * Order follows the brief's primary IA. JOURNAL joins the right-hand group once the Journal is public
+ * (the server-side switch, passed down from the root layout).
+ */
+export function publicNavItems(journalEnabled: boolean): PublicNavItem[] {
   return [
     { label: 'MUSIC', href: '/music' },
     { label: 'EVENTS', href: '/events' },

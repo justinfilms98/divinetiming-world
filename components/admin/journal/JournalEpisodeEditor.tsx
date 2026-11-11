@@ -260,7 +260,7 @@ export function JournalEpisodeEditor({
             <input id="journal-video" type="url" inputMode="url" value={form.video_url} onChange={(e) => set('video_url', e.target.value)} placeholder="https://youtu.be/… or https://vimeo.com/…" className={inputClass} aria-invalid={videoInvalid} aria-describedby="journal-video-hint" />
             <p id="journal-video-hint" className={`text-xs mt-1 ${videoInvalid ? 'text-red-400' : 'text-white/50'}`} role={videoInvalid ? 'alert' : undefined}>
               {videoInvalid
-                ? 'Not a YouTube or Vimeo link we can play. Use the plain link and remove anything after the video ID (such as ?si=…).'
+                ? 'Not a YouTube or Vimeo video link we can play. Paste the video’s share or watch link.'
                 : video
                   ? `${video.provider === 'youtube' ? 'YouTube' : 'Vimeo'} video ${video.id}. Upload it as unlisted; visitors only see it once the episode is Published.`
                   : 'YouTube (unlisted until release) or Vimeo. The video is never shown while the episode is a draft or coming soon.'}

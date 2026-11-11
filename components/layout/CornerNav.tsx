@@ -12,16 +12,15 @@ import { SpiralMark } from '@/components/brand/SpiralMark';
 import { isNavItemActive, NAV_LEFT_COUNT, publicNavItems } from '@/lib/site/navigation';
 import type { SiteSettings } from '@/lib/types/content';
 
-const navItems = publicNavItems();
-/** A seventh link needs a little less spacing to fit beside the logo on tablets. */
-const NAV_GAP = navItems.length > 6 ? 'gap-4 lg:gap-8' : 'gap-8';
-const LOGO_SIZE = navItems.length > 6 ? 'md:text-base lg:text-lg' : 'md:text-lg';
-
 const MENU_DURATION = 0.28;
 const MENU_EASE = [0.4, 0, 0.2, 1] as const;
 const NAV_TRANSITION = 'color 200ms ease-out, opacity 200ms ease-out';
 
-export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null }) {
+export function CornerNav({ siteSettings, journalPublic = false }: { siteSettings?: SiteSettings | null; journalPublic?: boolean }) {
+  const navItems = publicNavItems(journalPublic);
+  // A seventh link needs a little less spacing to fit beside the logo on tablets.
+  const NAV_GAP = navItems.length > 6 ? 'gap-4 lg:gap-8' : 'gap-8';
+  const LOGO_SIZE = navItems.length > 6 ? 'md:text-base lg:text-lg' : 'md:text-lg';
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);

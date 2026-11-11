@@ -65,7 +65,7 @@ describe('checkJournalInput', () => {
   });
 
   it('accepts video links only through the strict YouTube/Vimeo parser', () => {
-    for (const link of ['https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'https://youtu.be/aqz-KE-bpKQ', 'aqz-KE-bpKQ']) {
+    for (const link of ['https://www.youtube.com/watch?v=aqz-KE-bpKQ', 'https://youtu.be/aqz-KE-bpKQ', 'aqz-KE-bpKQ', 'https://youtu.be/aqz-KE-bpKQ?si=Xk3uZ9aB']) {
       const r = checkJournalInput({ video_url: link }, 'update');
       expect(r).toMatchObject({ ok: true, video: { provider: 'youtube', video_id: 'aqz-KE-bpKQ' } });
     }
@@ -73,7 +73,7 @@ describe('checkJournalInput', () => {
       ok: true,
       video: { provider: 'vimeo', video_id: '76979871' },
     });
-    for (const bad of ['https://evil.example/watch?v=aqz-KE-bpKQ', '<iframe src="x">', 'https://youtu.be/short', 'https://youtu.be/aqz-KE-bpKQ?si=abc']) {
+    for (const bad of ['https://evil.example/watch?v=aqz-KE-bpKQ', '<iframe src="x">', 'https://youtu.be/short', 'javascript:alert(1)//youtu.be/aqz-KE-bpKQ']) {
       const r = checkJournalInput({ video_url: bad }, 'update');
       expect(r.ok, bad).toBe(false);
     }

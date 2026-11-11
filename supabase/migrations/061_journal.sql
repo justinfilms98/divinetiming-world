@@ -3,12 +3,12 @@
 -- Owner-approved for STAGING only (2026-11-11). Not applied to production; production
 -- needs a separate approval.
 --
--- Additive only: two new tables, nothing existing is altered.
+-- Additive only: three new tables, nothing existing is altered.
 -- Security follows 041/054: RLS on, read policies only, no write policies.
 -- Every write goes through /api/admin/journal, which uses the service role
 -- after requireAdmin(). Direct writes by anon/authenticated are also revoked.
 --
--- Visibility:
+-- Visibility (visitors only ever see anything while journal_settings.public_enabled is true):
 --   draft        admins only
 --   coming_soon  public card/teaser (every journal_episodes column is readable);
 --                the video stays private
@@ -17,9 +17,20 @@
 -- Scheduling is informational in this version: scheduled_for and release_note
 -- are shown on coming-soon episodes, but nothing publishes automatically.
 --
--- Rollback: 061_journal.down.sql (drops both tables and
--- everything in them; export first if any episodes exist).
+-- Rollback: 061_journal.down.sql drops all three tables and everything in them. It is NOT part
+-- of a normal rollback (turn the switch off, or roll back the deploy); export first if ever used.
 -- ============================================================
+
+-- Public launch switch (one row). While public_enabled is false, visitors can read no Journal
+-- episode or video at all, whatever its status; the site reads the same value server-side to
+-- return 404s and hide links. Admins keep full access. Created off: launching is a separate,
+-- approved change.
+create table if not exists public.journal_settings (
+  id boolean primary key default true check (id),
+  public_enabled boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+insert into public.journal_settings (id, public_enabled) values (true, false) on conflict (id) do nothing;
 
 create table if not exists public.journal_episodes (
   id uuid primary key default gen_random_uuid(),
@@ -100,34 +111,59 @@ create trigger journal_episode_videos_updated_at
   before update on public.journal_episode_videos
   for each row execute function public.update_updated_at_column();
 
+create trigger journal_settings_updated_at
+  before update on public.journal_settings
+  for each row execute function public.update_updated_at_column();
+
+alter table public.journal_settings enable row level security;
 alter table public.journal_episodes enable row level security;
 alter table public.journal_episode_videos enable row level security;
 
+-- The switch itself is public (a single true/false), so the site can read it without a session.
+create policy "Public read journal settings" on public.journal_settings
+  for select to anon, authenticated
+  using (true);
+
 create policy "Anon read public journal episodes" on public.journal_episodes
   for select to anon
-  using (status in ('published', 'coming_soon'));
+  using (
+    status in ('published', 'coming_soon')
+    and exists (select 1 from public.journal_settings s where s.public_enabled)
+  );
 
 create policy "Auth read public or admin journal episodes" on public.journal_episodes
   for select to authenticated
-  using (status in ('published', 'coming_soon') or public.is_admin());
+  using (
+    public.is_admin()
+    or (
+      status in ('published', 'coming_soon')
+      and exists (select 1 from public.journal_settings s where s.public_enabled)
+    )
+  );
 
 create policy "Anon read published journal videos" on public.journal_episode_videos
   for select to anon
-  using (exists (
-    select 1 from public.journal_episodes e
-    where e.id = episode_id and e.status = 'published'
-  ));
-
-create policy "Auth read published or admin journal videos" on public.journal_episode_videos
-  for select to authenticated
   using (
-    public.is_admin()
-    or exists (
+    exists (select 1 from public.journal_settings s where s.public_enabled)
+    and exists (
       select 1 from public.journal_episodes e
       where e.id = episode_id and e.status = 'published'
     )
   );
 
+create policy "Auth read published or admin journal videos" on public.journal_episode_videos
+  for select to authenticated
+  using (
+    public.is_admin()
+    or (
+      exists (select 1 from public.journal_settings s where s.public_enabled)
+      and exists (
+        select 1 from public.journal_episodes e
+        where e.id = episode_id and e.status = 'published'
+      )
+    )
+  );
+
 revoke insert, update, delete, truncate
-  on public.journal_episodes, public.journal_episode_videos
+  on public.journal_settings, public.journal_episodes, public.journal_episode_videos
   from anon, authenticated;

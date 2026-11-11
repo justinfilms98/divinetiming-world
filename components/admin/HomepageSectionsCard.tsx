@@ -8,11 +8,6 @@ import { describeSaveError } from '@/lib/admin/saveErrors';
 import { revalidatePaths } from '@/lib/revalidate';
 import { HOME_SECTIONS, resolveHomeSections, type HomeSectionId, type HomeSectionVisibility } from '@/lib/site/homeSections';
 import { cn } from '@/lib/ui/cn';
-import { isJournalPublicEnabled } from '@/lib/features';
-
-/** The Journal switch appears once the public Journal is enabled. */
-const VISIBLE_SECTIONS = HOME_SECTIONS.filter((s) => s.id !== 'journal' || isJournalPublicEnabled());
-
 type LoadState = 'loading' | 'ready' | 'needs-migration' | 'error';
 
 /** Show/hide switches for homepage sections. Each switch saves on its own. */
@@ -20,10 +15,20 @@ export function HomepageSectionsCard() {
   const [state, setState] = useState<LoadState>('loading');
   const [sections, setSections] = useState<HomeSectionVisibility>(resolveHomeSections(null));
   const [busy, setBusy] = useState<HomeSectionId | null>(null);
+  // The Journal switch appears once the public Journal is launched (journal_settings).
+  const [journalPublic, setJournalPublic] = useState(false);
+  const visibleSections = HOME_SECTIONS.filter((s) => s.id !== 'journal' || journalPublic);
   const { showToast } = useAdminToast();
 
   useEffect(() => {
     let cancelled = false;
+    createClient()
+      .from('journal_settings')
+      .select('public_enabled')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setJournalPublic(data?.public_enabled === true);
+      });
     createClient()
       .from('site_settings')
       .select('*')
@@ -85,7 +90,7 @@ export function HomepageSectionsCard() {
       )}
       {state === 'ready' && (
         <ul className="divide-y divide-white/10">
-          {VISIBLE_SECTIONS.map((section) => {
+          {visibleSections.map((section) => {
             const on = sections[section.id];
             return (
               <li key={section.id} className="flex items-center justify-between gap-4 py-2">
