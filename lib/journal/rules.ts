@@ -185,7 +185,7 @@ export function checkJournalInput(raw: unknown, mode: 'create' | 'update'): Jour
         return {
           ok: false,
           error:
-            'That video link isn’t a YouTube or Vimeo video we can play. Use the plain link, e.g. https://youtu.be/VIDEO_ID or https://vimeo.com/123456789, and remove anything after the video ID (such as ?si=…).',
+            'That video link isn’t a YouTube or Vimeo video we can play. Paste the video’s share or watch link, e.g. https://youtu.be/… or https://vimeo.com/….',
         };
       }
       video = { provider: embed.provider, video_id: embed.id };
