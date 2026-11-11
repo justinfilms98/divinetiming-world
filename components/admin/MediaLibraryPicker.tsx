@@ -132,7 +132,7 @@ export function MediaLibraryPicker({
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden />
-      <div className="relative w-full sm:max-w-2xl max-h-[100svh] sm:max-h-[85vh] overflow-hidden flex flex-col rounded-t-2xl sm:rounded-2xl bg-white border border-slate-200 shadow-xl">
+      <div className="relative w-full sm:max-w-2xl max-h-[100svh] sm:max-h-[85vh] overflow-hidden flex flex-col rounded-t-2xl sm:rounded-2xl bg-white admin-picker-panel border border-slate-200 shadow-xl">
         <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-800 min-w-0 truncate">{title}</h2>
           <button

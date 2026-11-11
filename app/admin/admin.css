@@ -325,6 +325,8 @@ html.admin-active body {
 .admin-root .focus\:border-slate-500:focus { border-color: #C6A75E; }
 
 .admin-root .bg-white { background-color: rgba(255, 255, 255, 0.05); color: #f5f0e8; }
+/* Dialog panels must be opaque; the translucent bg-white remap lets the page show through. */
+.admin-root .admin-picker-panel { background-color: #0f0c10; }
 
 .admin-root .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.12); }
 .admin-root .text-red-600 { color: #f87171; }
