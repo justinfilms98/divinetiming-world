@@ -1,10 +1,11 @@
 # Security audit — unpublished media visibility (2026-11-11)
 
 Status:
-- **Confirmed, fix tested on staging, not applied to production.**
-- Proposed migration: `supabase/proposed/060_unpublished_media_visibility.sql`, with an exact undo `060_unpublished_media_visibility.down.sql`. Both are kept on branch `security/unpublished-media` only, so they can't reach `main` by accident.
-- Applied to staging only (staging migration 20261111085819).
-- Production RLS, storage and data are unchanged.
+- **Step 1 done.** Migration 060 was applied to production on 2026-11-11 (version 20261111093939) after owner approval, and verified. See section 9.
+- Migration file: `supabase/migrations/060_unpublished_media_visibility.sql`, with an exact undo `060_unpublished_media_visibility.down.sql`.
+- Staging had it first (20261111085819), with the rollback tested.
+- Step 2 (private bucket) is **not started**. It waits on the owners' answers to `PRIVATE_MEDIA_REVIEW_2026-11-11.md`.
+- No files, buckets or records were changed.
 
 ## 1. Two separate risks
 
@@ -39,7 +40,7 @@ directly:
 | Used by public content (database) | 43 | 160 MB | Hero, published Collections and events, releases, products, press kit, Public library items |
 | Used by public content (code) | 14 | ~29 MB | The 12 current hero video encodes and posters (`lib/media/heroRenditions.ts`) and 2 web copies of large photos (`lib/media/webCopies.ts`) |
 | **Internal only** | 12 | 65 MB | Library items marked Internal and used nowhere public: 3 duplicate white-logo copies, 6 older hero clips (2 of them empty files), 2 Journey chapter images, 1 photo |
-| **Superseded, unused** | 27 | ~145 MB | Older hero slot uploads (10), older hero encodes (6), legacy hero stills (4), and orphaned library uploads (3 videos, 3 photos), kept because originals are never deleted |
+| **Superseded, unused** | 27 | ~145 MB | Older hero slot uploads (11), older hero encodes (6), legacy hero stills (4), and orphaned library uploads (3 videos, 3 photos), kept because originals are never deleted |
 
 The last two rows (39 files, about 210 MB) are the only files that could be considered private. All
 of them can be listed today, and all download by link.
@@ -151,3 +152,34 @@ the visitor probe returned to the exposed state. The fix was then re-applied and
    - every public page and its files return 200.
 4. As an admin: Collections and events show draft media, a Media Library page load works, and the logo picker opens (no saves).
 5. Undo, if ever needed: `060_unpublished_media_visibility.down.sql` restores the previous policies exactly.
+
+## 9. Production result (2026-11-11, version 20261111093939)
+
+**Before applying:**
+- The SQL matched the staging-tested migration exactly (normalised fingerprint `ac455208…`).
+- Production history ended at 059.
+- All 12 policies being replaced existed with the expected definitions, and none of the 9 new names was taken.
+- `is_admin()` and every parent column were present.
+- All 50 policy definitions were recorded (fingerprint `b76bf6b4…`).
+- Content and storage fingerprints were recorded.
+- The script contained only policy statements: no file moves, bucket changes or deletions.
+
+**After applying:**
+- 47 policies, fingerprint `8fc95631…`, identical to staging after its test.
+- `storage.objects` keeps the admin insert, update and delete policies and gains admin-only read.
+
+| Check (production) | Before | After |
+| --- | --- | --- |
+| Visitor: Collection media rows readable | 23 (7 from 2 draft Collections) | 16 (published only) |
+| Visitor: draft event media | none exist | policy matches the staging-tested version |
+| Visitor: files listable in `media` | 96 | **0** |
+| Visitor: known public link (internal file) | 200 | 200 (expected; bucket stays public) |
+| Public pages (`/`, Collections and a Collection, Events and 2 events, Media, Shop, Journey, Music, About, Press Kit) | 200 | 200 |
+| Distinct storage files used by those pages | — | 34 of 34 download |
+| Admin: Collections incl. 2 drafts, 23 media rows | — | yes, drafts show with Edit |
+| Admin: storage listing | — | 200, 96 files |
+| Admin: Media Library API | — | 200, 53 items |
+| Content, all 96 file fingerprints, bucket settings, admin accounts | — | unchanged |
+
+Admin upload permissions are unchanged: the insert, update and delete policies weren't touched.
+Uploads were tested end to end on staging with 060 applied. No test upload was made to production.
