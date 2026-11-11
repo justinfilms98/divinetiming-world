@@ -9,7 +9,7 @@ import {
 import { collectionStoryHref } from '@/lib/content/shared';
 import { eventDetailHref } from '@/lib/eventDetailHref';
 import { BASE_URL } from '@/lib/site';
-import { isJournalPublicEnabled } from '@/lib/features';
+import { isJournalPublic } from '@/lib/journal/settings';
 import { getPublicJournalEpisodes } from '@/lib/journal/server';
 import type { LegalPolicySlug } from '@/lib/types/content';
 
@@ -54,7 +54,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getGalleries(),
     Promise.all(LEGAL_SLUGS.map((slug) => getLegalPolicy(slug))),
   ]);
-  const journalEnabled = isJournalPublicEnabled();
+  const journalEnabled = await isJournalPublic();
   // Coming-soon teasers are noindex, so only published episodes are listed.
   const journalEpisodes = journalEnabled
     ? (await getPublicJournalEpisodes()).filter((e) => e.status === 'published')

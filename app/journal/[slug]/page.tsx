@@ -7,7 +7,7 @@ import { Reveal } from '@/components/motion/Reveal';
 import { JournalPlayer } from '@/components/journal/JournalPlayer';
 import { createClient } from '@/lib/supabase/server';
 import { getGalleryMedia } from '@/lib/content/server';
-import { isJournalPublicEnabled } from '@/lib/features';
+import { isJournalPublic } from '@/lib/journal/settings';
 import { episodeLabel, playerUrlFor, upcomingDateLabel, watchUrlFor } from '@/lib/journal/rules';
 import { getPublicJournalEpisode, getPublicJournalEpisodes, getPublishedJournalVideo } from '@/lib/journal/server';
 import type { PublicJournalEpisode } from '@/lib/journal/types';
@@ -25,7 +25,7 @@ function episodeTitle(episode: Pick<PublicJournalEpisode, 'episode_number' | 'ti
 
 /** Only intentionally public episodes reach metadata; drafts and archived episodes never do. */
 async function loadEpisode(params: Params['params']) {
-  if (!isJournalPublicEnabled()) return null;
+  if (!(await isJournalPublic())) return null;
   const { slug } = await Promise.resolve(params);
   return getPublicJournalEpisode(slug);
 }

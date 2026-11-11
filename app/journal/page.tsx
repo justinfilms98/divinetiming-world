@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Container } from '@/components/ui/Container';
 import { Reveal } from '@/components/motion/Reveal';
 import { JournalCard } from '@/components/journal/JournalCard';
-import { isJournalPublicEnabled } from '@/lib/features';
+import { isJournalPublic } from '@/lib/journal/settings';
 import { getPublicJournalEpisodes } from '@/lib/journal/server';
 import { displayImageUrl } from '@/lib/media/webCopies';
 import { breadcrumbJsonLd } from '@/lib/seo/jsonld';
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export default async function JournalPage() {
-  if (!isJournalPublicEnabled()) notFound();
+  if (!(await isJournalPublic())) notFound();
   const episodes = (await getPublicJournalEpisodes()).map((e) => ({ ...e, cover_image_url: displayImageUrl(e.cover_image_url) }));
   const upcoming = episodes.filter((e) => e.status === 'coming_soon');
   const published = episodes.filter((e) => e.status === 'published');

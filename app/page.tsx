@@ -12,7 +12,7 @@ import { ShopHighlightSection } from '@/components/home/ShopHighlightSection';
 import { TribeSection } from '@/components/home/TribeSection';
 import { BookingCtaSection } from '@/components/home/BookingCtaSection';
 import { JournalHighlightSection } from '@/components/home/JournalHighlightSection';
-import { isJournalPublicEnabled } from '@/lib/features';
+import { isJournalPublic } from '@/lib/journal/settings';
 import { getPublicJournalEpisodes } from '@/lib/journal/server';
 import { displayImageUrl } from '@/lib/media/webCopies';
 import {
@@ -62,7 +62,7 @@ export default async function HomePage() {
   ]);
   const sections = resolveHomeSections(siteSettings?.home_sections);
   // Switched-off sections don't query their data at all.
-  const showJournal = sections.journal && isJournalPublicEnabled();
+  const showJournal = sections.journal && (await isJournalPublic());
   const [upcomingEvents, products, videos, latestRelease, journalEpisodes] = await Promise.all([
     sections.upcoming_events || sections.experience ? getEvents({ upcomingOnly: true }) : Promise.resolve([]),
     sections.shop ? getProducts() : Promise.resolve([]),

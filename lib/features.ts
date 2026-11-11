@@ -26,12 +26,3 @@ export function isContentInboxEnabled(): boolean {
 export function isLabelPublicEnabled(): boolean {
   return isTruthyFlag(process.env.NEXT_PUBLIC_LABEL_PUBLIC_ENABLED);
 }
-
-/**
- * Public Journal (D2-C). OFF by default: /journal and every episode URL return 404, and the nav,
- * footer, sitemap and homepage don't mention it. The admin Journal works either way, so episodes
- * can be prepared privately. Set NEXT_PUBLIC_JOURNAL_PUBLIC_ENABLED=1 to launch.
- */
-export function isJournalPublicEnabled(): boolean {
-  return isTruthyFlag(process.env.NEXT_PUBLIC_JOURNAL_PUBLIC_ENABLED);
-}

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import localFont from 'next/font/local';
 import { getSiteSettings } from '@/lib/content/server';
+import { isJournalPublic } from '@/lib/journal/settings';
 import { BASE_URL, SITE_NAME, DEFAULT_OG_IMAGE, IS_PRODUCTION_SITE } from '@/lib/site';
 
 // Self-hosted (OFL) variable fonts, Latin subset. next/font/google fetches CSS from Google at
@@ -54,12 +55,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const siteSettings = await getSiteSettings();
+  const [siteSettings, journalPublic] = await Promise.all([getSiteSettings(), isJournalPublic()]);
 
   return (
     <html lang="en">
       <body className={`min-h-screen antialiased ${playfairDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
-        <PublicLayout siteSettings={siteSettings}>{children}</PublicLayout>
+        <PublicLayout siteSettings={siteSettings} journalPublic={journalPublic}>{children}</PublicLayout>
       </body>
     </html>
   );

@@ -1,31 +1,19 @@
 // proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isJournalPublicEnabled } from "@/lib/features";
-import {
-  isJournalPath,
-  isPublicJournalSlug,
-  journalSlugFromPath,
-  JOURNAL_NOT_FOUND_PATH,
-} from "@/lib/journal/visibility";
+import { isJournalPath, journalGateDecision, JOURNAL_NOT_FOUND_PATH } from "@/lib/journal/visibility";
 
 /**
- * Journal URLs: genuine 404s for hidden episodes. The root loading.tsx would otherwise commit the
- * response to 200 before the page could call notFound(). Rewriting to an unmatched path makes Next
- * serve the site's own 404 page with status 404.
+ * Journal URLs: a genuine 404 while the public Journal is switched off, and for hidden episodes.
+ * The root loading.tsx would otherwise commit the response to 200 before the page could call
+ * notFound(). Rewriting to an unmatched path makes Next serve the site's own 404 page with status 404.
  */
 async function journalGate(req: NextRequest): Promise<NextResponse> {
-  const { pathname } = req.nextUrl;
-  const notFound = () => NextResponse.rewrite(new URL(JOURNAL_NOT_FOUND_PATH, req.url));
-  if (!isJournalPublicEnabled()) return notFound();
-  if (pathname === "/journal" || pathname === "/journal/") return NextResponse.next();
-  const slug = journalSlugFromPath(pathname);
-  if (slug === null) return notFound();
-  const visible = await isPublicJournalSlug(slug, {
+  const decision = await journalGateDecision(req.nextUrl.pathname, {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
     anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
-  return visible ? NextResponse.next() : notFound();
+  return decision === "next" ? NextResponse.next() : NextResponse.rewrite(new URL(JOURNAL_NOT_FOUND_PATH, req.url));
 }
 
 export async function proxy(req: NextRequest) {
