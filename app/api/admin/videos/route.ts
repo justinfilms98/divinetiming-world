@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
+import { requestedStatus, statusForCreate } from '@/lib/admin/publicationStatus';
 import { parseYouTubeId } from '@/lib/content/shared';
+
+const VIDEO_STATUSES = ['draft', 'published', 'archived'] as const;
+
+/** Videos appear on the Media page and the homepage Films section. */
+function revalidateVideos() {
+  revalidatePath('/media');
+  revalidatePath('/');
+}
 
 /** Normalize input to 11-char YouTube ID only. Rejects raw URLs from other domains. */
 function normalizeYouTubeId(input: string | null | undefined): string | null {
@@ -28,6 +37,10 @@ export async function POST(request: NextRequest) {
 
     const youtubeIdInput = rawYoutubeId ?? youtube_url;
     const normalizedId = normalizeYouTubeId(youtubeIdInput);
+    const status = requestedStatus(statusInput, VIDEO_STATUSES);
+    if (statusInput != null && !status) {
+      return NextResponse.json({ error: 'Status must be draft, published or archived.' }, { status: 400 });
+    }
 
     if (id) {
       const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -37,8 +50,8 @@ export async function POST(request: NextRequest) {
       if (is_vertical != null) updates.is_vertical = !!is_vertical;
       if (is_featured != null) updates.is_featured = is_featured;
       if (display_order != null) updates.display_order = display_order;
-      const status = statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published';
-      (updates as Record<string, unknown>).status = status;
+      // An edit that leaves out the status keeps the video's current one.
+      if (status) updates.status = status;
       if (youtubeIdInput != null) {
         if (!normalizedId) {
           return NextResponse.json(
@@ -69,7 +82,7 @@ export async function POST(request: NextRequest) {
         console.error('Admin videos update error:', result.error);
         return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
       }
-      revalidatePath('/media');
+      revalidateVideos();
       return NextResponse.json({ video: result.data });
     }
 
@@ -97,7 +110,7 @@ export async function POST(request: NextRequest) {
       is_vertical: !!is_vertical,
       is_featured: is_featured ?? false,
       display_order: order,
-      status: statusInput === 'draft' || statusInput === 'archived' ? statusInput : 'published',
+      status: statusForCreate(statusInput, VIDEO_STATUSES),
     };
     let insertResult = await supabase.from('videos').insert(insertPayload).select().single();
     if (insertResult.error && isColumnMissingError(insertResult.error)) {
@@ -109,7 +122,7 @@ export async function POST(request: NextRequest) {
       console.error('Admin videos insert error:', insertResult.error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
-    revalidatePath('/media');
+    revalidateVideos();
     return NextResponse.json({ video: insertResult.data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';
@@ -132,7 +145,7 @@ export async function DELETE(request: NextRequest) {
       console.error('Admin videos DELETE error:', error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
-    revalidatePath('/media');
+    revalidateVideos();
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed';

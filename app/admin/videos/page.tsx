@@ -36,6 +36,7 @@ export default function AdminVideosPage() {
   const [youtubeInput, setYoutubeInput] = useState('');
   const [caption, setCaption] = useState('');
   const [isVertical, setIsVertical] = useState(false);
+  const [newStatus, setNewStatus] = useState<VideoStatus>('draft');
   const [loading, setLoading] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoRow | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -91,6 +92,7 @@ export default function AdminVideosPage() {
           youtube_id,
           caption: caption.trim() || null,
           is_vertical: isVertical,
+          status: newStatus,
         }),
         credentials: 'same-origin',
       });
@@ -100,8 +102,14 @@ export default function AdminVideosPage() {
       setYoutubeInput('');
       setCaption('');
       setIsVertical(false);
+      setNewStatus('draft');
       await load();
-      showToast('success', 'Video added');
+      showToast(
+        'success',
+        newStatus === 'published'
+          ? 'Video added and published on the Media page.'
+          : 'Video added as a draft. Publish it to show it on the Media page.'
+      );
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Failed to add video');
     } finally {
@@ -239,6 +247,20 @@ export default function AdminVideosPage() {
             />
             <span className="text-sm text-slate-700">Vertical / short-form (9:16)</span>
           </label>
+          <div className="w-full sm:w-auto">
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="new-video-status">
+              Visibility
+            </label>
+            <select
+              id="new-video-status"
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value as VideoStatus)}
+              className="admin-tap w-full px-3 py-2 border border-slate-300 rounded-lg"
+            >
+              <option value="draft">Draft (hidden)</option>
+              <option value="published">Published (visible on site)</option>
+            </select>
+          </div>
           <button
             type="submit"
             disabled={loading || !title.trim() || !youtubeInput.trim()}
