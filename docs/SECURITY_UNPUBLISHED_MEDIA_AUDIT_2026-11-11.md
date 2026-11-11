@@ -37,11 +37,11 @@ directly:
 | Class | Files | Size | Meaning |
 | --- | --- | --- | --- |
 | Used by public content (database) | 43 | 160 MB | Hero, published Collections and events, releases, products, press kit, Public library items |
-| Used by public content (code) | 14 | ~45 MB | The 12 current hero video encodes and posters (`lib/media/heroRenditions.ts`) and 2 web copies of large photos (`lib/media/webCopies.ts`) |
+| Used by public content (code) | 14 | ~29 MB | The 12 current hero video encodes and posters (`lib/media/heroRenditions.ts`) and 2 web copies of large photos (`lib/media/webCopies.ts`) |
 | **Internal only** | 12 | 65 MB | Library items marked Internal and used nowhere public: 3 duplicate white-logo copies, 6 older hero clips (2 of them empty files), 2 Journey chapter images, 1 photo |
-| **Superseded, unused** | 27 | ~128 MB | Older hero slot uploads (10), older hero encodes (6), legacy hero stills (4), and orphaned library uploads (3 videos, 3 photos), kept because originals are never deleted |
+| **Superseded, unused** | 27 | ~145 MB | Older hero slot uploads (10), older hero encodes (6), legacy hero stills (4), and orphaned library uploads (3 videos, 3 photos), kept because originals are never deleted |
 
-The last two rows (39 files, about 190 MB) are the only files that could be considered private. All
+The last two rows (39 files, about 210 MB) are the only files that could be considered private. All
 of them can be listed today, and all download by link.
 
 ## 3. Can the current public-bucket setup protect private files?
@@ -63,7 +63,7 @@ of them can be listed today, and all download by link.
 
 **Step 2, only if the owners want guaranteed privacy for specific files** (a staged storage transition, separate approval).
 - **Private bucket** `media-private` (private, admin-only policies). Admins see these files through short-lived signed links from an admin API.
-- **One-time move.** After the owners review the list in section 2, move the internal-only and superseded files (39 files, about 190 MB) into `media-private`.
+- **One-time move.** After the owners review the list in section 2, move the internal-only and superseded files (39 files, about 210 MB) into `media-private`.
   - Use the Storage API, not SQL. Same bytes, same names.
   - Update their library rows to point at the private location. Nothing is deleted.
   - Their old public links stop working immediately.
