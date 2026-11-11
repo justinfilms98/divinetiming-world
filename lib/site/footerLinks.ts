@@ -69,3 +69,14 @@ export function getFooterLinks(settings?: FooterLinkSettings | null): FooterLink
 
   return links;
 }
+
+/**
+ * Splits the links, in order, into at most two balanced rows (six links → 3 + 3), so no link is
+ * left alone on a row of its own. Three or fewer links stay on one row.
+ */
+export function footerLinkRows<T>(links: readonly T[]): T[][] {
+  if (links.length === 0) return [];
+  if (links.length <= 3) return [[...links]];
+  const firstRow = Math.ceil(links.length / 2);
+  return [links.slice(0, firstRow), links.slice(firstRow)];
+}
