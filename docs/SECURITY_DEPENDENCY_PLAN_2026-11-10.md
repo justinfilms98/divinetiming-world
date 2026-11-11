@@ -46,6 +46,16 @@ Except for Tiptap and the dev-only lint tooling, every fix below is a **lockfile
 
 ## Batch 2: Tiptap / ProseMirror editor (About page editor)
 
+**Status:** verified on staging, awaiting production approval. Branch `security/tiptap-3.33`; staging `staging/d2a` 6b9c9e0.
+
+- **What changed:**
+  - All five direct `@tiptap/*` packages (including `@tiptap/pm`) moved from 3.20.0 to 3.33.1 together.
+  - `prosemirror-view` is now 1.42.9, which fixes the paste XSS.
+  - Tiptap's ProseMirror bundle no longer depends on `prosemirror-markdown`, so `markdown-it` and `linkify-it` are removed rather than upgraded.
+- **Editor output:** 24 paste cases plus the existing bio give byte-identical `getHTML()` output before and after. The staging bundle was confirmed to contain 1.42.9-only code, and no paste payload ran script.
+- **Toolbar:** Bold, Italic, both lists and the Link dialog work. Link refuses `javascript:` and `data:` addresses.
+- **Tests:** 8 sanitizer tests now cover the editor's real output.
+
 | Package | Installed | Advisories | Lowest patched | Used? |
 |---|---|---|---|---|
 | `@tiptap/core` | 3.20.0 | moderate XSS / prototype pollution (`mergeAttributes`); high ReDoS (Markdown attribute parsing) | 3.30.4 / **3.30.5**. Target 3.33.1 | Admin-only (browser editor on `/admin/about`) |

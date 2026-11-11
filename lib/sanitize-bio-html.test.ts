@@ -95,6 +95,22 @@ describe('sanitizeBioHtml: injection attempts produce only allowlisted markup', 
   });
 });
 
+// Exact getHTML() output of the About editor (Tiptap 3.33.1, identical on 3.20.0) for pasted input.
+describe('sanitizeBioHtml: About editor output', () => {
+  it.each([
+    ['editor link with target/rel', '<p><a target="_blank" rel="noopener noreferrer nofollow" href="https://divinetiming.world/events">our events</a></p>', '<p><a href="https://divinetiming.world/events">our events</a></p>'],
+    ['autolinked pasted URL', '<p>Visit <a target="_blank" rel="noopener noreferrer nofollow" href="https://divinetiming.world/events">https://divinetiming.world/events</a> today</p>', '<p>Visit <a href="https://divinetiming.world/events">https://divinetiming.world/events</a> today</p>'],
+    ['lists with paragraph items and trailing empty paragraph', '<ul><li><p>Bullet one</p></li></ul><ol><li><p>Step one</p></li></ol><p></p>', '<ul><li><p>Bullet one</p></li></ul><ol><li><p>Step one</p></li></ol><p></p>'],
+    ['nested list', '<ul><li><p>Outer</p><ul><li><p>Inner</p></li></ul></li></ul><p></p>', '<ul><li><p>Outer</p><ul><li><p>Inner</p></li></ul></li></ul><p></p>'],
+    ['storage image between empty paragraphs', `<p></p><img src="${IMG}" alt="Staging photo"><p></p>`, `<p></p><img src="${IMG}" alt="Staging photo" /><p></p>`],
+    ['pasted image the editor kept (src="x") is removed', '<p>img</p><img src="x"><p></p>', '<p>img</p><p></p>'],
+    ['markdown-style paste turned into marks', '<p><strong>not bold</strong> and <em>not italic</em></p>', '<p><strong>not bold</strong> and <em>not italic</em></p>'],
+    ['malformed paste after editor normalisation', '<p>unclosed <strong>bold <em>both</em></strong></p><ul><li><p><strong><em>orphan item</em></strong></p></li></ul><p><strong><em>tail</em></strong></p>', '<p>unclosed <strong>bold <em>both</em></strong></p><ul><li><p><strong><em>orphan item</em></strong></p></li></ul><p><strong><em>tail</em></strong></p>'],
+  ])('%s', (_name, input, expected) => {
+    expect(sanitizeBioHtml(input)).toBe(expected);
+  });
+});
+
 describe('sanitizeBioHtml: deeply nested and large input', () => {
   it.each([
     ['5,000 nested inline tags', '<p>' + '<strong><em>'.repeat(5000) + 'deep' + '</em></strong>'.repeat(5000) + '</p>'],
