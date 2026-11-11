@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getPlatformLinks, PlatformIcon } from '@/lib/platformLinks';
+import { SocialLinks } from '@/components/layout/SocialLinks';
+import { getFooterLinks } from '@/lib/site/footerLinks';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 import { useScrollLock } from '@/lib/ui/useScrollLock';
 import { SpiralMark } from '@/components/brand/SpiralMark';
@@ -47,7 +48,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
   }, []);
 
   const duration = reducedMotion ? 0.01 : MENU_DURATION;
-  const platformLinks = getPlatformLinks(siteSettings ?? undefined);
+  const socialLinks = getFooterLinks(siteSettings);
 
   const linkClass = (isActive: boolean) =>
     `relative inline-flex items-center min-h-[44px] text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] nav-link-underline
@@ -178,7 +179,10 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col flex-1 pt-6 pb-8 px-6 min-w-0">
+              <div
+                className="flex flex-col flex-1 pt-6 px-6 min-w-0"
+                style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' }}
+              >
                 <div className="flex items-center justify-between mb-8">
                   <span
                     className="text-sm font-semibold tracking-[var(--letter-spacing-caps)] uppercase text-[var(--text-muted)]"
@@ -234,27 +238,13 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                   </Link>
                 </nav>
 
-                {platformLinks.length > 0 && (
+                {socialLinks.length > 0 && (
                   <>
                     <div className="my-6 border-t border-[var(--accent)]/20" />
                     <p className="text-[var(--text-muted)] text-sm font-semibold tracking-[var(--letter-spacing-caps)] uppercase mb-3 type-label">
-                      Listen
+                      Connect
                     </p>
-                    <div className="flex flex-wrap gap-3">
-                      {platformLinks.map((link) => (
-                        <a
-                          key={link.id}
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--bg-secondary)]/50 text-[var(--text)] hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/50 focus-ring"
-                          style={{ transition: NAV_TRANSITION }}
-                          aria-label={`Open ${link.label}`}
-                        >
-                          <PlatformIcon id={link.id} className="w-5 h-5 shrink-0" />
-                        </a>
-                      ))}
-                    </div>
+                    <SocialLinks links={socialLinks} onNavigate={closeMenu} />
                   </>
                 )}
               </div>
