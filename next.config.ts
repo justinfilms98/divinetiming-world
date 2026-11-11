@@ -14,6 +14,8 @@ if (
 }
 
 const nextConfig: NextConfig = {
+  // Staging branch only: the public Journal is switched on here for review; main keeps it off.
+  env: { NEXT_PUBLIC_JOURNAL_PUBLIC_ENABLED: '1' },
   experimental: {
     serverActions: {
       bodySizeLimit: '110mb',
