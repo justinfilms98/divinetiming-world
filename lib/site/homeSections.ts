@@ -1,17 +1,19 @@
 /**
  * Homepage section switches (site_settings.home_sections, migration 059).
- * A missing key means "shown", so the homepage stays as it is until an admin switches something off.
+ * A missing key means the section's default: shown for the original sections, so the homepage stays
+ * as it is until an admin switches something off; hidden for sections added later (the Journal).
  */
 
 export const HOME_SECTIONS = [
-  { id: 'now_playing', label: 'Now playing', hint: 'Latest or pinned release' },
-  { id: 'experience', label: 'The DIVINE:TIMING experience', hint: 'Live intro band' },
-  { id: 'upcoming_events', label: 'Live dates', hint: 'Next three upcoming events (hidden anyway when there are none)' },
-  { id: 'manifesto', label: 'The world', hint: 'Manifesto text' },
-  { id: 'films', label: 'Films', hint: 'Two featured videos (hidden anyway when there are none)' },
-  { id: 'tribe', label: 'Join the tribe', hint: 'Newsletter signup' },
-  { id: 'shop', label: 'Shop highlight', hint: 'Featured products (hidden anyway when there are none)' },
-  { id: 'booking', label: 'Booking', hint: 'Bring DIVINE:TIMING to your city' },
+  { id: 'now_playing', label: 'Now playing', hint: 'Latest or pinned release', defaultShown: true },
+  { id: 'experience', label: 'The DIVINE:TIMING experience', hint: 'Live intro band', defaultShown: true },
+  { id: 'upcoming_events', label: 'Live dates', hint: 'Next three upcoming events (hidden anyway when there are none)', defaultShown: true },
+  { id: 'manifesto', label: 'The world', hint: 'Manifesto text', defaultShown: true },
+  { id: 'films', label: 'Films', hint: 'Two featured videos (hidden anyway when there are none)', defaultShown: true },
+  { id: 'journal', label: 'Latest from the Journal', hint: 'Newest episodes (hidden anyway when there are none). Off until you switch it on', defaultShown: false },
+  { id: 'tribe', label: 'Join the tribe', hint: 'Newsletter signup', defaultShown: true },
+  { id: 'shop', label: 'Shop highlight', hint: 'Featured products (hidden anyway when there are none)', defaultShown: true },
+  { id: 'booking', label: 'Booking', hint: 'Bring DIVINE:TIMING to your city', defaultShown: true },
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTIONS)[number]['id'];
@@ -19,10 +21,12 @@ export type HomeSectionVisibility = Record<HomeSectionId, boolean>;
 
 const IDS = new Set<string>(HOME_SECTIONS.map((s) => s.id));
 
-/** Visibility for every section; anything malformed is treated as "shown". */
+/** Visibility for every section; a missing or malformed value falls back to the section's default. */
 export function resolveHomeSections(raw: unknown): HomeSectionVisibility {
   const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  return Object.fromEntries(HOME_SECTIONS.map(({ id }) => [id, source[id] !== false])) as HomeSectionVisibility;
+  return Object.fromEntries(
+    HOME_SECTIONS.map(({ id, defaultShown }) => [id, typeof source[id] === 'boolean' ? (source[id] as boolean) : defaultShown])
+  ) as HomeSectionVisibility;
 }
 
 export type HomeSectionsCheck = { ok: true; value: Partial<HomeSectionVisibility> } | { ok: false; error: string };

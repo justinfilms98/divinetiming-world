@@ -1,6 +1,6 @@
 /**
  * Minimal in-memory stand-in for the Supabase query builder, for route-handler tests.
- * Supports the chains the admin routes use: select/update/insert/delete + eq + order +
+ * Supports the chains the admin routes use: select/update/insert/delete + eq + in + order +
  * single/maybeSingle, awaited directly. Never talks to a real database.
  */
 
@@ -19,6 +19,7 @@ class Query implements PromiseLike<{ data: unknown; error: FakeError | null }> {
   private op: Op = 'select';
   private payload: Row | null = null;
   private filters: [string, unknown][] = [];
+  private inFilters: [string, readonly unknown[]][] = [];
   private returnRows = false;
   private mode: 'many' | 'single' | 'maybe' = 'many';
 
@@ -49,6 +50,10 @@ class Query implements PromiseLike<{ data: unknown; error: FakeError | null }> {
     this.filters.push([col, value]);
     return this;
   }
+  in(col: string, values: readonly unknown[]) {
+    this.inFilters.push([col, values]);
+    return this;
+  }
   order() {
     return this;
   }
@@ -67,7 +72,8 @@ class Query implements PromiseLike<{ data: unknown; error: FakeError | null }> {
   private run(): { data: unknown; error: FakeError | null } {
     const rows = (this.db.tables[this.table] ??= []);
     this.db.calls.push({ op: this.op, table: this.table, payload: this.payload ?? undefined, filters: [...this.filters] });
-    const matches = (r: Row) => this.filters.every(([c, v]) => r[c] === v);
+    const matches = (r: Row) =>
+      this.filters.every(([c, v]) => r[c] === v) && this.inFilters.every(([c, vs]) => vs.includes(r[c]));
     let out: Row[] = [];
 
     if (this.op === 'select') {

@@ -230,6 +230,39 @@ export function releaseJsonLd(release: ReleaseJsonLdInput): object {
   };
 }
 
+export interface VideoObjectJsonLdInput {
+  /** Only `published` episodes may carry video data; anything else returns null. */
+  status: string;
+  name: string;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  uploadDate?: string | null;
+  embedUrl?: string | null;
+  watchUrl?: string | null;
+  durationSeconds?: number | null;
+}
+
+/**
+ * VideoObject for a published Journal episode with a video. Google requires name, thumbnail and
+ * upload date, so without them (or for any unpublished episode) nothing is emitted.
+ */
+export function videoObjectJsonLd(video: VideoObjectJsonLdInput): object | null {
+  if (video.status !== 'published' || !video.embedUrl) return null;
+  if (!video.name.trim() || !video.thumbnailUrl || !video.uploadDate) return null;
+  const seconds = video.durationSeconds && video.durationSeconds > 0 ? Math.round(video.durationSeconds) : null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: video.name,
+    description: video.description?.trim() || video.name,
+    thumbnailUrl: [video.thumbnailUrl],
+    uploadDate: video.uploadDate,
+    embedUrl: video.embedUrl,
+    ...(video.watchUrl && { url: video.watchUrl }),
+    ...(seconds && { duration: `PT${Math.floor(seconds / 60)}M${seconds % 60}S` }),
+  };
+}
+
 export interface BreadcrumbItem {
   name: string;
   url: string;

@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { checkHomeSectionsInput, HOME_SECTIONS, resolveHomeSections } from './homeSections';
 
 describe('resolveHomeSections', () => {
-  it('shows every section when nothing is configured (production today)', () => {
+  it('shows every original section when nothing is configured, and keeps the Journal hidden', () => {
     for (const raw of [null, undefined, {}, 'junk', [false]]) {
-      expect(Object.values(resolveHomeSections(raw)).every(Boolean)).toBe(true);
+      const v = resolveHomeSections(raw);
+      expect(Object.entries(v).filter(([, on]) => !on).map(([id]) => id)).toEqual(['journal']);
     }
+  });
+
+  it('production today ({ now_playing: false }) is unchanged: only Now playing and the Journal are hidden', () => {
+    const v = resolveHomeSections({ now_playing: false });
+    expect(Object.entries(v).filter(([, on]) => !on).map(([id]) => id)).toEqual(['now_playing', 'journal']);
+  });
+
+  it('the Journal section appears only once an admin switches it on', () => {
+    expect(resolveHomeSections({ journal: true }).journal).toBe(true);
+    expect(resolveHomeSections({ journal: 'yes' }).journal).toBe(false);
   });
 
   it('hides only sections explicitly switched off', () => {
@@ -23,6 +34,7 @@ describe('resolveHomeSections', () => {
       'upcoming_events',
       'manifesto',
       'films',
+      'journal',
       'tribe',
       'shop',
       'booking',

@@ -11,6 +11,10 @@ import { FilmsSection } from '@/components/home/FilmsSection';
 import { ShopHighlightSection } from '@/components/home/ShopHighlightSection';
 import { TribeSection } from '@/components/home/TribeSection';
 import { BookingCtaSection } from '@/components/home/BookingCtaSection';
+import { JournalHighlightSection } from '@/components/home/JournalHighlightSection';
+import { isJournalPublicEnabled } from '@/lib/features';
+import { getPublicJournalEpisodes } from '@/lib/journal/server';
+import { displayImageUrl } from '@/lib/media/webCopies';
 import {
   getHeroSection,
   getSiteSettings,
@@ -58,11 +62,13 @@ export default async function HomePage() {
   ]);
   const sections = resolveHomeSections(siteSettings?.home_sections);
   // Switched-off sections don't query their data at all.
-  const [upcomingEvents, products, videos, latestRelease] = await Promise.all([
+  const showJournal = sections.journal && isJournalPublicEnabled();
+  const [upcomingEvents, products, videos, latestRelease, journalEpisodes] = await Promise.all([
     sections.upcoming_events || sections.experience ? getEvents({ upcomingOnly: true }) : Promise.resolve([]),
     sections.shop ? getProducts() : Promise.resolve([]),
     sections.films ? getVideos() : Promise.resolve([]),
     sections.now_playing ? getLatestRelease() : Promise.resolve(null),
+    showJournal ? getPublicJournalEpisodes() : Promise.resolve([]),
   ]);
   // Listen → /music and Join the tribe → /#tribe unless an admin set the buttons.
   const heroButtons = resolveHeroButtons(heroSection, sections);
@@ -72,6 +78,7 @@ export default async function HomePage() {
     .sort((a, b) => Number(b.is_featured) - Number(a.is_featured))
     .slice(0, 4);
   const featuredVideos = videos.slice(0, 2);
+  const latestEpisodes = journalEpisodes.slice(0, 3).map((e) => ({ ...e, cover_image_url: displayImageUrl(e.cover_image_url) }));
   const experienceBackdrop =
     featuredEvents.find((e) => e.resolved_thumbnail_url)?.resolved_thumbnail_url ?? null;
 
@@ -164,6 +171,7 @@ export default async function HomePage() {
         {sections.upcoming_events && <UpcomingEventsSection events={featuredEvents} />}
         {sections.manifesto && <ManifestoSection />}
         {sections.films && <FilmsSection videos={featuredVideos} />}
+        {showJournal && <JournalHighlightSection episodes={latestEpisodes} />}
         {sections.tribe && <TribeSection />}
         {sections.shop && <ShopHighlightSection products={featuredProducts} />}
         {sections.booking && <BookingCtaSection bookingEmail={siteSettings?.booking_email ?? null} />}
