@@ -15,6 +15,8 @@ export interface PageSettings {
   booking_about_asset_id?: string | null;
   booking_about_image_url?: string | null;
   booking_sponsors?: string | null;
+  /** Migration 059: editable section text, `{ field: string | boolean }`. */
+  section_copy?: unknown;
   created_at: string;
   updated_at: string;
 }
