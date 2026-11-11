@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { footerLinkRows, getFooterLinks } from './footerLinks';
+import { getFooterLinks, getHeroPlatformLinks } from './footerLinks';
 import { Footer } from '@/components/layout/Footer';
+import { SocialLinks } from '@/components/layout/SocialLinks';
+import { getPlatformLinks } from '@/lib/platformLinks';
 import type { SiteSettings } from '@/lib/types/content';
 
 const PRODUCTION_TODAY = {
@@ -56,45 +58,79 @@ describe('getFooterLinks', () => {
   });
 });
 
-describe('footerLinkRows', () => {
-  const PRODUCTION_NOW = {
-    ...PRODUCTION_TODAY,
-    instagram_secondary_url: 'https://www.instagram.com/divinetiming_ofc',
-    soundcloud_url: 'https://soundcloud.com/divinetiming_music',
-    beatport_url: 'https://www.beatport.com/artist/divinetiming/1423755',
-  };
+const PRODUCTION_NOW = {
+  ...PRODUCTION_TODAY,
+  apple_music_url: 'https://music.apple.com/es/artist/divine-timing/1851580045',
+  instagram_secondary_url: 'https://www.instagram.com/divinetiming_ofc',
+  soundcloud_url: 'https://soundcloud.com/divinetiming_music',
+  beatport_url: 'https://www.beatport.com/artist/divinetiming/1423755',
+};
 
-  it('puts the six live links in two rows of three, keeping their order', () => {
-    const rows = footerLinkRows(getFooterLinks(PRODUCTION_NOW)).map((row) => row.map((l) => l.key));
-    expect(rows).toEqual([
-      ['spotify', 'youtube', 'instagram'],
-      ['instagram2', 'soundcloud', 'beatport'],
-    ]);
-  });
+/** Accessible name and visible text of each link inside the social list, in page order. */
+function socialLinksIn(html: string) {
+  const list = html.slice(html.indexOf('aria-label="Social and music links"'));
+  return [...list.matchAll(/<li class="([^"]*)"><a [^>]*aria-label="([^"]+)"[^>]*>.*?<span[^>]*>([^<]+)<\/span><\/a><\/li>/g)].map(
+    (m) => ({ name: m[2], text: m[3], fullRow: m[1].includes('col-span-2') })
+  );
+}
 
-  it('never leaves a link alone on a second row', () => {
-    for (let n = 1; n <= 8; n++) {
-      const rows = footerLinkRows(Array.from({ length: n }, (_, i) => i));
-      expect(rows.flat()).toEqual(Array.from({ length: n }, (_, i) => i));
-      expect(rows.length).toBeLessThanOrEqual(2);
-      if (rows.length === 2) expect(rows[1].length).toBeGreaterThanOrEqual(2);
-    }
-    expect(footerLinkRows([])).toEqual([]);
-  });
+const EXPECTED_SOCIAL = [
+  { name: 'Spotify', text: 'Spotify', fullRow: false },
+  { name: 'YouTube', text: 'YouTube', fullRow: false },
+  { name: 'Instagram @divinetimingworld', text: '@divinetimingworld', fullRow: true },
+  { name: 'Instagram @divinetiming_ofc', text: '@divinetiming_ofc', fullRow: true },
+  { name: 'SoundCloud', text: 'SoundCloud', fullRow: false },
+  { name: 'Beatport', text: 'Beatport', fullRow: false },
+];
 
-  it('renders every link once, in order, inside the labelled group', () => {
+describe('Social links in the footer and mobile menu', () => {
+  it('footer: all six links show an icon and a label, in the approved order', () => {
     const html = renderToStaticMarkup(createElement(Footer, { siteSettings: PRODUCTION_NOW as SiteSettings }));
-    const group = html.slice(html.indexOf('aria-label="Social and music links"'));
-    const labels = [...group.matchAll(/<a [^>]*aria-label="([^"]+)"/g)].map((m) => m[1]).slice(0, 6);
-    expect(labels).toEqual([
-      'Spotify',
-      'YouTube',
-      'Instagram @divinetimingworld',
-      'Instagram @divinetiming_ofc',
-      'SoundCloud',
-      'Beatport',
+    expect(socialLinksIn(html)).toEqual(EXPECTED_SOCIAL);
+    expect(html.match(/aria-label="Social and music links"/g)).toHaveLength(1);
+  });
+
+  it('mobile menu: the same six links, so the menu and footer never disagree', () => {
+    const html = renderToStaticMarkup(createElement(SocialLinks, { links: getFooterLinks(PRODUCTION_NOW) }));
+    expect(socialLinksIn(html)).toEqual(EXPECTED_SOCIAL);
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+  });
+
+  it('labels can never be clipped: each Instagram handle has its own full-width row on narrow screens', () => {
+    const html = renderToStaticMarkup(createElement(SocialLinks, { links: getFooterLinks(PRODUCTION_NOW) }));
+    expect(html).toContain('grid-cols-2');
+    expect(html).toContain('@[38rem]:grid-cols-3');
+    expect((html.match(/min-h-\[44px\]/g) ?? []).length).toBe(6);
+  });
+
+  it('renders nothing when no links are configured', () => {
+    expect(renderToStaticMarkup(createElement(SocialLinks, { links: [] }))).toBe('');
+  });
+});
+
+describe('getHeroPlatformLinks', () => {
+  it('shows SoundCloud where Apple Music was, keeping the row at four icons', () => {
+    expect(getHeroPlatformLinks(PRODUCTION_NOW).map((l) => [l.key, l.href])).toEqual([
+      ['spotify', 'https://open.spotify.com/artist/3oXSupbNxaPpkEnMbuK8IS'],
+      ['soundcloud', 'https://soundcloud.com/divinetiming_music'],
+      ['youtube', 'https://www.youtube.com/@divinetimingworld'],
+      ['instagram', 'https://www.instagram.com/divinetimingworld'],
     ]);
-    expect(group.match(/<ul /g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('keeps Apple Music when SoundCloud is missing or invalid', () => {
+    for (const soundcloud_url of [null, '', 'http://soundcloud.com/x', 'https://evil.example/soundcloud']) {
+      const keys = getHeroPlatformLinks({ ...PRODUCTION_NOW, soundcloud_url }).map((l) => l.key);
+      expect(keys).toEqual(['spotify', 'appleMusic', 'youtube', 'instagram']);
+    }
+  });
+
+  it('leaves the Apple Music link itself untouched for other pages', () => {
+    getHeroPlatformLinks(PRODUCTION_NOW);
+    expect(getPlatformLinks(PRODUCTION_NOW).find((l) => l.id === 'appleMusic')?.href).toBe(
+      'https://music.apple.com/es/artist/divine-timing/1851580045'
+    );
   });
 });
 

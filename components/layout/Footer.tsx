@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { cn } from '@/lib/ui/cn';
 import { ContentRail } from '@/components/layout/ContentRail';
 import { SpiralMark } from '@/components/brand/SpiralMark';
-import { PlatformIcon } from '@/lib/platformLinks';
-import { footerLinkRows, getFooterLinks } from '@/lib/site/footerLinks';
+import { SocialLinks } from '@/components/layout/SocialLinks';
+import { getFooterLinks } from '@/lib/site/footerLinks';
 import type { SiteSettings } from '@/lib/types/content';
 import { isLabelPublicEnabled } from '@/lib/features';
 
@@ -41,7 +41,7 @@ export function Footer({
   const member1 = siteSettings?.member_1_name?.trim() || 'Liam Bongo';
   const member2 = siteSettings?.member_2_name?.trim() || 'Lex Laurence';
   const byline = [member1, member2].filter(Boolean).join(' & ');
-  const socialRows = footerLinkRows(getFooterLinks(siteSettings));
+  const socialLinks = getFooterLinks(siteSettings);
   const year = new Date().getFullYear();
 
   return (
@@ -121,39 +121,11 @@ export function Footer({
               <p className="text-[11px] md:text-xs uppercase tracking-[0.2em] text-[var(--text)] font-medium mb-3 md:mb-4">
                 Connect
               </p>
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start lg:gap-5">
-                {socialRows.length > 0 && (
-                  <div role="group" aria-label="Social and music links" className="flex flex-col gap-3 max-w-full">
-                    {socialRows.map((row, r) => (
-                  <ul key={r} className="flex flex-wrap items-center gap-3">
-                    {row.map((link) => (
-                      <li key={link.key}>
-                        <a
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={cn(
-                            'min-h-[44px] flex items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 transition-colors duration-200 focus-ring',
-                            link.handle ? 'px-3' : 'min-w-[44px] w-11 h-11'
-                          )}
-                          aria-label={link.label}
-                        >
-                          <PlatformIcon id={link.icon} className="w-6 h-6 shrink-0" />
-                          {link.handle && (
-                            <span className="text-sm font-medium" aria-hidden>
-                              {link.handle}
-                            </span>
-                          )}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                    ))}
-                  </div>
-                )}
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-stretch lg:gap-5">
+                <SocialLinks links={socialLinks} className="min-w-0 sm:flex-1 sm:max-w-[40rem] lg:max-w-none" />
                 <Link
                   href="/contact"
-                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-[var(--radius-button)] border-2 border-[var(--accent)]/40 bg-[var(--accent)]/10 text-sm font-semibold text-[var(--text)] hover:bg-[var(--accent)]/20 hover:border-[var(--accent)]/60 transition-colors duration-200 focus-ring w-full sm:w-auto shrink-0 whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-[var(--radius-button)] border-2 border-[var(--accent)]/40 bg-[var(--accent)]/10 text-sm font-semibold text-[var(--text)] hover:bg-[var(--accent)]/20 hover:border-[var(--accent)]/60 transition-colors duration-200 focus-ring w-full sm:w-auto lg:self-start shrink-0 whitespace-nowrap"
                 >
                   Reach out
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

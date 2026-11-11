@@ -70,13 +70,23 @@ export function getFooterLinks(settings?: FooterLinkSettings | null): FooterLink
   return links;
 }
 
+export interface HeroPlatformLink {
+  key: string;
+  icon: 'spotify' | 'appleMusic' | 'youtube' | 'instagram' | 'soundcloud';
+  label: string;
+  href: string;
+}
+
 /**
- * Splits the links, in order, into at most two balanced rows (six links → 3 + 3), so no link is
- * left alone on a row of its own. Three or fewer links stay on one row.
+ * Hero icon row: Spotify, SoundCloud, YouTube, Instagram. SoundCloud takes Apple Music's place
+ * once its link is set; until then (or if it's invalid) Apple Music stays, so the row never shrinks.
+ * The Apple Music setting itself is untouched and still used elsewhere.
  */
-export function footerLinkRows<T>(links: readonly T[]): T[][] {
-  if (links.length === 0) return [];
-  if (links.length <= 3) return [[...links]];
-  const firstRow = Math.ceil(links.length / 2);
-  return [links.slice(0, firstRow), links.slice(firstRow)];
+export function getHeroPlatformLinks(settings?: FooterLinkSettings | null): HeroPlatformLink[] {
+  const soundcloud = validSocial(settings?.soundcloud_url, SOCIAL_HOSTS.soundcloud);
+  return getPlatformLinks(settings ?? undefined).map((link) =>
+    link.id === 'appleMusic' && soundcloud
+      ? { key: 'soundcloud', icon: 'soundcloud', label: 'SoundCloud', href: soundcloud }
+      : { key: link.id, icon: link.id, label: link.label, href: link.href }
+  );
 }

@@ -31,6 +31,16 @@ function setCollapsed(value: boolean) {
   window.dispatchEvent(new Event(COLLAPSE_EVENT));
 }
 
+const NON_TEXT_INPUTS = new Set(['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'range', 'color', 'image', 'hidden']);
+
+/** Fields that bring up the on-screen keyboard. */
+export function isTextEntry(el: Element | null): boolean {
+  if (!el) return false;
+  if (el instanceof HTMLTextAreaElement) return !el.readOnly;
+  if (el instanceof HTMLInputElement) return !el.readOnly && !NON_TEXT_INPUTS.has(el.type);
+  return el instanceof HTMLElement && el.isContentEditable;
+}
+
 const SIDE_LINK =
   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/50 hover:text-white/90 hover:bg-white/[0.06] transition-colors w-full';
 
@@ -48,6 +58,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.add('admin-active');
     return () => document.documentElement.classList.remove('admin-active');
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => root.classList.toggle('admin-typing', isTextEntry(document.activeElement));
+    // Focus moves to the next field after focusout fires; read it once that has happened.
+    const onFocusOut = () => setTimeout(sync, 0);
+    document.addEventListener('focusin', sync);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('focusin', sync);
+      document.removeEventListener('focusout', onFocusOut);
+      root.classList.remove('admin-typing');
+    };
   }, []);
 
   const handleLogout = async () => {
