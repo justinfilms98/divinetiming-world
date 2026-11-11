@@ -1,7 +1,7 @@
 # D2-C Journal — architecture proposal
 
 Status: **proposal only, nothing implemented or applied** (2026-11-10).
-Proposed migration: `supabase/proposed/060_journal.sql` with `060_journal.down.sql`. Both parse as
+Proposed migration: `supabase/proposed/061_journal.sql` with `061_journal.down.sql`. Both parse as
 PostgreSQL 17; neither has been run on staging or production.
 
 The Journal lets Lex and Liam publish vlog episodes and travel stories from the admin, each with a
@@ -22,7 +22,7 @@ published automatically. Descriptions, dates and video links come from the owner
 Recommendation: a new `journal_episodes` table modelled on `releases`, plus a small
 `journal_episode_videos` table, reusing the Media Library, Collections and the existing embed parser.
 
-## 2. Schema (migration 060)
+## 2. Schema (migration 061)
 
 `journal_episodes`:
 - Text fields: `slug` (unique, lowercase, e.g. `episode-3-barcelona`), `title` (required, 120), `location` (80), `summary` (300, card and meta description), `description` (plain text, 5,000).
@@ -153,11 +153,11 @@ Whichever option is chosen, also:
 
 ## 10. Delivery plan (after approval)
 
-1. Commit 1: apply 060 on staging, plus `lib/journal` types, validation, slug and status rules, and tests.
+1. Commit 1: apply 061 on staging, plus `lib/journal` types, validation, slug and status rules, and tests.
 2. Commit 2: the admin API and admin page.
 3. Commit 3: the public list and episode pages, SEO, sitemap and nav entry, behind the flag.
 4. Staging: create test episodes on staging only (never in production), and run screenshots at 360/390/768/1440 plus the mobile checklist.
-5. Production: separate approval for migration 060, the deploy, and turning the flag on.
+5. Production: separate approval for migration 061, the deploy, and turning the flag on.
 
 No new npm packages are needed.
 
@@ -182,7 +182,7 @@ These are requirements for the D2-C build. Each has a test or a check that prove
   - Coming-soon pages get no video data, use `noindex, follow`, and expose only the fields already public for coming-soon episodes.
   - `generateMetadata` and the sitemap read through the same published/coming-soon fetchers as the page. Draft and archived episodes can never reach titles, descriptions, OG images, JSON-LD or the sitemap.
   - Tests cover each status.
-- **Migration numbering.** If the unpublished-media security fix is approved first (recommended), it takes 060 and this Journal migration becomes **061**, with the same content.
+- **Migration numbering.** The unpublished-media security fix takes **060** (tested on staging 2026-11-11, applied there as staging migration 20261111085819) and must reach production before the Journal. The Journal migration is therefore **061**. Its content is unchanged from the original proposal.
 
 Other notes:
 - **Covers:** store the URL as well as the asset id, as releases and events do. Anonymous visitors can't read `internal` library rows (the default since migration 058), so a join alone would show no cover.

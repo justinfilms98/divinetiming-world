@@ -1,5 +1,5 @@
 -- ============================================================
--- 060 Journal (D2-C): vlog episodes and travel stories.
+-- 061 Journal (D2-C): vlog episodes and travel stories.
 -- PROPOSED, NOT APPLIED. Move to supabase/migrations/ only after owner approval.
 --
 -- Additive only: two new tables, nothing existing is altered.
@@ -16,7 +16,7 @@
 -- Scheduling is informational in this version: scheduled_for and release_note
 -- are shown on coming-soon episodes, but nothing publishes automatically.
 --
--- Rollback: supabase/proposed/060_journal.down.sql (drops both tables and
+-- Rollback: supabase/proposed/061_journal.down.sql (drops both tables and
 -- everything in them; export first if any episodes exist).
 -- ============================================================
 
