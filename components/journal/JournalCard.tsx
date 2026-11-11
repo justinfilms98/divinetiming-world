@@ -18,7 +18,7 @@ export function JournalCard({ episode, eager = false }: { episode: PublicJournal
     : publishedLabel(episode.published_at);
 
   return (
-    <Link href={`/journal/${episode.slug}`} className="group flex h-full flex-col rounded-[var(--radius-card)] overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 focus-ring">
+    <Link href={`/journal/${episode.slug}`} className="group flex h-full flex-col rounded-[var(--radius-card)] overflow-hidden border border-[var(--border-subtle)] bg-white/[0.03] focus-ring">
       <div className="relative aspect-video bg-black/40 overflow-hidden">
         {episode.cover_image_url ? (
           <Image
