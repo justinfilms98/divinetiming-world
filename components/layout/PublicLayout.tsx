@@ -14,9 +14,11 @@ import type { SiteSettings } from '@/lib/types/content';
 interface PublicLayoutProps {
   children: React.ReactNode;
   siteSettings?: SiteSettings | null;
+  /** Public Journal switch, read on the server. */
+  journalPublic?: boolean;
 }
 
-export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
+export function PublicLayout({ children, siteSettings, journalPublic = false }: PublicLayoutProps) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith('/admin') || pathname === '/login';
 
@@ -31,7 +33,7 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <CornerNav siteSettings={siteSettings} />
+      <CornerNav siteSettings={siteSettings} journalPublic={journalPublic} />
       <PublicNavSpacer />
       <div
         className="w-full max-w-[100vw] overflow-x-clip min-w-0 flex flex-col"
@@ -42,7 +44,7 @@ export function PublicLayout({ children, siteSettings }: PublicLayoutProps) {
         <main id="main-content" tabIndex={-1} className="flex flex-col min-h-0 flex-1 outline-none">
           <PageTransition className="flex flex-col min-h-0">{children}</PageTransition>
         </main>
-        <Footer siteSettings={siteSettings} className="mt-auto shrink-0" />
+        <Footer siteSettings={siteSettings} journalPublic={journalPublic} className="mt-auto shrink-0" />
       </div>
       <CartTrigger />
       <CartSlideOut />

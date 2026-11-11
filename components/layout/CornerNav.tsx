@@ -9,26 +9,18 @@ import { getFooterLinks } from '@/lib/site/footerLinks';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 import { useScrollLock } from '@/lib/ui/useScrollLock';
 import { SpiralMark } from '@/components/brand/SpiralMark';
+import { isNavItemActive, NAV_LEFT_COUNT, publicNavItems } from '@/lib/site/navigation';
 import type { SiteSettings } from '@/lib/types/content';
-
-// Order follows the brief's primary IA: Music, Live, Story, Media, Shop, Book.
-const navItems = [
-  { label: 'MUSIC', href: '/music' },
-  { label: 'EVENTS', href: '/events' },
-  { label: 'JOURNEY', href: '/journey' },
-  { label: 'MEDIA', href: '/media' },
-  { label: 'SHOP', href: '/shop' },
-  { label: 'BOOK', href: '/booking' },
-];
-
-/** Desktop nav splits around the centre logo; derived so adding a link rebalances. */
-const NAV_SPLIT = Math.ceil(navItems.length / 2);
 
 const MENU_DURATION = 0.28;
 const MENU_EASE = [0.4, 0, 0.2, 1] as const;
 const NAV_TRANSITION = 'color 200ms ease-out, opacity 200ms ease-out';
 
-export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null }) {
+export function CornerNav({ siteSettings, journalPublic = false }: { siteSettings?: SiteSettings | null; journalPublic?: boolean }) {
+  const navItems = publicNavItems(journalPublic);
+  // A seventh link needs a little less spacing to fit beside the logo on tablets.
+  const NAV_GAP = navItems.length > 6 ? 'gap-4 lg:gap-8' : 'gap-8';
+  const LOGO_SIZE = navItems.length > 6 ? 'md:text-base lg:text-lg' : 'md:text-lg';
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -76,9 +68,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           <div className="md:hidden w-11 shrink-0" aria-hidden />
 
           {/* Desktop: left nav links */}
-          <div className="hidden md:flex items-center gap-8 min-w-0">
-            {navItems.slice(0, NAV_SPLIT).map((item) => {
-              const isActive = pathname === item.href;
+          <div className={`hidden md:flex items-center ${NAV_GAP} min-w-0`}>
+            {navItems.slice(0, NAV_LEFT_COUNT).map((item) => {
+              const isActive = isNavItemActive(item, pathname);
               return (
                 <Link
                   key={item.href}
@@ -96,7 +88,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           {/* Logo — centered on mobile via grid, centered on desktop via flex */}
           <Link
             href="/"
-            className="justify-self-center md:static inline-flex items-center min-h-[44px] gap-1.5 text-base md:text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm"
+            className={`justify-self-center md:static inline-flex items-center min-h-[44px] gap-1.5 text-base ${LOGO_SIZE} font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm`}
             style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
             aria-label="DIVINE:TIMING home"
             aria-current={pathname === '/' ? 'page' : undefined}
@@ -107,9 +99,9 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           </Link>
 
           {/* Desktop: right nav links */}
-          <div className="hidden md:flex items-center gap-8 min-w-0 justify-end">
-            {navItems.slice(NAV_SPLIT).map((item) => {
-              const isActive = pathname === item.href;
+          <div className={`hidden md:flex items-center ${NAV_GAP} min-w-0 justify-end`}>
+            {navItems.slice(NAV_LEFT_COUNT).map((item) => {
+              const isActive = isNavItemActive(item, pathname);
               return (
                 <Link
                   key={item.href}
@@ -213,7 +205,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
                     Home
                   </Link>
                   {navItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = isNavItemActive(item, pathname);
                     return (
                       <Link
                         key={item.href}

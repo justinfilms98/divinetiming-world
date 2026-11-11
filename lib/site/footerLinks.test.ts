@@ -105,6 +105,13 @@ describe('Social links in the footer and mobile menu', () => {
     expect((html.match(/min-h-\[44px\]/g) ?? []).length).toBe(6);
   });
 
+  it('links to the Journal only when the public Journal is switched on', () => {
+    const off = renderToStaticMarkup(createElement(Footer, { siteSettings: PRODUCTION_NOW as SiteSettings }));
+    const on = renderToStaticMarkup(createElement(Footer, { siteSettings: PRODUCTION_NOW as SiteSettings, journalPublic: true }));
+    expect(off).not.toContain('href="/journal"');
+    expect(on).toContain('href="/journal"');
+  });
+
   it('renders nothing when no links are configured', () => {
     expect(renderToStaticMarkup(createElement(SocialLinks, { links: [] }))).toBe('');
   });

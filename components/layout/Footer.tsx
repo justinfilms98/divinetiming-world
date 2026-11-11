@@ -9,16 +9,19 @@ import { getFooterLinks } from '@/lib/site/footerLinks';
 import type { SiteSettings } from '@/lib/types/content';
 import { isLabelPublicEnabled } from '@/lib/features';
 
-const SITEMAP_LINKS = [
-  { label: 'Music', href: '/music' },
-  { label: 'Events', href: '/events' },
-  { label: 'Media', href: '/media' },
-  { label: 'Shop', href: '/shop' },
-  { label: 'Journey', href: '/journey' },
-  { label: 'Book', href: '/booking' },
-  { label: 'Contact', href: '/contact' },
-  { label: 'Press Kit', href: '/presskit' },
-] as const;
+function sitemapLinks(journalPublic: boolean) {
+  return [
+    { label: 'Music', href: '/music' },
+    { label: 'Events', href: '/events' },
+    { label: 'Media', href: '/media' },
+    { label: 'Shop', href: '/shop' },
+    { label: 'Journey', href: '/journey' },
+    ...(journalPublic ? [{ label: 'Journal', href: '/journal' }] : []),
+    { label: 'Book', href: '/booking' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Press Kit', href: '/presskit' },
+  ];
+}
 
 const LEGAL_LINKS = [
   { label: 'Privacy', href: '/privacy' },
@@ -33,9 +36,12 @@ const FOOTER_LINK_CLASS =
 
 export function Footer({
   siteSettings,
+  journalPublic = false,
   className,
 }: {
   siteSettings?: SiteSettings | null;
+  /** Public Journal switch, read on the server. */
+  journalPublic?: boolean;
   className?: string;
 }) {
   const member1 = siteSettings?.member_1_name?.trim() || 'Liam Bongo';
@@ -84,7 +90,7 @@ export function Footer({
                 Explore
               </p>
               <ul className="md:space-y-2.5">
-                {SITEMAP_LINKS.map((item) => (
+                {sitemapLinks(journalPublic).map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}

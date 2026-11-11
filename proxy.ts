@@ -1,9 +1,25 @@
 // proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isJournalPath, journalGateDecision, JOURNAL_NOT_FOUND_PATH } from "@/lib/journal/visibility";
 
-export function proxy(req: NextRequest) {
+/**
+ * Journal URLs: a genuine 404 while the public Journal is switched off, and for hidden episodes.
+ * The root loading.tsx would otherwise commit the response to 200 before the page could call
+ * notFound(). Rewriting to an unmatched path makes Next serve the site's own 404 page with status 404.
+ */
+async function journalGate(req: NextRequest): Promise<NextResponse> {
+  const decision = await journalGateDecision(req.nextUrl.pathname, {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  });
+  return decision === "next" ? NextResponse.next() : NextResponse.rewrite(new URL(JOURNAL_NOT_FOUND_PATH, req.url));
+}
+
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  if (isJournalPath(pathname)) return journalGate(req);
 
   // CRITICAL: Immediately return for non-admin routes
   // Do NOT process "/" or any public routes - only /admin paths should reach the auth check
@@ -39,11 +55,12 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // ONLY match admin routes - do not intercept other routes (especially /)
-  // This ensures the proxy doesn't interfere with homepage or public routes
-  // Using path-to-regexp pattern: /admin followed by any path segments
+  // Admin routes (session check) and Journal routes (visibility check) only; the homepage and
+  // every other public route are never intercepted.
   matcher: [
     '/admin/:path*',
     '/admin',
+    '/journal',
+    '/journal/:path*',
   ],
 };
