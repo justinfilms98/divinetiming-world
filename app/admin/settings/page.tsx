@@ -7,6 +7,13 @@ import { AdminCard } from '@/components/admin/AdminCard';
 import { Save, Check } from 'lucide-react';
 import { revalidatePaths } from '@/lib/revalidate';
 import { useAdminToast } from '@/components/admin/AdminToast';
+import { checkSocialUrl, instagramHandle, SOCIAL_HOSTS } from '@/lib/site/externalLinks';
+
+const FOOTER_LINK_FIELDS = [
+  { key: 'instagram_secondary_url', label: 'Second Instagram', hosts: SOCIAL_HOSTS.instagram, placeholder: 'https://www.instagram.com/divinetiming_ofc' },
+  { key: 'soundcloud_url', label: 'SoundCloud', hosts: SOCIAL_HOSTS.soundcloud, placeholder: 'https://soundcloud.com/…' },
+  { key: 'beatport_url', label: 'Beatport', hosts: SOCIAL_HOSTS.beatport, placeholder: 'https://www.beatport.com/artist/…' },
+] as const;
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
@@ -32,9 +39,22 @@ export default function AdminSettingsPage() {
     };
   }, [supabase]);
 
+  // Present only once migration 059 has added the columns.
+  const hasFooterLinks = !!settings && FOOTER_LINK_FIELDS.every(({ key }) => key in settings);
+  const footerLinkErrors = Object.fromEntries(
+    FOOTER_LINK_FIELDS.map(({ key, label, hosts }) => {
+      const checked = checkSocialUrl(settings?.[key], hosts, label);
+      return [key, checked.ok ? null : checked.error];
+    })
+  ) as Record<string, string | null>;
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
+    if (hasFooterLinks && Object.values(footerLinkErrors).some(Boolean)) {
+      showToast('error', 'Fix the highlighted footer links, then save again.');
+      return;
+    }
     setIsSaving(true);
     setSaved(false);
 
@@ -52,6 +72,9 @@ export default function AdminSettingsPage() {
         apple_music_url: settings.apple_music_url,
         booking_phone: settings.booking_phone,
         booking_email: settings.booking_email,
+        ...(hasFooterLinks
+          ? Object.fromEntries(FOOTER_LINK_FIELDS.map(({ key }) => [key, (settings[key] as string | null) ?? null]))
+          : {}),
       }),
     });
 
@@ -134,7 +157,7 @@ export default function AdminSettingsPage() {
           <p className="text-white/40 text-sm mb-4">Used in the footer, listen row, and public contact surfaces.</p>
           <div className="space-y-4">
             {[
-              { key: 'instagram_url', label: 'Instagram URL' },
+              { key: 'instagram_url', label: 'Instagram URL (first account)' },
               { key: 'youtube_url', label: 'YouTube URL' },
               { key: 'spotify_url', label: 'Spotify URL' },
               { key: 'apple_music_url', label: 'Apple Music URL' },
@@ -150,6 +173,60 @@ export default function AdminSettingsPage() {
               </div>
             ))}
           </div>
+        </AdminCard>
+
+        <AdminCard>
+          <h2 className="text-lg font-semibold text-white mb-1">Footer links</h2>
+          {hasFooterLinks ? (
+            <>
+              <p className="text-white/40 text-sm mb-4">
+                Shown in the site footer, in this order: Instagram (above), second Instagram, SoundCloud, Beatport.
+                Leave a field empty to hide that link.
+              </p>
+              <p className="text-sm text-white/70 mb-4">
+                First Instagram shows as{' '}
+                <span className="font-semibold text-white">
+                  {instagramHandle((settings?.instagram_url as string) || '') ?? 'Instagram'}
+                </span>
+              </p>
+              <div className="space-y-4">
+                {FOOTER_LINK_FIELDS.map(({ key, label, placeholder }) => {
+                  const value = (settings?.[key] as string) || '';
+                  const error = footerLinkErrors[key];
+                  const handle = key === 'instagram_secondary_url' && !error ? instagramHandle(value) : null;
+                  return (
+                    <div key={key}>
+                      <label className="block text-white/70 text-sm font-medium mb-2" htmlFor={`setting-${key}`}>
+                        {label}
+                      </label>
+                      <input
+                        id={`setting-${key}`}
+                        type="url"
+                        inputMode="url"
+                        value={value}
+                        onChange={(e) => setSettings({ ...settings, [key]: e.target.value })}
+                        className="admin-input w-full px-4 py-2"
+                        placeholder={placeholder}
+                        aria-invalid={!!error}
+                        aria-describedby={error ? `setting-${key}-error` : undefined}
+                      />
+                      {error ? (
+                        <p id={`setting-${key}-error`} className="text-xs text-red-400 mt-1" role="alert">
+                          {error}
+                        </p>
+                      ) : handle ? (
+                        <p className="text-xs text-white/50 mt-1">Shows as {handle}</p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="text-white/40 text-sm">
+              Second Instagram, SoundCloud and Beatport links become available after the database update (migration 059).
+            </p>
+          )}
         </AdminCard>
 
         <AdminCard>

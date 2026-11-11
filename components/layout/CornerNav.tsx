@@ -50,20 +50,20 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
   const platformLinks = getPlatformLinks(siteSettings ?? undefined);
 
   const linkClass = (isActive: boolean) =>
-    `relative text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] nav-link-underline
-     ${isActive ? 'text-[var(--accent)] text-accent-active' : 'text-[var(--text)]/80 hover:text-[var(--text)]'}`;
+    `relative inline-flex items-center min-h-[44px] text-sm uppercase font-medium tracking-[var(--letter-spacing-nav)] nav-link-underline
+     ${isActive ? 'text-[var(--accent)] text-accent-active' : 'text-[var(--text)] hover:text-[var(--accent)]'}`;
 
   return (
     <>
       {/* Sticky top bar — always visible; hero/content sit below via PublicLayout spacer */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 border-b pointer-events-auto"
+        className="nav-black fixed top-0 left-0 right-0 z-50 border-b pointer-events-auto"
         style={{
           height: 'var(--public-nav-height)',
           paddingTop: 'env(safe-area-inset-top)',
           background: 'var(--bg)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-          borderBottomColor: 'rgba(198, 167, 94, 0.3)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+          borderBottomColor: 'rgba(198, 167, 94, 0.25)',
         }}
       >
         <nav
@@ -95,7 +95,7 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
           {/* Logo — centered on mobile via grid, centered on desktop via flex */}
           <Link
             href="/"
-            className="justify-self-center md:static inline-flex items-center gap-1.5 text-base md:text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm"
+            className="justify-self-center md:static inline-flex items-center min-h-[44px] gap-1.5 text-base md:text-lg font-bold tracking-[0.12em] uppercase text-[var(--text)] hover:text-[var(--accent)] truncate max-w-[52vw] md:max-w-none text-center focus-ring rounded-sm"
             style={{ fontFamily: 'var(--font-display)', transition: NAV_TRANSITION }}
             aria-label="DIVINE:TIMING home"
             aria-current={pathname === '/' ? 'page' : undefined}
@@ -169,11 +169,11 @@ export function CornerNav({ siteSettings }: { siteSettings?: SiteSettings | null
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration, ease: MENU_EASE }}
-              className="fixed top-0 right-0 bottom-0 z-[70] w-[85vw] max-w-[320px] overflow-x-clip overflow-y-auto md:hidden flex flex-col"
+              className="nav-black fixed top-0 right-0 bottom-0 z-[70] w-[85vw] max-w-[320px] overflow-x-clip overflow-y-auto md:hidden flex flex-col"
               style={{
                 background: 'var(--bg)',
-                boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
-                borderLeft: '1px solid rgba(198, 167, 94, 0.2)',
+                boxShadow: '-4px 0 24px rgba(0,0,0,0.4)',
+                borderLeft: '1px solid rgba(198, 167, 94, 0.25)',
                 paddingTop: 'max(env(safe-area-inset-top), 0px)',
               }}
               onClick={(e) => e.stopPropagation()}

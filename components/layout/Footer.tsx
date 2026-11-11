@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { cn } from '@/lib/ui/cn';
 import { ContentRail } from '@/components/layout/ContentRail';
 import { SpiralMark } from '@/components/brand/SpiralMark';
-import { getPlatformLinks, PlatformIcon } from '@/lib/platformLinks';
-import type { PlatformId } from '@/lib/platformLinks';
+import { PlatformIcon } from '@/lib/platformLinks';
+import { getFooterLinks } from '@/lib/site/footerLinks';
 import type { SiteSettings } from '@/lib/types/content';
 import { isLabelPublicEnabled } from '@/lib/features';
 
@@ -27,8 +27,6 @@ const LEGAL_LINKS = [
   { label: 'Shipping', href: '/shipping' },
 ] as const;
 
-const FOOTER_SOCIAL_IDS: PlatformId[] = ['spotify', 'youtube', 'instagram'];
-
 /** 44px rows on touch screens; compact list on desktop. */
 const FOOTER_LINK_CLASS =
   'inline-flex items-center min-h-[44px] md:min-h-0 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-200 focus-ring rounded-sm';
@@ -43,9 +41,7 @@ export function Footer({
   const member1 = siteSettings?.member_1_name?.trim() || 'Liam Bongo';
   const member2 = siteSettings?.member_2_name?.trim() || 'Lex Laurence';
   const byline = [member1, member2].filter(Boolean).join(' & ');
-  const platformLinks = getPlatformLinks(siteSettings ?? undefined).filter((link) =>
-    FOOTER_SOCIAL_IDS.includes(link.id)
-  );
+  const socialLinks = getFooterLinks(siteSettings);
   const year = new Date().getFullYear();
 
   return (
@@ -126,21 +122,30 @@ export function Footer({
                 Connect
               </p>
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start lg:gap-5">
-                {platformLinks.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-3 md:gap-4 max-w-full">
-                    {platformLinks.map((link) => (
-                      <a
-                        key={link.id}
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--accent)]/25 text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 transition-colors duration-200 focus-ring"
-                        aria-label={link.label}
-                      >
-                        <PlatformIcon id={link.id} className="w-6 h-6" />
-                      </a>
+                {socialLinks.length > 0 && (
+                  <ul className="flex flex-wrap items-center gap-3 md:gap-4 max-w-full" aria-label="Social and music links">
+                    {socialLinks.map((link) => (
+                      <li key={link.key}>
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            'min-h-[44px] flex items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 transition-colors duration-200 focus-ring',
+                            link.handle ? 'px-3' : 'min-w-[44px] w-11 h-11'
+                          )}
+                          aria-label={link.label}
+                        >
+                          <PlatformIcon id={link.icon} className="w-6 h-6 shrink-0" />
+                          {link.handle && (
+                            <span className="text-sm font-medium" aria-hidden>
+                              {link.handle}
+                            </span>
+                          )}
+                        </a>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
                 <Link
                   href="/contact"

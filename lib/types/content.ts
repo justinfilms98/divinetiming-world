@@ -392,6 +392,12 @@ export interface SiteSettings {
   apple_music_url: string | null;
   booking_phone: string | null;
   booking_email: string | null;
+  /** Migration 059: absent until it runs; null = not configured. */
+  instagram_secondary_url?: string | null;
+  soundcloud_url?: string | null;
+  beatport_url?: string | null;
+  /** Migration 059: `{ section_id: boolean }`; a missing key means shown. */
+  home_sections?: unknown;
   created_at: string;
   updated_at: string;
 }

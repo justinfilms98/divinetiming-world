@@ -396,6 +396,21 @@ body {
 .band-night .focus-ring:focus-visible {
   box-shadow: 0 0 0 2px var(--bg-night), 0 0 0 4px var(--accent);
 }
+/* Public navigation bar and mobile drawer: black with white text, gold for hover/active. */
+.nav-black {
+  --bg: #000;
+  --bg-secondary: #1a1a1a;
+  --text: #fff;
+  --text-muted: rgba(255, 255, 255, 0.72);
+  color: #fff;
+}
+.nav-black .focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--accent);
+}
+/* Nav links are 44px tall; keep the underline just under the text. */
+.nav-black .nav-link-underline::after {
+  bottom: 10px;
+}
 /* Two dark bands in a row would merge into one slab without a seam. */
 .band-night + .band-night {
   border-top: 1px solid var(--border-on-dark);

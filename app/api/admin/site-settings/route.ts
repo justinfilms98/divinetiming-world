@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
+import { checkSocialUrl, SOCIAL_HOSTS } from '@/lib/site/externalLinks';
+import { isMissingColumnError, MIGRATION_059_REQUIRED } from '@/lib/site/schemaErrors';
+
+/** Migration 059 links: only written when present in the request; empty clears. */
+const SOCIAL_FIELDS = [
+  { key: 'instagram_secondary_url', hosts: SOCIAL_HOSTS.instagram, name: 'Second Instagram' },
+  { key: 'soundcloud_url', hosts: SOCIAL_HOSTS.soundcloud, name: 'SoundCloud' },
+  { key: 'beatport_url', hosts: SOCIAL_HOSTS.beatport, name: 'Beatport' },
+] as const;
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -37,6 +46,12 @@ export async function POST(request: NextRequest) {
     if (apple_music_url != null) updates.apple_music_url = apple_music_url;
     if (booking_phone != null) updates.booking_phone = booking_phone;
     if (booking_email != null) updates.booking_email = booking_email;
+    for (const field of SOCIAL_FIELDS) {
+      if (!Object.prototype.hasOwnProperty.call(body, field.key)) continue;
+      const checked = checkSocialUrl(body[field.key], field.hosts, field.name);
+      if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
+      updates[field.key] = checked.value;
+    }
 
     // site_settings is a single-row table; UPDATE requires a WHERE clause
     const { data: existing } = await supabase
@@ -55,6 +70,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
     if (error) {
+      if (isMissingColumnError(error)) return NextResponse.json({ error: MIGRATION_059_REQUIRED }, { status: 409 });
       console.error('Admin site-settings POST error:', error);
       return NextResponse.json({ error: 'Operation failed.' }, { status: 500 });
     }
