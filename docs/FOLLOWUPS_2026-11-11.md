@@ -26,7 +26,9 @@ Not part of D2-B.1. Each item needs its own approval before it's changed.
 
 The owners should know that after the fix, adding a video takes one extra step (Publish), matching events and collections.
 
-**Status (2026-11-11): prepared and tested on staging, awaiting approval to deploy.**
+**Status (2026-11-11): deployed to production** (`main` 93c936d, deployment `divinetiming-world-f035y5sdo`) after owner approval. The three existing videos were unchanged and still published. Verified read-only on production; the test video was created and removed on staging only.
+
+History before release:
 - Branch `fix/youtube-videos-draft` (one commit on `main` 65f84ee). The Add form has a Visibility choice (default Draft).
 - 11 route tests; the full suite passes (498 tests), lint is unchanged, and the build succeeds.
 - Staging, with one test video, deleted afterwards:
