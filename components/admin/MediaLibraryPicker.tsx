@@ -38,6 +38,12 @@ interface MediaLibraryPickerProps {
   title?: string;
   /** When true, show checkbox to include legacy (uploadcare) items. Default false = only non-legacy. */
   showLegacyToggle?: boolean;
+  /** Further narrows the list after the type filter (e.g. PNG logos only). */
+  accept?: (asset: LibraryAsset) => boolean;
+  /** The address already in use; that tile is marked "In use". */
+  currentUrl?: string | null;
+  /** Shown when nothing in the library matches. */
+  emptyMessage?: string;
 }
 
 export function MediaLibraryPicker({
@@ -47,6 +53,9 @@ export function MediaLibraryPicker({
   filter = 'image',
   title = 'Choose from library',
   showLegacyToggle = false,
+  accept,
+  currentUrl,
+  emptyMessage = 'No media in library.',
 }: MediaLibraryPickerProps) {
   const [assets, setAssets] = useState<LibraryAsset[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,7 +118,7 @@ export function MediaLibraryPicker({
         ? (a.mime_type || '').startsWith('image/')
         : (a.mime_type || '').startsWith('video/');
   const pool = showLegacyToggle && includeLegacy ? assets : assets.filter((a) => !isLegacy(a));
-  const filtered = pool.filter(byFilter);
+  const filtered = pool.filter((a) => byFilter(a) && (!accept || accept(a)));
 
   const confirmSelection = () => {
     if (selectedAsset) {
@@ -186,7 +195,7 @@ export function MediaLibraryPicker({
             <p className="text-slate-500 text-sm">Loading…</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-6">
-              <p className="text-slate-500 text-sm mb-3">No media in library.</p>
+              <p className="text-slate-500 text-sm mb-3">{emptyMessage}</p>
               <Link
                 href="/admin/media"
                 onClick={() => onClose()}
@@ -202,11 +211,13 @@ export function MediaLibraryPicker({
                 const thumb = asset.thumbnail_url || asset.preview_url;
                 const isImage = (asset.mime_type || '').startsWith('image/');
                 const isSelected = selectedAsset?.id === asset.id;
+                const inUse = !!currentUrl && asset.preview_url === currentUrl;
                 return (
                   <button
                     key={asset.id}
                     type="button"
                     onClick={() => setSelectedAsset(asset)}
+                    aria-label={`${asset.name || 'Untitled'}${inUse ? ' (in use)' : ''}`}
                     className={`relative rounded-lg overflow-hidden border-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
                       isSelected ? 'border-slate-700 ring-2 ring-slate-400' : 'border-slate-200 hover:border-slate-400'
                     }`}
@@ -218,6 +229,11 @@ export function MediaLibraryPicker({
                       posterUrl={!isImage ? videoPosterOf(asset) : null}
                       className="!rounded-none w-full"
                     />
+                    {inUse && (
+                      <span className="absolute left-1 top-1 rounded bg-slate-800/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        In use
+                      </span>
+                    )}
                   </button>
                 );
               })}
