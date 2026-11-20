@@ -105,7 +105,7 @@ describe('prepareUploadMedia', () => {
     mocks.readImageSize.mockResolvedValue(null);
     const r = await prepareUploadMedia(fake, { preset: 'standard', maxBytes: 50 * MB, allowOriginal: false });
     expect(r).toMatchObject({ kind: 'failed', canUploadOriginal: false });
-    expect(String((r as { reason?: string }).reason)).toMatch(/not a valid HEIC/i);
+    expect(String((r as { reason?: string }).reason)).toMatch(/isn.?t a valid HEIC/i);
   });
 
   it('renames a readable non-HEIC .heic file without claiming HEIC conversion', async () => {
