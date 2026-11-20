@@ -26,9 +26,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const filename = typeof body?.filename === 'string' ? body.filename : 'upload';
+    const kind = body?.kind === 'poster' ? 'poster' : 'library';
     const ext = filename.split('.').pop()?.toLowerCase() || 'bin';
     const base = sanitize(filename.replace(/\.[^.]+$/, '') || 'file');
-    const path = `library/${Date.now()}-${base}.${ext}`;
+    // Posters live under library/posters/ so they stay with library media but never
+    // collide with the video object's path. Paths are timestamped → immutable cache.
+    const folder = kind === 'poster' ? 'library/posters' : 'library';
+    const path = `${folder}/${Date.now()}-${base}.${ext}`;
 
     const { data, error } = await auth.supabase!.storage
       .from('media')

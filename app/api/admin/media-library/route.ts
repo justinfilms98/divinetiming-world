@@ -6,11 +6,14 @@ import {
   hasUsableAltText,
   isMediaOrientation,
   isMediaUsageType,
+  orientationFromDimensions,
   parseMediaTags,
   type MediaLibraryAsset,
   type MediaOrientation,
   type MediaUsageType,
 } from '@/lib/media/types';
+import { sanitizeReportedDimensions } from '@/lib/media/imageMeta';
+import { isStillPosterUrl } from '@/lib/media/videoPoster';
 
 const LIBRARY_SELECT =
   'id, provider, preview_url, thumbnail_url, mime_type, name, size_bytes, created_at, updated_at, width, height, alt_text, photographer, location, captured_at, orientation, is_featured, usage_type, is_archived, category, tags';
@@ -107,6 +110,23 @@ export async function PATCH(request: NextRequest) {
 
     if ('is_featured' in body) {
       updates.is_featured = !!body.is_featured;
+    }
+
+    // Poster / dimension backfill (admin only). thumbnail_url must be a still on media/library.
+    if ('thumbnail_url' in body) {
+      const next = cleanText(body.thumbnail_url);
+      if (next && (!isStillPosterUrl(next) || !/^https:\/\//i.test(next) || !/\/storage\/v1\/object\/public\/media\/library\//.test(next))) {
+        return apiError('thumbnail_url must be an https still image under media/library.', 400);
+      }
+      updates.thumbnail_url = next;
+    }
+    if ('width' in body || 'height' in body) {
+      const dims = sanitizeReportedDimensions(body.width, body.height);
+      if (dims.width != null) updates.width = dims.width;
+      if (dims.height != null) updates.height = dims.height;
+      if (dims.width != null && dims.height != null) {
+        updates.orientation = orientationFromDimensions(dims.width, dims.height);
+      }
     }
 
     const nextAlt =

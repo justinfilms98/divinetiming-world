@@ -3,14 +3,11 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import {
-  compressMedia,
-  formatBytes,
-  willCompress,
-  type CompressionPreset,
-} from '@/lib/utils/compressMedia';
+import { formatBytes, type CompressionPreset } from '@/lib/utils/compressMedia';
 import { IMMUTABLE_CACHE_SECONDS } from '@/lib/media/cache';
-import { isAcceptedFile, prepareFileForUpload } from '@/lib/media/uploadPolicy';
+import { isAcceptedFile } from '@/lib/media/uploadPolicy';
+import { prepareUploadMedia } from '@/lib/media/prepareUploadMedia';
+import { acquireWakeLock } from '@/lib/media/wakeLock';
 
 /** Optimization failed for `file`; nothing in `files` has been uploaded. */
 type OptimizationFailure = {
@@ -22,7 +19,6 @@ type OptimizationFailure = {
   allowOriginal: Set<File>;
 };
 
-
 export type UploadedFile = {
   url: string;
   id?: string;
@@ -33,6 +29,7 @@ export type UploadedFile = {
   width?: number;
   height?: number;
   duration?: number;
+  thumbnailUrl?: string;
 };
 
 /** Default max file size (100MB). Override via env NEXT_PUBLIC_UPLOAD_MAX_BYTES. */
@@ -60,10 +57,9 @@ interface UniversalUploaderProps {
   compression?: boolean | CompressionPreset;
 }
 
-
 function acceptAttribute(types: ('image' | 'video')[]): string {
   const mimes: string[] = [];
-  if (types.includes('image')) mimes.push('image/*');
+  if (types.includes('image')) mimes.push('image/*', '.heic', '.heif');
   if (types.includes('video')) mimes.push('video/*');
   return mimes.join(',') || 'image/*,video/*';
 }
@@ -80,6 +76,27 @@ function getMaxBytes(override?: number): number {
   return DEFAULT_MAX_BYTES;
 }
 
+type SignedUpload = { path: string; publicUrl: string; token: string };
+
+async function requestSignedUpload(filename: string, kind: 'library' | 'poster', signal: AbortSignal): Promise<SignedUpload> {
+  const pathRes = await fetch('/api/admin/media/upload-path', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    signal,
+    body: JSON.stringify({ filename, kind }),
+  });
+  const pathData = await pathRes.json().catch(() => ({}));
+  if (!pathRes.ok || !pathData?.path || !pathData?.token) {
+    throw new Error(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload URL.');
+  }
+  return {
+    path: pathData.path as string,
+    publicUrl: (pathData.publicUrl as string) || (pathData.path as string),
+    token: pathData.token as string,
+  };
+}
+
 export function UniversalUploader({
   acceptedTypes = ['image', 'video'],
   multiple = false,
@@ -94,6 +111,7 @@ export function UniversalUploader({
   compression = 'standard',
 }: UniversalUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [statusLabel, setStatusLabel] = useState<string | null>(null);
@@ -118,14 +136,22 @@ export function UniversalUploader({
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [uploading]);
 
+  const cancelUpload = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
   const processFiles = useCallback(
     async (files: FileList | File[], allowOriginal: Set<File> = new Set()) => {
       const list = Array.isArray(files) ? files : Array.from(files);
       if (!list.length) return;
       const invalid = list.find((f) => !isAcceptedFile(f, acceptedTypes, acceptOverride));
-      if (invalid) {
+      // HEIC often arrives as empty type or application/octet-stream on some phones — allow by extension.
+      const stillInvalid =
+        invalid &&
+        !(acceptedTypes.includes('image') && /\.(heic|heif)$/i.test(invalid.name));
+      if (stillInvalid) {
         const allowedLabel = acceptOverride ?? acceptedTypes.map((t) => `${t}s`).join(' or ');
-        setError(`"${invalid.name}" is not an allowed type here. Allowed: ${allowedLabel}.`);
+        setError(`"${invalid!.name}" is not an allowed type here. Allowed: ${allowedLabel}.`);
         return;
       }
       const oversized = list.find((f) => f.size > maxBytes);
@@ -133,19 +159,35 @@ export function UniversalUploader({
         setError(`File "${oversized.name}" is too large. Max size: ${Math.round(maxBytes / 1024 / 1024)}MB.`);
         return;
       }
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const { signal } = controller;
+
       setError(null);
       setFailure(null);
       setSuccess(false);
       setSuccessDetail(null);
       setUploading(true);
       onUploadingChange?.(true);
+      const wake = await acquireWakeLock();
       const total = list.length;
-      const uploaded: Array<{ storage_path: string; public_url: string; name: string; mimeType: string; size: number }> = [];
       const compressionNotes: string[] = [];
+
+      type ReadyItem = {
+        file: File;
+        width: number | null;
+        height: number | null;
+        poster: File | null;
+        durationSeconds: number | null;
+      };
+      const ready: ReadyItem[] = [];
+
       try {
-        // 1) Optimize everything first, so a failure leaves nothing half-uploaded.
-        const ready: File[] = [];
+        // 1) Prepare everything first so a failure leaves nothing half-uploaded.
         for (let i = 0; i < list.length; i++) {
+          if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
           const original = list[i]!;
           if (!original.size || original.size <= 0) {
             setError(`"${original.name}" is empty (0 bytes). Please re-select the file.`);
@@ -153,20 +195,19 @@ export function UniversalUploader({
           }
           const fileBaseProgress = (i / total) * 100;
           const fileSpan = 100 / total;
-          if (compressionEnabled && willCompress(original, compressionPreset) && !allowOriginal.has(original)) {
-            setStatusLabel(original.type.startsWith('video/') ? 'Compressing video for web…' : 'Optimizing image…');
+          setProgress(fileBaseProgress);
+
+          if (!compressionEnabled) {
+            ready.push({ file: original, width: null, height: null, poster: null, durationSeconds: null });
+            continue;
           }
-          const prepared = await prepareFileForUpload(original, {
-            compress: compressionEnabled,
+
+          const prepared = await prepareUploadMedia(original, {
             preset: compressionPreset,
             maxBytes,
             allowOriginal: allowOriginal.has(original),
-            compressFn: (f) =>
-              compressMedia(f, {
-                preset: compressionPreset,
-                imageMaxSizeMB: compressionPreset === 'hero' ? 2 : undefined,
-                onProgress: (p) => setProgress(fileBaseProgress + (p / 100) * fileSpan * 0.4),
-              }),
+            signal,
+            onStatus: (label) => setStatusLabel(label),
           });
           if (prepared.kind === 'failed') {
             setFailure({
@@ -180,13 +221,35 @@ export function UniversalUploader({
             return;
           }
           if (prepared.note) compressionNotes.push(prepared.note);
-          ready.push(prepared.file);
+          if (prepared.posterNote && prepared.poster) compressionNotes.push(prepared.posterNote);
+          else if (prepared.posterNote) compressionNotes.push(prepared.posterNote);
+          ready.push({
+            file: prepared.file,
+            width: prepared.width,
+            height: prepared.height,
+            poster: prepared.poster,
+            durationSeconds: prepared.durationSeconds,
+          });
+          setProgress(fileBaseProgress + fileSpan * 0.4);
         }
 
-        // 2) Upload.
+        // 2) Upload media (+ posters) then register once.
         const supabase = createClient();
+        const uploaded: Array<{
+          storage_path: string;
+          public_url: string;
+          name: string;
+          mimeType: string;
+          size: number;
+          width: number | null;
+          height: number | null;
+          thumbnail_url: string | null;
+        }> = [];
+
         for (let i = 0; i < ready.length; i++) {
-          const file = ready[i]!;
+          if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
+          const item = ready[i]!;
+          const file = item.file;
           const fileBaseProgress = (i / total) * 100;
           const fileSpan = 100 / total;
 
@@ -200,62 +263,65 @@ export function UniversalUploader({
           setStatusLabel('Uploading…');
           setProgress(fileBaseProgress + fileSpan * 0.45);
 
-          const pathRes = await fetch('/api/admin/media/upload-path', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ filename: file.name }),
+          const signed = await requestSignedUpload(file.name, 'library', signal);
+          const { error: uploadErr } = await supabase.storage.from('media').uploadToSignedUrl(signed.path, signed.token, file, {
+            contentType: file.type || 'application/octet-stream',
+            cacheControl: IMMUTABLE_CACHE_SECONDS,
+            upsert: false,
           });
-          const pathData = await pathRes.json().catch(() => ({}));
-          if (!pathRes.ok || !pathData?.path || !pathData?.token) {
-            setError(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload URL.');
-            return;
-          }
-          const { path, publicUrl, token } = pathData as {
-            path: string;
-            publicUrl: string;
-            signedUrl: string;
-            token: string;
-          };
-
-          // Use Supabase's purpose-built uploadToSignedUrl. The token alone
-          // authenticates the upload — no logged-in browser session required —
-          // and the client library guarantees the file body is streamed
-          // correctly (a raw fetch PUT can silently send 0 bytes in some
-          // browsers).
-          const { error: uploadErr } = await supabase.storage
-            .from('media')
-            .uploadToSignedUrl(path, token, file, {
-              contentType: file.type || 'application/octet-stream',
-              // Paths are unique per upload (timestamped) and never overwritten, so a year is safe.
-              cacheControl: IMMUTABLE_CACHE_SECONDS,
-              upsert: false,
-            });
+          if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
           if (uploadErr) {
             setError(uploadErr.message || 'Storage upload failed.');
             return;
           }
 
+          let thumbnailUrl: string | null = null;
+          if (item.poster) {
+            setStatusLabel('Uploading poster…');
+            try {
+              const posterSigned = await requestSignedUpload(item.poster.name, 'poster', signal);
+              const { error: posterErr } = await supabase.storage
+                .from('media')
+                .uploadToSignedUrl(posterSigned.path, posterSigned.token, item.poster, {
+                  contentType: item.poster.type || 'image/jpeg',
+                  cacheControl: IMMUTABLE_CACHE_SECONDS,
+                  upsert: false,
+                });
+              if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
+              if (!posterErr) thumbnailUrl = posterSigned.publicUrl;
+              else compressionNotes.push(`Poster upload failed for ${file.name}; video was kept.`);
+            } catch (err) {
+              if (err instanceof DOMException && err.name === 'AbortError') throw err;
+              compressionNotes.push(`Poster upload failed for ${file.name}; video was kept.`);
+            }
+          }
+
           setProgress(fileBaseProgress + fileSpan * 0.9);
           uploaded.push({
-            storage_path: path,
-            public_url: publicUrl || path,
+            storage_path: signed.path,
+            public_url: signed.publicUrl,
             name: file.name,
             mimeType: file.type || 'application/octet-stream',
             size: file.size ?? 0,
+            width: item.width,
+            height: item.height,
+            thumbnail_url: thumbnailUrl,
           });
         }
 
+        if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
         if (uploaded.length === 0) {
           setError('Upload produced no files to register.');
           return;
         }
         setProgress(100);
+        setStatusLabel('Saving to library…');
 
         const regRes = await fetch('/api/admin/media/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
+          signal,
           body: JSON.stringify({ provider: 'supabase', files: uploaded }),
         });
         const regData = await regRes.json().catch(() => ({}));
@@ -264,7 +330,17 @@ export function UniversalUploader({
           return;
         }
 
-        type AssetItem = { id: string; preview_url: string; provider?: string; name?: string | null; size_bytes?: number | null; mime_type?: string | null };
+        type AssetItem = {
+          id: string;
+          preview_url: string;
+          thumbnail_url?: string | null;
+          provider?: string;
+          name?: string | null;
+          size_bytes?: number | null;
+          mime_type?: string | null;
+          width?: number | null;
+          height?: number | null;
+        };
         const assets: AssetItem[] = Array.isArray(regData?.assets) ? regData.assets : [];
         const normalized: UploadedFile[] = assets.map((a) => ({
           url: a.preview_url,
@@ -273,27 +349,34 @@ export function UniversalUploader({
           name: a.name ?? undefined,
           size: a.size_bytes ?? undefined,
           mimeType: a.mime_type ?? undefined,
+          width: a.width ?? undefined,
+          height: a.height ?? undefined,
+          thumbnailUrl: a.thumbnail_url ?? undefined,
         }));
 
         if (normalized.length) {
           onSelected(multiple ? normalized : normalized.slice(0, 1));
           setSuccess(true);
-          if (compressionNotes.length) {
-            setSuccessDetail(compressionNotes.join('; '));
-          }
+          if (compressionNotes.length) setSuccessDetail(compressionNotes.join('; '));
           setTimeout(() => {
             setSuccess(false);
             setSuccessDetail(null);
-          }, 5000);
+          }, 6000);
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
-          setError('Upload failed — try again. Check your connection.');
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setError('Upload cancelled. Nothing new was saved to the library.');
         } else {
-          setError(msg || 'Upload failed — try again.');
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch')) {
+            setError('Upload failed — try again. Check your connection.');
+          } else {
+            setError(msg || 'Upload failed — try again.');
+          }
         }
       } finally {
+        await wake.release();
+        if (abortRef.current === controller) abortRef.current = null;
         setUploading(false);
         setProgress(null);
         setStatusLabel(null);
@@ -323,23 +406,11 @@ export function UniversalUploader({
     [multiple, processFiles]
   );
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
   return (
     <div className={`inline-flex flex-col gap-3 w-full sm:w-auto max-w-full min-w-0 ${className}`}>
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-          <span className="flex-1 min-w-0 break-words">{error.length > 120 ? `${error.slice(0, 120)}…` : error}</span>
+          <span className="flex-1 min-w-0 break-words">{error.length > 160 ? `${error.slice(0, 160)}…` : error}</span>
           <button type="button" onClick={() => setError(null)} className="admin-icon-btn hover:bg-red-100 rounded shrink-0" aria-label="Dismiss">
             <X className="w-4 h-4" />
           </button>
@@ -390,31 +461,34 @@ export function UniversalUploader({
       {success && (
         <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm space-y-1">
           <p>Upload complete.</p>
-          {successDetail && <p className="text-green-800/80 text-xs">{successDetail}</p>}
+          {successDetail && <p className="text-green-800/80 text-xs break-words">{successDetail}</p>}
         </div>
       )}
       {(uploading || progress != null) && (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-slate-600 text-sm">
             <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
-            <span className="min-w-0 break-words">{statusLabel ?? 'Uploading…'}</span>
+            <span className="min-w-0 break-words flex-1">{statusLabel ?? 'Uploading…'}</span>
+            <button
+              type="button"
+              onClick={cancelUpload}
+              className="admin-tap shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
           </div>
           {progress != null && (
             <div className="h-1.5 w-full sm:max-w-[200px] rounded-full bg-slate-200 overflow-hidden">
-              <div
-                className="h-full bg-slate-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, progress)}%` }}
-              />
+              <div className="h-full bg-slate-600 transition-all duration-300" style={{ width: `${Math.min(100, progress)}%` }} />
             </div>
           )}
+          <p className="text-xs text-slate-500">
+            Keep this tab open. On iPhone, long videos may still pause if the screen locks — cancel and retry on Wi‑Fi if needed.
+          </p>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {!children && (
-          <span className="text-slate-600 text-sm">
-            {buttonLabel}
-          </span>
-        )}
+        {!children && <span className="text-slate-600 text-sm">{buttonLabel}</span>}
         <input
           ref={inputRef}
           type="file"
@@ -429,8 +503,16 @@ export function UniversalUploader({
           role="button"
           tabIndex={0}
           onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+          }}
           onClick={() => inputRef.current?.click()}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -441,9 +523,7 @@ export function UniversalUploader({
           className={`
             flex items-center justify-center text-center gap-2 px-4 py-3 min-h-[56px] w-full sm:w-auto sm:min-h-0 border-2 border-dashed rounded-lg text-sm font-medium
             transition-colors cursor-pointer
-            ${isDragging
-              ? 'border-slate-500 bg-slate-100 text-slate-800'
-              : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50 text-slate-700'}
+            ${isDragging ? 'border-slate-500 bg-slate-100 text-slate-800' : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50 text-slate-700'}
             disabled:opacity-50 disabled:pointer-events-none
           `}
         >
@@ -454,7 +534,7 @@ export function UniversalUploader({
       {!hideStorageTip && (
         <p className="text-slate-500 text-xs max-w-sm">
           {compressionEnabled
-            ? 'Large videos are automatically compressed for web (720p on hero uploads) before upload. First video compression may take a minute while the compressor loads.'
+            ? 'Photos and large videos are prepared for the web before upload (HEIC converted when this browser can, posters for videos). First video compression may take a minute while the compressor loads.'
             : 'Tip: You can pick files from iCloud Drive, Google Drive, OneDrive, or Dropbox if they appear in your device file picker.'}
         </p>
       )}
@@ -471,23 +551,19 @@ export function UploadedFilePreview({
   className?: string;
 }) {
   const isVideo = (file.mimeType || '').startsWith('video/');
+  const still = file.thumbnailUrl;
   return (
-    <div
-      className={`relative rounded-xl overflow-hidden bg-slate-100 border border-slate-200 aspect-video max-h-40 ${className}`}
-    >
+    <div className={`relative overflow-hidden rounded-lg bg-slate-100 ${className}`}>
       {isVideo ? (
-        <video
-          src={file.url}
-          controls
-          className="w-full h-full object-contain"
-          poster={undefined}
-        />
+        still ? (
+          // eslint-disable-next-line @next/next/no-img-element -- admin preview of just-uploaded poster
+          <img src={still} alt="" className="h-full w-full object-contain" />
+        ) : (
+          <video src={file.url} className="h-full w-full object-contain" muted playsInline controls={false} />
+        )
       ) : (
-        <img
-          src={file.url}
-          alt={file.name || 'Preview'}
-          className="w-full h-full object-cover"
-        />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={file.url} alt="" className="h-full w-full object-contain" />
       )}
     </div>
   );

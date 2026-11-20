@@ -105,7 +105,9 @@ export default function AdminMediaPage() {
         id: f.id,
         provider: 'supabase',
         preview_url: f.url,
-        thumbnail_url: f.mimeType?.startsWith('image/') ? f.url : null,
+        thumbnail_url: f.mimeType?.startsWith('image/') ? f.url : f.thumbnailUrl ?? null,
+        width: f.width ?? null,
+        height: f.height ?? null,
         mime_type: f.mimeType ?? null,
         name: f.name ?? null,
         size_bytes: f.size ?? null,
@@ -230,10 +232,14 @@ export default function AdminMediaPage() {
           title="Edit metadata"
         >
           <MediaThumb
-            src={thumb || null}
+            src={isImage ? thumb || null : null}
             isImage={isImage}
             alt={asset.alt_text || asset.name || ''}
-            posterUrl={!isImage ? (asset.thumbnail_url || asset.preview_url) : null}
+            posterUrl={
+              !isImage && asset.thumbnail_url && !/\.(mp4|mov|m4v|webm)(\?|$)/i.test(asset.thumbnail_url)
+                ? asset.thumbnail_url
+                : null
+            }
             className="rounded-none w-full h-full !aspect-square"
           />
         </button>
