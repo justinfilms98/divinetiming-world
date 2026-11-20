@@ -10,16 +10,14 @@ const mocks = vi.hoisted(() => ({
   extractPoster: vi.fn(),
 }));
 
-vi.mock('@/lib/media/heic', () => ({
-  convertHeicToJpegIfNeeded: mocks.convertHeic,
-  isHeicSource: mocks.isHeic,
-  HeicConversionError: class HeicConversionError extends Error {
-    constructor(message: string) {
-      super(message);
-      this.name = 'HeicConversionError';
-    }
-  },
-}));
+vi.mock('@/lib/media/heic', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/media/heic')>('@/lib/media/heic');
+  return {
+    ...actual,
+    convertHeicToJpegIfNeeded: mocks.convertHeic,
+    isHeicSource: mocks.isHeic,
+  };
+});
 
 vi.mock('@/lib/utils/compressMedia', async () => {
   const actual = await vi.importActual<typeof import('@/lib/utils/compressMedia')>('@/lib/utils/compressMedia');
