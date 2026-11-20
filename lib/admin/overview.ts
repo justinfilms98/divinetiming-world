@@ -80,17 +80,28 @@ export interface OverviewSocials {
 }
 
 export type MissionCategory = 'merchandise' | 'events' | 'journal' | 'website';
+/** Essential = content readiness; Suggested = optional polish (never a launch blocker). */
+export type MissionPriority = 'essential' | 'suggested';
 
 export interface MissionItem {
   /** Stable key for snooze / dismiss on this device. */
   id: string;
   category: MissionCategory;
+  priority: MissionPriority;
   title: string;
   detail: string;
   href: string;
   action: string;
   snoozable: boolean;
+  /**
+   * When set, a stored dismiss only hides this mission while the fingerprint matches.
+   * If the underlying set of content changes, the mission can surface again.
+   */
+  fingerprint?: string;
 }
+
+/** Device-local dismiss record (id + optional fingerprint). */
+export type MissionDismissal = { id: string; fingerprint?: string };
 
 export interface MissionInput {
   events: OverviewEvent[];
@@ -393,12 +404,17 @@ export function visibleAttention(items: AttentionItem[], snoozes: Record<string,
 // ---------------------------------------------------------------------------------------------
 // Mission Board (“Your next moves”) — proactive suggestions; never duplicates Needs Attention
 
-const MISSION_CATEGORY_RANK: Record<MissionCategory, number> = {
-  merchandise: 0,
-  events: 1,
-  journal: 2,
-  website: 3,
-};
+/**
+ * Sort tiers (lower first):
+ * 0 merch · 1 essential events · 2 journal · 3 optional event polish · 4 website
+ */
+export function missionSortTier(item: MissionItem): number {
+  if (item.category === 'merchandise') return 0;
+  if (item.category === 'events' && item.priority === 'essential') return 1;
+  if (item.category === 'journal') return 2;
+  if (item.category === 'events' && item.priority === 'suggested') return 3;
+  return 4;
+}
 
 const CATEGORY_LABEL: Record<MissionCategory, string> = {
   merchandise: 'Merch',
@@ -407,8 +423,17 @@ const CATEGORY_LABEL: Record<MissionCategory, string> = {
   website: 'Website',
 };
 
+const PRIORITY_LABEL: Record<MissionPriority, string> = {
+  essential: 'Essential',
+  suggested: 'Suggested',
+};
+
 export function missionCategoryLabel(category: MissionCategory): string {
   return CATEGORY_LABEL[category];
+}
+
+export function missionPriorityLabel(priority: MissionPriority): string {
+  return PRIORITY_LABEL[priority];
 }
 
 function copyMissing(text: string | null | undefined): boolean {
@@ -422,15 +447,26 @@ function productOutOfStock(p: OverviewProduct): boolean {
   return tracked.every((v) => (v.inventory_count ?? 0) <= 0);
 }
 
+/** Stable fingerprint for grouped missions so dismiss expires when membership changes. */
+export function missionFingerprint(ids: string[]): string {
+  return [...ids].sort().join(',');
+}
+
 function mission(
   id: string,
   category: MissionCategory,
+  priority: MissionPriority,
   title: string,
   detail: string,
   href: string,
-  action: string
+  action: string,
+  fingerprint?: string
 ): MissionItem {
-  return { id, category, title, detail, href, action, snoozable: true };
+  return { id, category, priority, title, detail, href, action, snoozable: true, fingerprint };
+}
+
+function hasLocation(e: OverviewEvent): boolean {
+  return Boolean(e.venue?.trim() || e.city?.trim());
 }
 
 function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<string>, now: number): MissionItem[] {
@@ -441,6 +477,7 @@ function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<stri
       mission(
         'mission:shop:empty-real',
         'merchandise',
+        'essential',
         'Add a real merch product',
         'The Shop only has demonstration items (or none). Add a product Lex and Liam can finish and sell.',
         '/admin/shop?new=1',
@@ -457,6 +494,7 @@ function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<stri
         mission(
           `mission:product:${p.id}:describe`,
           'merchandise',
+          'essential',
           `Write a description for ${quoted(p.name)}`,
           'Shoppers need a short product story before they buy.',
           `/admin/shop?edit=${p.id}`,
@@ -469,6 +507,7 @@ function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<stri
         mission(
           `mission:product:${p.id}:inventory`,
           'merchandise',
+          'essential',
           `${quoted(p.name)} is out of stock`,
           'Inventory tracking is on but stock is zero. Restock or turn tracking off.',
           `/admin/shop?edit=${p.id}`,
@@ -487,6 +526,7 @@ function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<stri
         mission(
           `mission:product:${p.id}:review-draft`,
           'merchandise',
+          'essential',
           `Review draft ${quoted(p.name)}`,
           `Photo and price are set. Last edited ${plural(daysBetween(Date.parse(p.updated_at), now), 'day')} ago — ready to publish when you are.`,
           `/admin/shop?edit=${p.id}`,
@@ -498,38 +538,49 @@ function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<stri
   return items;
 }
 
-function eventMissions(events: OverviewEvent[], attentionIds: Set<string>, now: number): MissionItem[] {
+/** Flyer / location gaps — essential event readiness (not optional photo polish). */
+function essentialEventMissions(events: OverviewEvent[], attentionIds: Set<string>, now: number): MissionItem[] {
   const items: MissionItem[] = [];
   const pastMissingArt: OverviewEvent[] = [];
-  const pastMissingGallery: OverviewEvent[] = [];
 
   for (const e of events) {
     if (e.booking_status === 'cancelled' || e.status !== 'published') continue;
     const when = Date.parse(e.date);
-    if (Number.isNaN(when)) continue;
-    const isPast = when < now;
-    const label = eventLabel(e);
     const href = `/admin/events?edit=${e.id}`;
+    const label = eventLabel(e);
 
-    if (isPast && !e.artwork_url && !attentionIds.has(`event:${e.id}:incomplete`)) {
-      pastMissingArt.push(e);
-    }
-    if (isPast && (e.media_count ?? 0) === 0 && !e.gallery_url?.trim()) {
-      pastMissingGallery.push(e);
-    }
-    if (copyMissing(e.description) && !attentionIds.has(`event:${e.id}:incomplete`)) {
+    if (Number.isNaN(when) || !e.date?.trim()) {
       items.push(
         mission(
-          `mission:event:${e.id}:copy`,
+          `mission:event:${e.id}:date`,
           'events',
-          `Add a story for ${quoted(label)}`,
-          isPast
-            ? 'Past shows read better with a short recap visitors can share.'
-            : 'Give fans a reason to care before the night arrives.',
+          'essential',
+          `${quoted(label)} needs a date`,
+          'Events without a date cannot appear correctly on the site.',
           href,
           'Edit event'
         )
       );
+      continue;
+    }
+
+    if (!hasLocation(e) && !attentionIds.has(`event:${e.id}:incomplete`)) {
+      items.push(
+        mission(
+          `mission:event:${e.id}:location`,
+          'events',
+          'essential',
+          `Add a venue or city for ${quoted(label)}`,
+          'Fans need to know where the show is happening.',
+          href,
+          'Edit event'
+        )
+      );
+    }
+
+    const isPast = when < now;
+    if (isPast && !e.artwork_url && !attentionIds.has(`event:${e.id}:incomplete`)) {
+      pastMissingArt.push(e);
     }
   }
 
@@ -539,42 +590,77 @@ function eventMissions(events: OverviewEvent[], attentionIds: Set<string>, now: 
       mission(
         `mission:event:${e.id}:artwork`,
         'events',
+        'essential',
         `Add artwork for ${quoted(eventLabel(e))}`,
         'This past show is live without a flyer. A still image finishes the archive.',
         `/admin/events?edit=${e.id}`,
-        'Add artwork'
+        'Add artwork',
+        missionFingerprint([e.id])
       )
     );
   } else if (pastMissingArt.length > 1) {
+    const newest = [...pastMissingArt].sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0];
     items.push(
       mission(
         'mission:events:past-artwork',
         'events',
+        'essential',
         `${pastMissingArt.length} past events need a flyer`,
         'Published shows without artwork look unfinished in the archive. Start with the most recent.',
-        `/admin/events?edit=${pastMissingArt.sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0].id}`,
-        'Add artwork'
-      )
-    );
-  }
-
-  if (pastMissingGallery.length > 0) {
-    const newest = [...pastMissingGallery].sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0];
-    items.push(
-      mission(
-        'mission:events:past-gallery',
-        'events',
-        pastMissingGallery.length === 1
-          ? `Add photos for ${quoted(eventLabel(newest))}`
-          : `${pastMissingGallery.length} past events have no photo gallery`,
-        'Optional recap media helps fans relive the night. One show at a time is enough.',
         `/admin/events?edit=${newest.id}`,
-        'Open event'
+        'Add artwork',
+        missionFingerprint(pastMissingArt.map((e) => e.id))
       )
     );
   }
 
   return items;
+}
+
+/**
+ * Optional past-show polish (galleries / thin copy) — one grouped suggestion max.
+ * Never treated as a launch blocker.
+ */
+function suggestedEventEnhanceMissions(events: OverviewEvent[], now: number): MissionItem[] {
+  const polish: OverviewEvent[] = [];
+  for (const e of events) {
+    if (e.booking_status === 'cancelled' || e.status !== 'published') continue;
+    const when = Date.parse(e.date);
+    if (Number.isNaN(when) || when >= now) continue;
+    const missingGallery = (e.media_count ?? 0) === 0 && !e.gallery_url?.trim();
+    const thinCopy = copyMissing(e.description);
+    if (missingGallery || thinCopy) polish.push(e);
+  }
+  if (polish.length === 0) return [];
+
+  const newest = [...polish].sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0];
+  const fp = missionFingerprint(polish.map((e) => e.id));
+  if (polish.length === 1) {
+    return [
+      mission(
+        'mission:events:enhance-history',
+        'events',
+        'suggested',
+        `Enhance ${quoted(eventLabel(newest))}`,
+        'Optional photos or a fuller story help fans relive the night. Dismiss if this show should stay minimal.',
+        `/admin/events?edit=${newest.id}`,
+        'Open event',
+        fp
+      ),
+    ];
+  }
+  return [
+    mission(
+      'mission:events:enhance-history',
+      'events',
+      'suggested',
+      'Enhance your event history',
+      `${polish.length} past events could use additional photos or galleries. Optional — dismiss if they should stay as they are.`,
+      `/admin/events?edit=${newest.id}`,
+      'Open events',
+      fp
+    ),
+  ];
 }
 
 function journalMissions(episodes: OverviewJournalEpisode[]): MissionItem[] {
@@ -596,6 +682,7 @@ function journalMissions(episodes: OverviewJournalEpisode[]): MissionItem[] {
         mission(
           `mission:journal:${ep.id}:incomplete`,
           'journal',
+          'essential',
           `Finish ${quoted(label)}`,
           `Still needs ${listJoin(parts)} before it is ready to share.`,
           href,
@@ -607,6 +694,7 @@ function journalMissions(episodes: OverviewJournalEpisode[]): MissionItem[] {
         mission(
           `mission:journal:${ep.id}:ready-review`,
           'journal',
+          'essential',
           `Review ${quoted(label)} for publish`,
           'Cover, summary and description are in place. Publish or set Coming soon when you are ready.',
           href,
@@ -627,6 +715,7 @@ function websiteMissions(collections: OverviewCollection[], socials: OverviewSoc
         mission(
           `mission:collection:${c.id}:cover`,
           'website',
+          'suggested',
           `Add a cover to ${quoted(c.name)}`,
           'Collection cards look unfinished without a cover image.',
           `/admin/collections?edit=${c.id}`,
@@ -639,6 +728,7 @@ function websiteMissions(collections: OverviewCollection[], socials: OverviewSoc
         mission(
           `mission:collection:${c.id}:empty`,
           'website',
+          'suggested',
           `${quoted(c.name)} has no frames yet`,
           'Add photos so the collection tells a story.',
           `/admin/collections?edit=${c.id}`,
@@ -661,6 +751,7 @@ function websiteMissions(collections: OverviewCollection[], socials: OverviewSoc
         mission(
           'mission:social:missing',
           'website',
+          'suggested',
           'Add missing social destinations',
           `${listJoin(missing)} ${missing.length === 1 ? 'is' : 'are'} empty in site settings.`,
           '/admin/settings',
@@ -674,7 +765,8 @@ function websiteMissions(collections: OverviewCollection[], socials: OverviewSoc
 }
 
 /**
- * Proactive next steps for artists. Cap at MISSION_CAP. Merchandise and events sort first.
+ * Proactive next steps for artists. Cap at MISSION_CAP.
+ * Order: merch → essential events → journal → optional event polish → website.
  * Never emits an id already covered by Needs Attention for the same product/event gap.
  */
 export function buildMissions(input: MissionInput, nowDate: Date): MissionItem[] {
@@ -682,30 +774,53 @@ export function buildMissions(input: MissionInput, nowDate: Date): MissionItem[]
   const attentionIds = new Set(input.attentionIds);
   const items = [
     ...merchandiseMissions(input.products, attentionIds, now),
-    ...eventMissions(input.events, attentionIds, now),
+    ...essentialEventMissions(input.events, attentionIds, now),
     ...journalMissions(input.journal),
+    ...suggestedEventEnhanceMissions(input.events, now),
     ...websiteMissions(input.collections, input.socials),
   ];
   return items
     .map((item, order) => ({ item, order }))
-    .sort((a, b) => MISSION_CATEGORY_RANK[a.item.category] - MISSION_CATEGORY_RANK[b.item.category] || a.order - b.order)
+    .sort((a, b) => missionSortTier(a.item) - missionSortTier(b.item) || a.order - b.order)
     .map(({ item }) => item)
     .slice(0, MISSION_CAP);
+}
+
+/** Normalize legacy string[] dismissals and fingerprint-aware records. */
+export function normalizeMissionDismissals(raw: unknown): MissionDismissal[] {
+  if (!Array.isArray(raw)) return [];
+  const out: MissionDismissal[] = [];
+  for (const entry of raw) {
+    if (typeof entry === 'string' && entry) out.push({ id: entry });
+    else if (entry && typeof entry === 'object' && typeof (entry as MissionDismissal).id === 'string') {
+      const d = entry as MissionDismissal;
+      out.push({ id: d.id, fingerprint: typeof d.fingerprint === 'string' ? d.fingerprint : undefined });
+    }
+  }
+  return out;
+}
+
+function isDismissed(item: MissionItem, dismissals: MissionDismissal[]): boolean {
+  const match = dismissals.find((d) => d.id === item.id);
+  if (!match) return false;
+  // Fingerprinted missions reappear when the underlying set changes.
+  if (item.fingerprint != null) return match.fingerprint === item.fingerprint;
+  return true;
 }
 
 /** Filter missions by device-local snoozes and dismissals. */
 export function visibleMissions(
   items: MissionItem[],
   snoozes: Record<string, string>,
-  dismissals: string[],
+  dismissals: MissionDismissal[] | string[],
   nowDate: Date
 ) {
-  const dismissed = new Set(dismissals);
+  const normalized = normalizeMissionDismissals(dismissals);
   const visible: MissionItem[] = [];
   let snoozed = 0;
   let dismissedCount = 0;
   for (const item of items) {
-    if (dismissed.has(item.id)) {
+    if (isDismissed(item, normalized)) {
       dismissedCount++;
       continue;
     }

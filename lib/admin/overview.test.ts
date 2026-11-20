@@ -364,11 +364,12 @@ describe('mission board', () => {
     expect(items[0]).toMatchObject({
       id: 'mission:shop:empty-real',
       category: 'merchandise',
+      priority: 'essential',
       href: '/admin/shop?new=1',
     });
   });
 
-  it('prioritizes merchandise and events ahead of journal and website', () => {
+  it('orders merch, essential events, journal, then optional polish and website', () => {
     const items = buildMissions(
       missionEmpty({
         products: [product({ description: '' })],
@@ -378,8 +379,8 @@ describe('mission board', () => {
             date: daysFromNow(-10),
             artwork_url: null,
             description: 'Past show with enough copy for missions.',
-            media_count: 2,
-            gallery_url: 'https://example.com/g',
+            media_count: 0,
+            gallery_url: null,
           }),
         ],
         journal: [
@@ -398,7 +399,13 @@ describe('mission board', () => {
       }),
       NOW
     );
-    expect(items.map((i) => i.category)).toEqual(['merchandise', 'events', 'journal', 'website']);
+    expect(items.map((i) => [i.category, i.priority])).toEqual([
+      ['merchandise', 'essential'],
+      ['events', 'essential'],
+      ['journal', 'essential'],
+      ['events', 'suggested'],
+      ['website', 'suggested'],
+    ]);
     expect(items.length).toBeLessThanOrEqual(MISSION_CAP);
   });
 
@@ -437,21 +444,61 @@ describe('mission board', () => {
     expect(journal?.detail).toMatch(/cover/);
   });
 
-  it('groups several past events missing artwork into one mission', () => {
+  it('groups past flyer gaps as essential and optional galleries as one suggested mission', () => {
     const items = buildMissions(
       missionEmpty({
         products: [product()],
         events: [
-          event({ id: 'a', date: daysFromNow(-30), artwork_url: null, description: 'Enough copy here for the past show archive card.' }),
-          event({ id: 'b', date: daysFromNow(-20), artwork_url: null, description: 'Enough copy here for the past show archive card.' }),
-          event({ id: 'c', date: daysFromNow(-5), artwork_url: null, description: 'Enough copy here for the past show archive card.' }),
+          event({ id: 'a', date: daysFromNow(-30), artwork_url: null, description: 'Enough copy here for the past show archive card.', media_count: 0 }),
+          event({ id: 'b', date: daysFromNow(-20), artwork_url: null, description: 'Enough copy here for the past show archive card.', media_count: 0 }),
+          event({ id: 'c', date: daysFromNow(-5), artwork_url: null, description: 'Enough copy here for the past show archive card.', media_count: 0 }),
         ],
       }),
       NOW
     );
-    const grouped = items.find((i) => i.id === 'mission:events:past-artwork');
-    expect(grouped?.title).toBe('3 past events need a flyer');
-    expect(grouped?.href).toBe('/admin/events?edit=c');
+    const flyers = items.find((i) => i.id === 'mission:events:past-artwork');
+    expect(flyers).toMatchObject({ title: '3 past events need a flyer', priority: 'essential', href: '/admin/events?edit=c' });
+    const enhance = items.find((i) => i.id === 'mission:events:enhance-history');
+    expect(enhance).toMatchObject({
+      priority: 'suggested',
+      title: 'Enhance your event history',
+    });
+    expect(enhance?.detail).toMatch(/3 past events could use/);
+    expect(items.filter((i) => i.id === 'mission:events:enhance-history')).toHaveLength(1);
+  });
+
+  it('re-surfaces a dismissed enhance mission when the event set changes', () => {
+    const first = buildMissions(
+      missionEmpty({
+        products: [product()],
+        events: [
+          event({ id: 'a', date: daysFromNow(-10), artwork_url: 'https://x/a.jpg', description: 'Enough copy.', media_count: 0 }),
+          event({ id: 'b', date: daysFromNow(-8), artwork_url: 'https://x/b.jpg', description: 'Enough copy.', media_count: 0 }),
+        ],
+      }),
+      NOW
+    );
+    const enhance = first.find((i) => i.id === 'mission:events:enhance-history')!;
+    expect(enhance.fingerprint).toBeTruthy();
+
+    const hidden = visibleMissions(first, {}, [{ id: enhance.id, fingerprint: enhance.fingerprint }], NOW);
+    expect(hidden.visible.find((i) => i.id === enhance.id)).toBeUndefined();
+
+    const expanded = buildMissions(
+      missionEmpty({
+        products: [product()],
+        events: [
+          event({ id: 'a', date: daysFromNow(-10), artwork_url: 'https://x/a.jpg', description: 'Enough copy.', media_count: 0 }),
+          event({ id: 'b', date: daysFromNow(-8), artwork_url: 'https://x/b.jpg', description: 'Enough copy.', media_count: 0 }),
+          event({ id: 'c', date: daysFromNow(-2), artwork_url: 'https://x/c.jpg', description: 'Enough copy.', media_count: 0 }),
+        ],
+      }),
+      NOW
+    );
+    const next = expanded.find((i) => i.id === 'mission:events:enhance-history')!;
+    expect(next.fingerprint).not.toBe(enhance.fingerprint);
+    const shown = visibleMissions(expanded, {}, [{ id: enhance.id, fingerprint: enhance.fingerprint }], NOW);
+    expect(shown.visible.find((i) => i.id === 'mission:events:enhance-history')).toBeTruthy();
   });
 
   it('caps suggestions and respects snooze plus dismiss', () => {
@@ -488,7 +535,7 @@ describe('mission board', () => {
     const { visible, snoozed, dismissed } = visibleMissions(
       many,
       { [many[0].id]: daysFromNow(3) },
-      [many[1].id],
+      [{ id: many[1].id }],
       NOW
     );
     expect(snoozed).toBe(1);

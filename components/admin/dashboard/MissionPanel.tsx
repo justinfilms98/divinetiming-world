@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { AlarmClock, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import {
   missionCategoryLabel,
+  missionPriorityLabel,
+  normalizeMissionDismissals,
   visibleMissions,
+  type MissionDismissal,
   type MissionItem,
 } from '@/lib/admin/overview';
 
 const SNOOZE_KEY = 'dt-admin-mission-snoozes-v1';
-const DISMISS_KEY = 'dt-admin-mission-dismissals-v1';
+const DISMISS_KEY = 'dt-admin-mission-dismissals-v2';
 const SEEN_KEY = 'dt-admin-mission-seen-v1';
 const SNOOZE_DAYS = 7;
 const INITIAL_VISIBLE = 5;
@@ -57,10 +60,17 @@ function snoozeEndsAt(): string {
   return new Date(Date.now() + SNOOZE_DAYS * 86_400_000).toISOString();
 }
 
+function readDismissals(): MissionDismissal[] {
+  const v2 = normalizeMissionDismissals(readJson<unknown>(DISMISS_KEY, []));
+  if (v2.length > 0) return v2;
+  // One-time migrate from v1 string list.
+  return normalizeMissionDismissals(readJson<unknown>('dt-admin-mission-dismissals-v1', []));
+}
+
 /** Soft suggestions under Needs Attention. Snooze / dismiss stay on this device only. */
 export function MissionPanel({ items, now }: { items: MissionItem[]; now: string }) {
   const [snoozes, setSnoozes] = useState<Record<string, string>>(() => readJson(SNOOZE_KEY, {}));
-  const [dismissals, setDismissals] = useState<string[]>(() => readJson(DISMISS_KEY, []));
+  const [dismissals, setDismissals] = useState<MissionDismissal[]>(() => readDismissals());
   const [completed, setCompleted] = useState<{ id: string; title: string }[]>([]);
   const [showAll, setShowAll] = useState(false);
 
@@ -70,8 +80,9 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
   // Track missions that vanish this session as “recently completed” (not dismissed).
   useEffect(() => {
     const currentIds = new Set(items.map((i) => i.id));
+    const dismissedIds = new Set(dismissals.map((d) => d.id));
     const prev = readSeen(SEEN_KEY);
-    const vanished = prev.filter((s) => !currentIds.has(s.id) && !dismissals.includes(s.id));
+    const vanished = prev.filter((s) => !currentIds.has(s.id) && !dismissedIds.has(s.id));
     if (vanished.length > 0) {
       setCompleted((prevCompleted) =>
         [...vanished, ...prevCompleted].filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i).slice(0, COMPLETED_MAX)
@@ -82,7 +93,13 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
       items.map((i) => ({ id: i.id, title: i.title }))
     );
 
-    const pruned = dismissals.filter((id) => currentIds.has(id));
+    const live = new Map(items.map((i) => [i.id, i.fingerprint]));
+    const pruned = dismissals.filter((d) => {
+      if (!live.has(d.id)) return false;
+      const fp = live.get(d.id);
+      if (fp != null) return d.fingerprint === fp;
+      return true;
+    });
     if (pruned.length !== dismissals.length) {
       setDismissals(pruned);
       writeJson(DISMISS_KEY, pruned);
@@ -95,8 +112,11 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
     writeJson(SNOOZE_KEY, next);
   };
 
-  const dismiss = (id: string) => {
-    const next = dismissals.includes(id) ? dismissals : [...dismissals, id];
+  const dismiss = (item: MissionItem) => {
+    const next = [
+      ...dismissals.filter((d) => d.id !== item.id),
+      { id: item.id, fingerprint: item.fingerprint },
+    ];
     setDismissals(next);
     writeJson(DISMISS_KEY, next);
   };
@@ -109,7 +129,10 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
   };
 
   return (
-    <section aria-labelledby="missions-heading" className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:p-5">
+    <section
+      aria-labelledby="missions-heading"
+      className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:p-5 pb-[max(1rem,env(safe-area-inset-bottom))]"
+    >
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="missions-heading" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
           Your next moves
@@ -129,7 +152,7 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
       ) : (
         <ul className="mt-3 divide-y divide-white/[0.06]">
           {shown.map((item) => (
-            <MissionRow key={item.id} item={item} onSnooze={() => snooze(item.id)} onDismiss={() => dismiss(item.id)} />
+            <MissionRow key={`${item.id}:${item.fingerprint ?? ''}`} item={item} onSnooze={() => snooze(item.id)} onDismiss={() => dismiss(item)} />
           ))}
         </ul>
       )}
@@ -171,15 +194,24 @@ function MissionRow({ item, onSnooze, onDismiss }: { item: MissionItem; onSnooze
     <li className="flex items-stretch gap-1">
       <Link
         href={item.href}
-        className="group flex min-h-[56px] flex-1 items-start gap-3 rounded-xl py-3 pr-1 -ml-1 pl-1 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A75E]/60"
+        className="group flex min-h-[56px] flex-1 min-w-0 items-start gap-3 rounded-xl py-3 pr-1 -ml-1 pl-1 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A75E]/60"
       >
-        <span className="mt-0.5 shrink-0 rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-          {missionCategoryLabel(item.category)}
+        <span className="mt-0.5 flex shrink-0 flex-col gap-1">
+          <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+            {missionCategoryLabel(item.category)}
+          </span>
+          <span
+            className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+              item.priority === 'essential' ? 'bg-[#C6A75E]/15 text-[#C6A75E]' : 'bg-white/[0.04] text-white/40'
+            }`}
+          >
+            {missionPriorityLabel(item.priority)}
+          </span>
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-base font-medium leading-snug text-white">{item.title}</span>
           <span className="mt-1 block text-sm leading-relaxed text-white/55">{item.detail}</span>
-          <span className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-[#C6A75E]">
+          <span className="mt-1.5 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-[#C6A75E]">
             {item.action}
             <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
