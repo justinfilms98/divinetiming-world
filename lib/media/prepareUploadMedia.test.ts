@@ -92,6 +92,15 @@ describe('prepareUploadMedia', () => {
     expect(mocks.compressImage).not.toHaveBeenCalled();
   });
 
+  it('refuses a corrupted image that has no readable dimensions', async () => {
+    mocks.willCompress.mockReturnValue(false);
+    mocks.readImageSize.mockResolvedValue(null);
+    const bad = new File([new Uint8Array([0xff, 0xd8, 0x00])], 'broken.jpg', { type: 'image/jpeg' });
+    const r = await prepareUploadMedia(bad, { preset: 'standard', maxBytes: 50 * MB, allowOriginal: false });
+    expect(r).toMatchObject({ kind: 'failed', canUploadOriginal: false });
+    expect(String((r as { reason?: string }).reason)).toMatch(/couldn’t be read|corrupted/i);
+  });
+
   it('makes a video poster and still returns the video when poster capture fails', async () => {
     const { VideoPosterError } = await import('@/lib/media/videoPoster');
     mocks.extractPoster.mockRejectedValue(new VideoPosterError('no frames'));

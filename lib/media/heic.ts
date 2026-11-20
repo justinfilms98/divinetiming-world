@@ -48,8 +48,13 @@ export async function looksLikeHeic(file: Blob): Promise<boolean> {
   return false;
 }
 
+/**
+ * True only when MIME or the file header identifies HEIC/HEIF.
+ * A `.heic` filename alone is not enough — a JPEG renamed to `.heic` must not
+ * be reported as a successful HEIC→JPEG conversion.
+ */
 export async function isHeicSource(file: File): Promise<boolean> {
-  if (isHeicMime(file.type) || isHeicFileName(file.name)) return true;
+  if (isHeicMime(file.type)) return true;
   return looksLikeHeic(file);
 }
 

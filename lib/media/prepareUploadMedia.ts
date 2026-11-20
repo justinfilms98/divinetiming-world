@@ -188,6 +188,15 @@ export async function prepareUploadMedia(file: File, opts: PrepareMediaOptions):
     const size = await readImageSize(working, opts.signal);
     width = size?.width ?? null;
     height = size?.height ?? null;
+    if (width == null || height == null) {
+      return {
+        kind: 'failed',
+        file,
+        reason: `This image couldn’t be read (it may be corrupted or an unsupported format).`,
+        canUploadOriginal: false,
+        originalLimit: limit,
+      };
+    }
   } else if (working.type.startsWith('video/') && !opts.skipPoster) {
     opts.onStatus?.('Making video poster…');
     try {

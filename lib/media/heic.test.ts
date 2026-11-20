@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isHeicFileName, isHeicMime, looksLikeHeic } from '@/lib/media/heic';
+import { isHeicFileName, isHeicMime, isHeicSource, looksLikeHeic } from '@/lib/media/heic';
 
 function ftypBlob(brand: string, compat: string[] = []): Blob {
   const brands = [brand, ...compat];
@@ -33,5 +33,16 @@ describe('HEIC detection', () => {
     expect(await looksLikeHeic(ftypBlob('mif1', ['heic']))).toBe(true);
     expect(await looksLikeHeic(ftypBlob('isom'))).toBe(false);
     expect(await looksLikeHeic(new Blob([new Uint8Array([0xff, 0xd8, 0xff])]))).toBe(false);
+  });
+
+  it('does not treat a JPEG renamed to .heic as a HEIC source', async () => {
+    const jpeg = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], 'spoof.heic', { type: 'image/jpeg' });
+    expect(isHeicFileName(jpeg.name)).toBe(true);
+    expect(await isHeicSource(jpeg)).toBe(false);
+  });
+
+  it('treats ftyp HEIC as a HEIC source even with empty MIME', async () => {
+    const heic = new File([await ftypBlob('heic').arrayBuffer()], 'phone.heic', { type: '' });
+    expect(await isHeicSource(heic)).toBe(true);
   });
 });
