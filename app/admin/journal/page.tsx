@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/admin/EmptyState';
 import { useAdminToast } from '@/components/admin/AdminToast';
 import { useAdminDialog } from '@/components/admin/AdminDialog';
 import { JournalEpisodeEditor, type GalleryOption } from '@/components/admin/journal/JournalEpisodeEditor';
+import { useAdminDeepLink } from '@/components/admin/useAdminDeepLink';
 import { createClient } from '@/lib/supabase/client';
 import { describeSaveError } from '@/lib/admin/saveErrors';
 import { episodeLabel } from '@/lib/journal/rules';
@@ -53,6 +54,11 @@ export default function AdminJournalPage() {
   }, []);
 
   const load = useCallback(async () => apply(await fetchEpisodes()), [apply]);
+
+  useAdminDeepLink(episodes, !loading && !loadError, {
+    edit: (episode) => setEditing(episode),
+    create: () => setEditing('new'),
+  });
 
   useEffect(() => {
     let cancelled = false;

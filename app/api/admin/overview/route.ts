@@ -8,6 +8,7 @@ import { isDemo } from '@/lib/admin/demoContent';
 import { bandwidthNotice, supabasePlan } from '@/lib/admin/supabasePlan';
 import {
   buildAttention,
+  buildMissions,
   eventLabel,
   PREVIEW_MAX_BYTES,
   safeTimeZone,
@@ -18,11 +19,14 @@ import {
   type AdminOverview,
   type AnalyticsRow,
   type ContentCount,
+  type OverviewCollection,
   type OverviewDraftable,
   type OverviewEvent,
   type OverviewHeroSlot,
+  type OverviewJournalEpisode,
   type OverviewMedia,
   type OverviewProduct,
+  type OverviewSocials,
 } from '@/lib/admin/overview';
 
 export const dynamic = 'force-dynamic';
@@ -89,6 +93,9 @@ type EventRow = {
   thumbnail_url: string | null;
   external_thumbnail_asset_id: string | null;
   updated_at: string | null;
+  description: string | null;
+  gallery_url: string | null;
+  event_media: { id: string }[] | null;
 };
 
 type AssetRow = {
@@ -125,34 +132,76 @@ export async function GET(request: NextRequest) {
   // Seven local calendar days can start up to a day earlier than "now minus 7×24h".
   const weekAgo = new Date(now.getTime() - 8 * DAY_MS).toISOString();
 
-  const [eventsRes, galleriesRes, productsRes, releasesRes, inquiriesRes, policiesRes, heroRes, assetsRes, analyticsRes, storageRes] =
-    await Promise.all([
-      supabase
-        .from('events')
-        .select('id, title, city, venue, date, status, booking_status, ticket_url, thumbnail_url, external_thumbnail_asset_id, updated_at')
-        .order('date', { ascending: true })
-        .limit(500),
-      supabase.from('galleries').select('id, name, status, updated_at').limit(500),
-      supabase.from('products').select('id, name, status, updated_at, price_cents, thumbnail_url, product_images(id)').limit(500),
-      supabase.from('releases').select('id, title, status, updated_at').limit(500),
-      supabase.from('booking_inquiries').select('id, name, event_name, status, created_at').order('created_at', { ascending: false }).limit(200),
-      supabase.from('legal_policies').select('slug, title, status'),
-      supabase.from('hero_sections').select('page_slug, hero_slots'),
-      supabase
-        .from('external_media_assets')
-        .select('id, name, mime_type, preview_url, thumbnail_url, size_bytes, usage_type, is_archived, created_at')
-        .order('created_at', { ascending: false })
-        .limit(1000),
-      supabase.from('analytics_events').select('event_name, entity_type, entity_id, created_at').gte('created_at', weekAgo).limit(5000),
-      getStorageUsage().then(
-        (v) => v,
-        () => null
-      ),
-    ]);
+  const [
+    eventsRes,
+    galleriesRes,
+    productsRes,
+    releasesRes,
+    inquiriesRes,
+    policiesRes,
+    heroRes,
+    assetsRes,
+    analyticsRes,
+    journalRes,
+    settingsRes,
+    storageRes,
+  ] = await Promise.all([
+    supabase
+      .from('events')
+      .select(
+        'id, title, city, venue, date, status, booking_status, ticket_url, thumbnail_url, external_thumbnail_asset_id, updated_at, description, gallery_url, event_media(id)'
+      )
+      .order('date', { ascending: true })
+      .limit(500),
+    supabase
+      .from('galleries')
+      .select('id, name, status, updated_at, cover_image_url, external_cover_asset_id, gallery_media(id)')
+      .limit(500),
+    supabase
+      .from('products')
+      .select(
+        'id, name, status, updated_at, price_cents, thumbnail_url, description, track_inventory, inventory_count, product_images(id), product_variants(track_inventory, inventory_count)'
+      )
+      .limit(500),
+    supabase.from('releases').select('id, title, status, updated_at').limit(500),
+    supabase.from('booking_inquiries').select('id, name, event_name, status, created_at').order('created_at', { ascending: false }).limit(200),
+    supabase.from('legal_policies').select('slug, title, status'),
+    supabase.from('hero_sections').select('page_slug, hero_slots'),
+    supabase
+      .from('external_media_assets')
+      .select('id, name, mime_type, preview_url, thumbnail_url, size_bytes, usage_type, is_archived, created_at')
+      .order('created_at', { ascending: false })
+      .limit(1000),
+    supabase.from('analytics_events').select('event_name, entity_type, entity_id, created_at').gte('created_at', weekAgo).limit(5000),
+    supabase
+      .from('journal_episodes')
+      .select('id, title, status, summary, description, cover_image_url, updated_at, episode_number')
+      .order('episode_number', { ascending: true })
+      .limit(50),
+    supabase
+      .from('site_settings')
+      .select('instagram_url, youtube_url, spotify_url, apple_music_url, soundcloud_url, beatport_url')
+      .limit(1)
+      .maybeSingle(),
+    getStorageUsage().then(
+      (v) => v,
+      () => null
+    ),
+  ]);
 
-  const failed = [eventsRes, galleriesRes, productsRes, releasesRes, inquiriesRes, policiesRes, heroRes, assetsRes, analyticsRes].find(
-    (r) => r.error
-  );
+  const failed = [
+    eventsRes,
+    galleriesRes,
+    productsRes,
+    releasesRes,
+    inquiriesRes,
+    policiesRes,
+    heroRes,
+    assetsRes,
+    analyticsRes,
+    journalRes,
+    settingsRes,
+  ].find((r) => r.error);
   if (failed) {
     console.error('Admin overview query failed:', failed.error);
     return NextResponse.json({ ok: false, error: 'Could not load the dashboard.' }, { status: 500 });
@@ -184,12 +233,30 @@ export async function GET(request: NextRequest) {
       artwork_url: url,
       artwork_too_large: tooLarge,
       updated_at: e.updated_at,
+      description: e.description,
+      gallery_url: e.gallery_url,
+      media_count: e.event_media?.length ?? 0,
     };
   });
 
-  const collections: OverviewDraftable[] = ((galleriesRes.data ?? []) as { id: string; name: string | null; status: string | null; updated_at: string | null }[]).map(
-    (g) => ({ id: g.id, name: g.name?.trim() || 'Untitled collection', status: g.status, updated_at: g.updated_at })
-  );
+  const collections: OverviewCollection[] = (
+    (galleriesRes.data ?? []) as {
+      id: string;
+      name: string | null;
+      status: string | null;
+      updated_at: string | null;
+      cover_image_url: string | null;
+      external_cover_asset_id: string | null;
+      gallery_media: { id: string }[] | null;
+    }[]
+  ).map((g) => ({
+    id: g.id,
+    name: g.name?.trim() || 'Untitled collection',
+    status: g.status,
+    updated_at: g.updated_at,
+    has_cover: Boolean(g.cover_image_url?.trim() || g.external_cover_asset_id),
+    frame_count: g.gallery_media?.length ?? 0,
+  }));
   const products: OverviewProduct[] = (
     (productsRes.data ?? []) as {
       id: string;
@@ -198,7 +265,11 @@ export async function GET(request: NextRequest) {
       updated_at: string | null;
       price_cents: number | null;
       thumbnail_url: string | null;
+      description: string | null;
+      track_inventory: boolean | null;
+      inventory_count: number | null;
       product_images: { id: string }[] | null;
+      product_variants: { track_inventory: boolean | null; inventory_count: number | null }[] | null;
     }[]
   ).map((p) => ({
     id: p.id,
@@ -207,11 +278,37 @@ export async function GET(request: NextRequest) {
     updated_at: p.updated_at,
     price_cents: p.price_cents,
     image_count: (p.product_images?.length ?? 0) + (p.thumbnail_url ? 1 : 0),
+    description: p.description,
+    track_inventory: p.track_inventory,
+    inventory_count: p.inventory_count,
+    variants: p.product_variants ?? [],
   }));
   const releases: OverviewDraftable[] = ((releasesRes.data ?? []) as { id: string; title: string | null; status: string | null; updated_at: string | null }[]).map(
     (r) => ({ id: r.id, name: r.title?.trim() || 'Untitled release', status: r.status, updated_at: r.updated_at })
   );
   const inquiries = (inquiriesRes.data ?? []) as { id: string; name: string | null; event_name: string | null; status: string | null; created_at: string }[];
+  const journal: OverviewJournalEpisode[] = (
+    (journalRes.data ?? []) as {
+      id: string;
+      title: string | null;
+      status: string | null;
+      summary: string | null;
+      description: string | null;
+      cover_image_url: string | null;
+      updated_at: string | null;
+      episode_number: number | null;
+    }[]
+  ).map((ep) => ({
+    id: ep.id,
+    title: ep.title?.trim() || 'Untitled episode',
+    status: ep.status,
+    summary: ep.summary,
+    description: ep.description,
+    cover_image_url: ep.cover_image_url,
+    updated_at: ep.updated_at,
+    episode_number: ep.episode_number,
+  }));
+  const socials = (settingsRes.data as OverviewSocials | null) ?? null;
 
   const heroSlots: OverviewHeroSlot[] = [];
   for (const row of (heroRes.data ?? []) as { page_slug: string; hero_slots: HeroSlotJson[] | null }[]) {
@@ -241,6 +338,18 @@ export async function GET(request: NextRequest) {
       heroSlots,
       // A published demo product is still visible in the Shop, so the refund and shipping pages matter.
       shopIsLive: products.some((p) => p.status === 'published'),
+    },
+    now
+  );
+
+  const missions = buildMissions(
+    {
+      events: ev.real,
+      collections: col.real,
+      products: prod.real,
+      journal,
+      socials,
+      attentionIds: attention.map((a) => a.id),
     },
     now
   );
@@ -313,6 +422,7 @@ export async function GET(request: NextRequest) {
   const overview: AdminOverview = {
     generatedAt: now.toISOString(),
     attention,
+    missions,
     upcoming,
     upcomingDemoHidden,
     recentMedia,
