@@ -78,16 +78,13 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
   const shown = showAll ? visible : visible.slice(0, INITIAL_VISIBLE);
 
   // Track missions that vanish this session as “recently completed” (not dismissed).
+  // State updates are deferred so we don't cascade renders synchronously inside the effect.
   useEffect(() => {
+    let cancelled = false;
     const currentIds = new Set(items.map((i) => i.id));
     const dismissedIds = new Set(dismissals.map((d) => d.id));
     const prev = readSeen(SEEN_KEY);
     const vanished = prev.filter((s) => !currentIds.has(s.id) && !dismissedIds.has(s.id));
-    if (vanished.length > 0) {
-      setCompleted((prevCompleted) =>
-        [...vanished, ...prevCompleted].filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i).slice(0, COMPLETED_MAX)
-      );
-    }
     writeSeen(
       SEEN_KEY,
       items.map((i) => ({ id: i.id, title: i.title }))
@@ -100,10 +97,22 @@ export function MissionPanel({ items, now }: { items: MissionItem[]; now: string
       if (fp != null) return d.fingerprint === fp;
       return true;
     });
-    if (pruned.length !== dismissals.length) {
-      setDismissals(pruned);
-      writeJson(DISMISS_KEY, pruned);
-    }
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (vanished.length > 0) {
+        setCompleted((prevCompleted) =>
+          [...vanished, ...prevCompleted].filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i).slice(0, COMPLETED_MAX)
+        );
+      }
+      if (pruned.length !== dismissals.length) {
+        setDismissals(pruned);
+        writeJson(DISMISS_KEY, pruned);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [items, dismissals]);
 
   const snooze = (id: string) => {
