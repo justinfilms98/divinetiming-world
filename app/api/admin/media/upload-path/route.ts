@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
+import { issueAbandonTicket } from '@/lib/media/abandonTicket';
 import { supabasePublicObjectUrl } from '@/lib/storageUrls';
 
 function sanitize(name: string): string {
@@ -46,12 +47,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const publicUrl = supabasePublicObjectUrl(path) ?? '';
+    const resolvedPath = data.path ?? path;
+    const publicUrl = supabasePublicObjectUrl(resolvedPath) ?? '';
+    const abandonTicket = issueAbandonTicket(resolvedPath, auth.user!.email);
     return NextResponse.json({
-      path: data.path ?? path,
+      path: resolvedPath,
       token: data.token,
       signedUrl: data.signedUrl,
       publicUrl,
+      // Bound to this admin; required later for abandon-uploads. Null if signing secret missing.
+      abandonTicket,
     });
   } catch (err) {
     console.error('Upload path error:', err);

@@ -76,7 +76,14 @@ function getMaxBytes(override?: number): number {
   return DEFAULT_MAX_BYTES;
 }
 
-type SignedUpload = { path: string; publicUrl: string; token: string };
+type AbandonTicket = { path: string; exp: number; sig: string };
+
+type SignedUpload = {
+  path: string;
+  publicUrl: string;
+  token: string;
+  abandonTicket: AbandonTicket | null;
+};
 
 async function requestSignedUpload(filename: string, kind: 'library' | 'poster', signal: AbortSignal): Promise<SignedUpload> {
   const pathRes = await fetch('/api/admin/media/upload-path', {
@@ -90,22 +97,32 @@ async function requestSignedUpload(filename: string, kind: 'library' | 'poster',
   if (!pathRes.ok || !pathData?.path || !pathData?.token) {
     throw new Error(typeof pathData?.error === 'string' ? pathData.error : 'Could not get upload URL.');
   }
+  const ticketRaw = pathData.abandonTicket;
+  const abandonTicket =
+    ticketRaw &&
+    typeof ticketRaw === 'object' &&
+    typeof ticketRaw.path === 'string' &&
+    typeof ticketRaw.exp === 'number' &&
+    typeof ticketRaw.sig === 'string'
+      ? { path: ticketRaw.path as string, exp: ticketRaw.exp as number, sig: ticketRaw.sig as string }
+      : null;
   return {
     path: pathData.path as string,
     publicUrl: (pathData.publicUrl as string) || (pathData.path as string),
     token: pathData.token as string,
+    abandonTicket,
   };
 }
 
 /** Best-effort: remove session objects that never reached /register. Never throws. */
-async function abandonUploadedPaths(paths: string[]): Promise<void> {
-  if (!paths.length) return;
+async function abandonUploadedTickets(tickets: AbandonTicket[]): Promise<void> {
+  if (!tickets.length) return;
   try {
     await fetch('/api/admin/media/abandon-uploads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ paths }),
+      body: JSON.stringify({ tickets }),
     });
   } catch {
     // Cleanup is best-effort; library registration never happened.
@@ -250,7 +267,7 @@ export function UniversalUploader({
 
         // 2) Upload media (+ posters) then register once.
         const supabase = createClient();
-        const sessionPaths: string[] = [];
+        const sessionTickets: AbandonTicket[] = [];
         let registered = false;
         const uploaded: Array<{
           storage_path: string;
@@ -291,8 +308,8 @@ export function UniversalUploader({
             setError(uploadErr.message || 'Storage upload failed.');
             return;
           }
-          // Track before abort checks so cancel-after-PUT still cleans up.
-          sessionPaths.push(signed.path);
+          // Track ticket before abort checks so cancel-after-PUT still cleans up.
+          if (signed.abandonTicket) sessionTickets.push(signed.abandonTicket);
           if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
 
           let thumbnailUrl: string | null = null;
@@ -308,7 +325,7 @@ export function UniversalUploader({
                   upsert: false,
                 });
               if (!posterErr) {
-                sessionPaths.push(posterSigned.path);
+                if (posterSigned.abandonTicket) sessionTickets.push(posterSigned.abandonTicket);
                 thumbnailUrl = posterSigned.publicUrl;
               } else compressionNotes.push(`Poster upload failed for ${file.name}; video was kept.`);
               if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
@@ -387,8 +404,8 @@ export function UniversalUploader({
           }, 6000);
         }
         } finally {
-          // Cancel / register failure / early return after storage PUT: drop only this session's objects.
-          if (!registered) await abandonUploadedPaths(sessionPaths);
+          // Cancel / register failure / early return after storage PUT: drop only ticketed session objects.
+          if (!registered) await abandonUploadedTickets(sessionTickets);
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {

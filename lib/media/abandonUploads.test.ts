@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterAbandonablePaths, isAbandonableUploadPath } from './abandonUploads';
+import { filterAbandonablePaths, isAbandonableUploadPath, mediaUrlPointsAtPath } from './abandonUploads';
 
 describe('abandonUploads', () => {
   it('accepts timestamped library and poster paths from upload-path', () => {
@@ -24,5 +24,14 @@ describe('abandonUploads', () => {
         'library/posters/1795198000001-b.jpg',
       ])
     ).toEqual(['library/1795198000000-a.jpg', 'library/posters/1795198000001-b.jpg']);
+  });
+
+  it('matches exact public media URLs for a path', () => {
+    const path = 'library/posters/1795198000000-clip-poster.jpg';
+    const url = `https://goapnjajsjslxbjqthyo.supabase.co/storage/v1/object/public/media/${path}`;
+    expect(mediaUrlPointsAtPath(url, path)).toBe(true);
+    expect(mediaUrlPointsAtPath(`${url}?v=1`, path)).toBe(true);
+    expect(mediaUrlPointsAtPath(`${url}-extra`, path)).toBe(false);
+    expect(mediaUrlPointsAtPath(url, 'library/1795198000000-other.jpg')).toBe(false);
   });
 });

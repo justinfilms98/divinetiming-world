@@ -1,6 +1,6 @@
 /**
  * Narrow cleanup for uploads that reached storage but never registered in the library.
- * Only exact session paths are accepted — never a broad scan or prefix wipe.
+ * Path shape checks only — ownership requires a server-issued abandon ticket.
  */
 
 /** Timestamped library object created by /api/admin/media/upload-path. */
@@ -28,4 +28,14 @@ export function filterAbandonablePaths(paths: unknown): string[] {
     out.push(path);
   }
   return out;
+}
+
+/** True when a public media URL points at this exact storage object path. */
+export function mediaUrlPointsAtPath(url: string | null | undefined, path: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const needle = `/storage/v1/object/public/media/${path}`;
+  const idx = url.indexOf(needle);
+  if (idx === -1) return false;
+  const after = url.slice(idx + needle.length);
+  return after === '' || after.startsWith('?') || after.startsWith('#');
 }
