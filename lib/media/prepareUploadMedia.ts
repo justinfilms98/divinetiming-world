@@ -14,7 +14,14 @@ import {
   type CompressionPreset,
   type CompressionResult,
 } from '@/lib/utils/compressMedia';
-import { convertHeicToJpegIfNeeded, HeicConversionError, isHeicSource } from '@/lib/media/heic';
+import {
+  convertHeicToJpegIfNeeded,
+  HeicConversionError,
+  HEIC_OWNER_HINT,
+  isHeicFileName,
+  isHeicMime,
+  isHeicSource,
+} from '@/lib/media/heic';
 import { readImageSize } from '@/lib/media/imageMeta';
 import { extractVideoPoster, VideoPosterError } from '@/lib/media/videoPoster';
 import { ORIGINAL_UPLOAD_MAX_BYTES, originalOverrideLimit } from '@/lib/media/uploadPolicy';
@@ -66,6 +73,27 @@ export async function prepareUploadMedia(file: File, opts: PrepareMediaOptions):
   let working = file;
   const notes: string[] = [];
 
+  // 0) .heic/.heif name or MIME without a HEIC container: only continue if it is a real image.
+  if ((isHeicFileName(working.name) || isHeicMime(working.type)) && !(await isHeicSource(working))) {
+    const size = await readImageSize(working, opts.signal);
+    if (!size) {
+      return {
+        kind: 'failed',
+        file,
+        reason: `This file looks like HEIC/HEIF by name, but it isn’t a valid HEIC photo. ${HEIC_OWNER_HINT}`,
+        canUploadOriginal: false,
+        originalLimit: limit,
+      };
+    }
+    // e.g. a JPEG renamed to .heic — keep the pixels, drop the false HEIC claim.
+    const base = working.name.replace(/\.(heic|heif)$/i, '') || 'photo';
+    working = new File([working], `${base}.jpg`, {
+      type: working.type.startsWith('image/') ? working.type : 'image/jpeg',
+      lastModified: working.lastModified,
+    });
+    notes.push(`${file.name}: renamed to JPEG (file was not HEIC)`);
+  }
+
   // 1) HEIC → JPEG when needed (and when the browser can decode it).
   if (await isHeicSource(working)) {
     opts.onStatus?.('Converting HEIC photo…');
@@ -104,6 +132,17 @@ export async function prepareUploadMedia(file: File, opts: PrepareMediaOptions):
   }
 
   aborted(opts.signal);
+
+  // Refuse opaque non-media blobs (e.g. .heic accepted by extension then never decoded).
+  if (!working.type.startsWith('image/') && !working.type.startsWith('video/')) {
+    return {
+      kind: 'failed',
+      file,
+      reason: `This file type (${working.type || 'unknown'}) isn’t a supported photo or video.`,
+      canUploadOriginal: false,
+      originalLimit: limit,
+    };
+  }
 
   // 2) Optimize (or keep as-is / explicit original).
   let optimized = false;

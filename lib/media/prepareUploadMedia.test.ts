@@ -101,6 +101,27 @@ describe('prepareUploadMedia', () => {
     expect(String((r as { reason?: string }).reason)).toMatch(/couldn’t be read|corrupted/i);
   });
 
+  it('rejects a .heic name that is neither a HEIC container nor a readable image', async () => {
+    const fake = new File([new Uint8Array(8)], 'nope.heic', { type: 'application/octet-stream' });
+    mocks.isHeic.mockResolvedValue(false);
+    mocks.readImageSize.mockResolvedValue(null);
+    const r = await prepareUploadMedia(fake, { preset: 'standard', maxBytes: 50 * MB, allowOriginal: false });
+    expect(r).toMatchObject({ kind: 'failed', canUploadOriginal: false });
+    expect(String((r as { reason?: string }).reason)).toMatch(/not a valid HEIC/i);
+  });
+
+  it('renames a readable non-HEIC .heic file without claiming HEIC conversion', async () => {
+    const spoof = new File([new Uint8Array(100)], 'spoof.heic', { type: 'image/jpeg' });
+    mocks.isHeic.mockResolvedValue(false);
+    mocks.readImageSize.mockResolvedValue({ width: 1200, height: 800 });
+    const r = await prepareUploadMedia(spoof, { preset: 'standard', maxBytes: 50 * MB, allowOriginal: false });
+    expect(r.kind).toBe('ready');
+    if (r.kind !== 'ready') return;
+    expect(r.file.name).toMatch(/\.jpg$/i);
+    expect(r.note).toMatch(/not HEIC/i);
+    expect(r.note).not.toMatch(/converted from HEIC/i);
+  });
+
   it('makes a video poster and still returns the video when poster capture fails', async () => {
     const { VideoPosterError } = await import('@/lib/media/videoPoster');
     mocks.extractPoster.mockRejectedValue(new VideoPosterError('no frames'));
