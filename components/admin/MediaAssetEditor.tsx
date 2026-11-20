@@ -13,6 +13,7 @@ import {
   type MediaOrientation,
   type MediaUsageType,
 } from '@/lib/media/types';
+import { isStillPosterUrl } from '@/lib/media/videoPoster';
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400';
@@ -56,7 +57,11 @@ export function MediaAssetEditor({ asset, onClose, onSaved, onError }: MediaAsse
 
   const altOk = hasUsableAltText(altText);
   const isImage = (asset.mime_type || '').startsWith('image/');
-  const thumb = asset.thumbnail_url || asset.preview_url;
+  const thumb = isImage
+    ? asset.thumbnail_url || asset.preview_url
+    : isStillPosterUrl(asset.thumbnail_url)
+      ? asset.thumbnail_url
+      : null;
 
   const handleSave = async () => {
     if (isFeatured && !altOk) {

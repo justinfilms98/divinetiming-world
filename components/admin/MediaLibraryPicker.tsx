@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { X, Upload, Check } from 'lucide-react';
 import { MediaThumb } from '@/components/admin/MediaThumb';
 import type { MediaLibraryAsset } from '@/lib/media/types';
+import { isStillPosterUrl } from '@/lib/media/videoPoster';
 
 const LEGACY_STORAGE_KEY = 'dt_admin_media_include_legacy';
 
@@ -25,8 +26,7 @@ function unwrapLibrary(payload: unknown): LibraryAsset[] {
  * <img> fetch the whole original clip just to fail drawing it.
  */
 function videoPosterOf(asset: LibraryAsset): string | null {
-  const t = asset.thumbnail_url;
-  return t && !/\.(mp4|mov|m4v|webm)(\?|$)/i.test(t) ? t : null;
+  return isStillPosterUrl(asset.thumbnail_url) ? asset.thumbnail_url : null;
 }
 
 interface MediaLibraryPickerProps {

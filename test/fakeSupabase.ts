@@ -54,6 +54,11 @@ class Query implements PromiseLike<{ data: unknown; error: FakeError | null }> {
     this.inFilters.push([col, values]);
     return this;
   }
+  /** Minimal PostgREST `or` for abandon-uploads url lookups (ilike.%path%). */
+  or(expr: string) {
+    this.filters.push(['__or', expr]);
+    return this;
+  }
   order() {
     return this;
   }
@@ -72,8 +77,18 @@ class Query implements PromiseLike<{ data: unknown; error: FakeError | null }> {
   private run(): { data: unknown; error: FakeError | null } {
     const rows = (this.db.tables[this.table] ??= []);
     this.db.calls.push({ op: this.op, table: this.table, payload: this.payload ?? undefined, filters: [...this.filters] });
-    const matches = (r: Row) =>
-      this.filters.every(([c, v]) => r[c] === v) && this.inFilters.every(([c, vs]) => vs.includes(r[c]));
+    const matches = (r: Row) => {
+      if (!this.inFilters.every(([c, vs]) => vs.includes(r[c]))) return false;
+      return this.filters.every(([c, v]) => {
+        if (c === '__or' && typeof v === 'string') {
+          const needles = [...v.matchAll(/ilike\.%([^%]+)%/gi)].map((m) => m[1]!);
+          if (!needles.length) return true;
+          const hay = JSON.stringify(r);
+          return needles.some((n) => hay.includes(n));
+        }
+        return r[c] === v;
+      });
+    };
     let out: Row[] = [];
 
     if (this.op === 'select') {
@@ -122,5 +137,19 @@ export function createFakeDb(tables: Record<string, Row[]>, failOn?: FakeDb['fai
 }
 
 export function fakeSupabase(db: FakeDb) {
-  return { from: (table: string) => new Query(db, table) };
+  const removed: string[][] = [];
+  return {
+    from: (table: string) => new Query(db, table),
+    storage: {
+      from: (_bucket: string) => ({
+        remove: async (paths: string[]) => {
+          removed.push([...paths]);
+          (db as FakeDb & { storageRemoved?: string[][] }).storageRemoved = removed;
+          return { data: paths.map((name) => ({ name })), error: null };
+        },
+      }),
+    },
+    /** Test helper: batches passed to storage.remove */
+    __removed: removed,
+  };
 }

@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
+import { issueAbandonTicket } from '@/lib/media/abandonTicket';
 import { supabasePublicObjectUrl } from '@/lib/storageUrls';
 
 function sanitize(name: string): string {
@@ -26,9 +27,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const filename = typeof body?.filename === 'string' ? body.filename : 'upload';
+    const kind = body?.kind === 'poster' ? 'poster' : 'library';
     const ext = filename.split('.').pop()?.toLowerCase() || 'bin';
     const base = sanitize(filename.replace(/\.[^.]+$/, '') || 'file');
-    const path = `library/${Date.now()}-${base}.${ext}`;
+    // Posters live under library/posters/ so they stay with library media but never
+    // collide with the video object's path. Paths are timestamped → immutable cache.
+    const folder = kind === 'poster' ? 'library/posters' : 'library';
+    const path = `${folder}/${Date.now()}-${base}.${ext}`;
 
     const { data, error } = await auth.supabase!.storage
       .from('media')
@@ -42,12 +47,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const publicUrl = supabasePublicObjectUrl(path) ?? '';
+    const resolvedPath = data.path ?? path;
+    const publicUrl = supabasePublicObjectUrl(resolvedPath) ?? '';
+    const abandonTicket = issueAbandonTicket(resolvedPath, auth.user!.email);
     return NextResponse.json({
-      path: data.path ?? path,
+      path: resolvedPath,
       token: data.token,
       signedUrl: data.signedUrl,
       publicUrl,
+      // Bound to this admin; required later for abandon-uploads. Null if signing secret missing.
+      abandonTicket,
     });
   } catch (err) {
     console.error('Upload path error:', err);

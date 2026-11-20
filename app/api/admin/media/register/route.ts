@@ -1,20 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin/auth';
+import { sanitizeReportedDimensions } from '@/lib/media/imageMeta';
+import { isStillPosterUrl } from '@/lib/media/videoPoster';
 import { orientationFromDimensions } from '@/lib/media/types';
 
 interface SupabaseRegisterFile {
   storage_path: string;
   public_url: string;
-  name?: string;
-  mimeType?: string;
-  size?: number;
-  width?: number;
-  height?: number;
+  name?: string | null;
+  mimeType?: string | null;
+  size?: number | null;
+  width?: number | null;
+  height?: number | null;
+  /** Still image URL for videos (JPEG/WebP poster). Ignored for images (they use public_url). */
+  thumbnail_url?: string | null;
+}
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/** Accept only same-project storage URLs under media/library (incl. posters). */
+function isAllowedThumbnailUrl(url: string, mediaPublicUrl: string): boolean {
+  if (!isHttpsUrl(url) || !isStillPosterUrl(url)) return false;
+  try {
+    const thumb = new URL(url);
+    const media = new URL(mediaPublicUrl);
+    if (thumb.origin !== media.origin) return false;
+    return /\/storage\/v1\/object\/public\/media\/library\//.test(thumb.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeSize(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value) || value < 0) return null;
+  if (value > 2 * 1024 * 1024 * 1024) return null;
+  return value;
 }
 
 /**
  * Register Supabase storage uploads in external_media_assets.
  * Upload flow: client uploads to Supabase bucket → this API → DB row with provider 'supabase'.
+ *
+ * Schema note: there is no duration_seconds column. Video duration measured client-side is not stored.
+ * original vs optimized size: size_bytes records the uploaded (usually optimized) object only.
  */
 export async function POST(request: NextRequest) {
   if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY) {
@@ -34,7 +69,8 @@ export async function POST(request: NextRequest) {
     }
     if (!Array.isArray(files) || files.length === 0) {
       return NextResponse.json({
-        error: 'Payload must be { provider: "supabase", files: [{ storage_path, public_url, name?, mimeType?, size? }] }',
+        error:
+          'Payload must be { provider: "supabase", files: [{ storage_path, public_url, name?, mimeType?, size?, width?, height?, thumbnail_url? }] }',
       }, { status: 400 });
     }
 
@@ -45,28 +81,45 @@ export async function POST(request: NextRequest) {
       if (!storage_path || typeof storage_path !== 'string' || !public_url || typeof public_url !== 'string') {
         return NextResponse.json({ error: 'Each file must have storage_path and public_url' }, { status: 400 });
       }
+      if (!storage_path.startsWith('library/')) {
+        return NextResponse.json({ error: 'storage_path must be under library/' }, { status: 400 });
+      }
+      if (!isHttpsUrl(public_url)) {
+        return NextResponse.json({ error: 'public_url must be an https URL' }, { status: 400 });
+      }
+
+      const dims = sanitizeReportedDimensions(f.width, f.height);
+      const size = sanitizeSize(f.size ?? f.size_bytes);
+      const mimeType = typeof (f.mimeType ?? f.mime_type) === 'string' ? String(f.mimeType ?? f.mime_type) : null;
+      const isImage = (mimeType || '').toLowerCase().startsWith('image/');
+      const isVideo = (mimeType || '').toLowerCase().startsWith('video/');
+
+      let thumbnail_url: string | null = null;
+      if (isImage) {
+        thumbnail_url = public_url;
+      } else if (isVideo && typeof f.thumbnail_url === 'string' && f.thumbnail_url) {
+        if (!isAllowedThumbnailUrl(f.thumbnail_url, public_url)) {
+          return NextResponse.json(
+            { error: 'thumbnail_url must be an https still image on this project’s media/library storage.' },
+            { status: 400 }
+          );
+        }
+        thumbnail_url = f.thumbnail_url;
+      }
+
       validated.push({
         storage_path,
         public_url,
-        name: f.name ?? f.originalFilename ?? null,
-        mimeType: f.mimeType ?? f.mime_type ?? null,
-        size: f.size ?? f.size_bytes ?? null,
-        width: typeof f.width === 'number' ? f.width : undefined,
-        height: typeof f.height === 'number' ? f.height : undefined,
+        name: typeof (f.name ?? f.originalFilename) === 'string' ? (f.name ?? f.originalFilename) : null,
+        mimeType,
+        size,
+        width: dims.width,
+        height: dims.height,
+        thumbnail_url,
       });
     }
 
-    const inserted: Array<{
-      id: string;
-      provider: string;
-      file_id: string;
-      preview_url: string;
-      thumbnail_url: string | null;
-      name: string | null;
-      mime_type: string | null;
-      size_bytes: number | null;
-      created_at?: string;
-    }> = [];
+    const inserted: Array<Record<string, unknown>> = [];
 
     for (const f of validated) {
       const isImage = (f.mimeType || '').toLowerCase().startsWith('image/');
@@ -74,7 +127,7 @@ export async function POST(request: NextRequest) {
         provider: 'supabase',
         file_id: f.storage_path,
         preview_url: f.public_url,
-        thumbnail_url: isImage ? f.public_url : null,
+        thumbnail_url: f.thumbnail_url ?? (isImage ? f.public_url : null),
         name: f.name ?? null,
         mime_type: f.mimeType ?? null,
         size_bytes: f.size ?? null,
@@ -82,7 +135,7 @@ export async function POST(request: NextRequest) {
         height: f.height ?? null,
         orientation: orientationFromDimensions(f.width, f.height),
         // New uploads stay off public listings (e.g. the Videos tab) until an admin sets Usage to Public.
-        usage_type: 'internal',
+        usage_type: 'internal' as const,
         is_archived: false,
         is_featured: false,
         tags: [] as string[],

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseServiceRoleKey, ENV_ERROR_MESSAGES } from '@/lib/env';
+import { PRODUCTION_SUPABASE_REF, isStagingDeployBranch } from '@/lib/deploy/stagingGuard';
 
 /**
  * Server-only Supabase client with SERVICE ROLE key.
@@ -13,6 +14,10 @@ export function getServiceClient() {
   const key = getSupabaseServiceRoleKey();
 
   if (!url || !key) {
+    throw new Error(ENV_ERROR_MESSAGES.supabaseUnavailable);
+  }
+  // Defense in depth: staging branches never construct a client against production.
+  if (isStagingDeployBranch() && url.includes(PRODUCTION_SUPABASE_REF)) {
     throw new Error(ENV_ERROR_MESSAGES.supabaseUnavailable);
   }
 

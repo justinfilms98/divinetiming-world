@@ -12,15 +12,32 @@ export const ORIGINAL_UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 type FileLike = Pick<File, 'name' | 'type' | 'size'>;
 
 /** Whether a picked or dropped file matches the uploader's accepted types. */
-export function isAcceptedFile(file: FileLike, acceptedTypes: ('image' | 'video')[], acceptOverride?: string): boolean {
+export function isAcceptedFile(
+  file: FileLike & { name?: string },
+  acceptedTypes: ('image' | 'video')[],
+  acceptOverride?: string
+): boolean {
   const t = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
   if (acceptOverride) {
     return acceptOverride
       .split(',')
       .map((s) => s.trim().toLowerCase())
-      .some((a) => a === t || a === '*/*' || (a.endsWith('/*') && t.startsWith(a.slice(0, -1))));
+      .some(
+        (a) =>
+          a === t ||
+          a === '*/*' ||
+          (a.endsWith('/*') && t.startsWith(a.slice(0, -1))) ||
+          (a.startsWith('.') && name.endsWith(a))
+      );
   }
-  return acceptedTypes.some((kind) => t.startsWith(`${kind}/`));
+  if (acceptedTypes.includes('image') && (t.startsWith('image/') || /\.(heic|heif|jpe?g|png|webp|gif)$/i.test(name))) {
+    return true;
+  }
+  if (acceptedTypes.includes('video') && (t.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(name))) {
+    return true;
+  }
+  return false;
 }
 
 export function originalOverrideLimit(maxBytes: number): number {

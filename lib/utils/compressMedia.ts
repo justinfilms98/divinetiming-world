@@ -68,8 +68,13 @@ export const COMPRESSION_PRESETS: Record<CompressionPreset, CompressionPresetCon
   },
 };
 
-const DEFAULT_IMAGE_MAX_MB = 5;
-const DEFAULT_IMAGE_MAX_DIMENSION = 1920;
+/** Soft size target after re-encode (also used as "already small enough" when under the long-edge cap). */
+const DEFAULT_IMAGE_MAX_MB = 1.5;
+const HERO_IMAGE_MAX_MB = 2;
+/** Long edge for library / Journal / Collections images. */
+const DEFAULT_IMAGE_MAX_DIMENSION = 2560;
+/** Slightly larger allowance for homepage hero stills. */
+const HERO_IMAGE_MAX_DIMENSION = 2880;
 
 let ffmpegInstance: FFmpeg | null = null;
 let ffmpegLoaded = false;
@@ -99,22 +104,34 @@ function getVideoDurationSec(file: File): Promise<number> {
   });
 }
 
+export type CompressImageOptions = {
+  maxSizeMB?: number;
+  maxWidthOrHeight?: number;
+  /** When true, re-encode even if the file is under the size cap (e.g. a huge long edge). */
+  force?: boolean;
+  /** Prefer JPEG so EXIF (including GPS) is stripped by the re-encode. */
+  outputType?: string;
+};
+
 async function compressImageDetailed(
   file: File,
-  options?: { maxSizeMB?: number; maxWidthOrHeight?: number }
+  options?: CompressImageOptions
 ): Promise<CompressionResult> {
   const maxSizeMB = options?.maxSizeMB ?? DEFAULT_IMAGE_MAX_MB;
-  if (file.size / (1024 * 1024) <= maxSizeMB) {
+  const maxEdge = options?.maxWidthOrHeight ?? DEFAULT_IMAGE_MAX_DIMENSION;
+  if (!options?.force && file.size / (1024 * 1024) <= maxSizeMB) {
     return { file, outcome: 'not-needed', originalBytes: file.size };
   }
 
   let compressed: File;
   try {
+    // Re-encoding through the library applies EXIF orientation and drops GPS / camera tags.
     compressed = await imageCompression(file, {
       maxSizeMB,
-      maxWidthOrHeight: options?.maxWidthOrHeight ?? DEFAULT_IMAGE_MAX_DIMENSION,
+      maxWidthOrHeight: maxEdge,
       useWebWorker: true,
-      fileType: file.type,
+      fileType: options?.outputType ?? (file.type === 'image/png' ? 'image/png' : 'image/jpeg'),
+      initialQuality: 0.82,
     });
   } catch (error) {
     console.error('Image compression error:', error);
@@ -123,6 +140,9 @@ async function compressImageDetailed(
   if (!compressed || !compressed.size) {
     throw new CompressionError("Couldn't optimize the image (the optimized copy was empty)", file.name);
   }
+  if (compressed.size >= file.size * 0.98 && !options?.force) {
+    return { file, outcome: 'original-already-optimal', originalBytes: file.size };
+  }
   return { file: compressed, outcome: 'compressed', originalBytes: file.size };
 }
 
@@ -130,11 +150,14 @@ async function compressImageDetailed(
  * Compress an image file to fit within size limits.
  * Throws CompressionError on failure; never returns the original in place of a failed optimization.
  */
-export async function compressImage(
-  file: File,
-  options?: { maxSizeMB?: number; maxWidthOrHeight?: number }
-): Promise<File> {
+export async function compressImage(file: File, options?: CompressImageOptions): Promise<File> {
   return (await compressImageDetailed(file, options)).file;
+}
+
+export function imageLimitsForPreset(preset: CompressionPreset): { maxSizeMB: number; maxEdge: number } {
+  return preset === 'hero'
+    ? { maxSizeMB: HERO_IMAGE_MAX_MB, maxEdge: HERO_IMAGE_MAX_DIMENSION }
+    : { maxSizeMB: DEFAULT_IMAGE_MAX_MB, maxEdge: DEFAULT_IMAGE_MAX_DIMENSION };
 }
 
 async function loadFFmpeg(onProgress?: (progress: number) => void): Promise<FFmpeg> {
@@ -283,7 +306,11 @@ export interface CompressMediaOptions {
  */
 export async function compressMedia(file: File, options?: CompressMediaOptions): Promise<CompressionResult> {
   if (file.type.startsWith('image/')) {
-    return compressImageDetailed(file, { maxSizeMB: options?.imageMaxSizeMB });
+    const limits = imageLimitsForPreset(options?.preset ?? 'standard');
+    return compressImageDetailed(file, {
+      maxSizeMB: options?.imageMaxSizeMB ?? limits.maxSizeMB,
+      maxWidthOrHeight: limits.maxEdge,
+    });
   }
   if (file.type.startsWith('video/')) {
     return compressVideoDetailed(file, { preset: options?.preset, onProgress: options?.onProgress });
@@ -291,11 +318,10 @@ export async function compressMedia(file: File, options?: CompressMediaOptions):
   return { file, outcome: 'not-needed', originalBytes: file.size };
 }
 
-/** Whether this file would be compressed for the given preset */
+/** Whether this file would be compressed for the given preset (size only; callers may also force on long edge). */
 export function willCompress(file: File, preset: CompressionPreset = 'standard'): boolean {
   if (file.type.startsWith('image/')) {
-    const maxMb = preset === 'hero' ? 2 : DEFAULT_IMAGE_MAX_MB;
-    return file.size > maxMb * 1024 * 1024;
+    return file.size > imageLimitsForPreset(preset).maxSizeMB * 1024 * 1024;
   }
   if (file.type.startsWith('video/')) {
     return file.size > COMPRESSION_PRESETS[preset].videoCompressAboveBytes;
