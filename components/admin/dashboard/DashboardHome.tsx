@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { AdminOverview } from '@/lib/admin/overview';
 import { AttentionPanel } from './AttentionPanel';
+import { MissionPanel } from './MissionPanel';
 import {
   ContentStatus,
   DashboardSkeleton,
@@ -91,6 +92,7 @@ export function DashboardHome() {
       <div className="grid gap-5 xl:grid-cols-3 xl:gap-6">
         <div className="min-w-0 space-y-5 xl:col-span-2 xl:space-y-6">
           <AttentionPanel items={data.attention} now={data.generatedAt} />
+          <MissionPanel items={data.missions ?? []} now={data.generatedAt} />
           <QuickActions />
           <UpcomingEvents events={data.upcoming} demoHidden={data.upcomingDemoHidden} />
           <RecentUploads media={data.recentMedia} totals={data.mediaTotals} />

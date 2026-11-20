@@ -32,6 +32,10 @@ export interface OverviewEvent {
   /** Artwork exists but is too large to preview cheaply (see PREVIEW_MAX_BYTES). */
   artwork_too_large?: boolean;
   updated_at: string | null;
+  description?: string | null;
+  gallery_url?: string | null;
+  /** Count of rows in event_media (optional enrichment for missions). */
+  media_count?: number;
 }
 
 export interface OverviewDraftable {
@@ -41,9 +45,61 @@ export interface OverviewDraftable {
   updated_at: string | null;
 }
 
+export interface OverviewCollection extends OverviewDraftable {
+  has_cover?: boolean;
+  frame_count?: number;
+}
+
 export interface OverviewProduct extends OverviewDraftable {
   price_cents: number | null;
   image_count: number;
+  description?: string | null;
+  track_inventory?: boolean | null;
+  inventory_count?: number | null;
+  variants?: { track_inventory: boolean | null; inventory_count: number | null }[];
+}
+
+export interface OverviewJournalEpisode {
+  id: string;
+  title: string;
+  status: string | null;
+  summary: string | null;
+  description: string | null;
+  cover_image_url: string | null;
+  updated_at: string | null;
+  episode_number: number | null;
+}
+
+export interface OverviewSocials {
+  instagram_url: string | null;
+  youtube_url: string | null;
+  spotify_url: string | null;
+  apple_music_url: string | null;
+  soundcloud_url: string | null;
+  beatport_url: string | null;
+}
+
+export type MissionCategory = 'merchandise' | 'events' | 'journal' | 'website';
+
+export interface MissionItem {
+  /** Stable key for snooze / dismiss on this device. */
+  id: string;
+  category: MissionCategory;
+  title: string;
+  detail: string;
+  href: string;
+  action: string;
+  snoozable: boolean;
+}
+
+export interface MissionInput {
+  events: OverviewEvent[];
+  collections: OverviewCollection[];
+  products: OverviewProduct[];
+  journal: OverviewJournalEpisode[];
+  socials: OverviewSocials | null;
+  /** Attention ids already emitted — missions never repeat the same concern. */
+  attentionIds: string[];
 }
 
 export interface OverviewInquiry {
@@ -84,6 +140,12 @@ export const STALE_DRAFT_DAYS = 7;
 export const INQUIRY_REPLY_DAYS = 2;
 export const UPCOMING_WINDOW_DAYS = 30;
 export const URGENT_EVENT_DAYS = 14;
+/** Draft products with photo + price waiting this long become a “ready to review” mission. */
+export const MISSION_DRAFT_READY_DAYS = 3;
+/** Descriptions shorter than this count as missing copy for missions. */
+export const MISSION_MIN_COPY_CHARS = 40;
+/** Cap on “Your next moves” after sort (mobile-first). */
+export const MISSION_CAP = 5;
 /** Images larger than this are not previewed on the dashboard (each optimizer fetch downloads the full original). */
 export const PREVIEW_MAX_BYTES = 8 * 1024 * 1024;
 
@@ -329,6 +391,335 @@ export function visibleAttention(items: AttentionItem[], snoozes: Record<string,
 }
 
 // ---------------------------------------------------------------------------------------------
+// Mission Board (“Your next moves”) — proactive suggestions; never duplicates Needs Attention
+
+const MISSION_CATEGORY_RANK: Record<MissionCategory, number> = {
+  merchandise: 0,
+  events: 1,
+  journal: 2,
+  website: 3,
+};
+
+const CATEGORY_LABEL: Record<MissionCategory, string> = {
+  merchandise: 'Merch',
+  events: 'Events',
+  journal: 'Journal',
+  website: 'Website',
+};
+
+export function missionCategoryLabel(category: MissionCategory): string {
+  return CATEGORY_LABEL[category];
+}
+
+function copyMissing(text: string | null | undefined): boolean {
+  return (text?.trim().length ?? 0) < MISSION_MIN_COPY_CHARS;
+}
+
+function productOutOfStock(p: OverviewProduct): boolean {
+  if (p.track_inventory) return (p.inventory_count ?? 0) <= 0;
+  const tracked = (p.variants ?? []).filter((v) => v.track_inventory);
+  if (tracked.length === 0) return false;
+  return tracked.every((v) => (v.inventory_count ?? 0) <= 0);
+}
+
+function mission(
+  id: string,
+  category: MissionCategory,
+  title: string,
+  detail: string,
+  href: string,
+  action: string
+): MissionItem {
+  return { id, category, title, detail, href, action, snoozable: true };
+}
+
+function merchandiseMissions(products: OverviewProduct[], attentionIds: Set<string>, now: number): MissionItem[] {
+  const items: MissionItem[] = [];
+  const active = products.filter((p) => p.status === 'draft' || p.status === 'published');
+  if (active.length === 0) {
+    items.push(
+      mission(
+        'mission:shop:empty-real',
+        'merchandise',
+        'Add a real merch product',
+        'The Shop only has demonstration items (or none). Add a product Lex and Liam can finish and sell.',
+        '/admin/shop?new=1',
+        'New product'
+      )
+    );
+    return items;
+  }
+
+  for (const p of active) {
+    if (attentionIds.has(`product:${p.id}:incomplete`)) continue;
+    if (copyMissing(p.description)) {
+      items.push(
+        mission(
+          `mission:product:${p.id}:describe`,
+          'merchandise',
+          `Write a description for ${quoted(p.name)}`,
+          'Shoppers need a short product story before they buy.',
+          `/admin/shop?edit=${p.id}`,
+          'Edit product'
+        )
+      );
+    }
+    if (p.status === 'published' && productOutOfStock(p)) {
+      items.push(
+        mission(
+          `mission:product:${p.id}:inventory`,
+          'merchandise',
+          `${quoted(p.name)} is out of stock`,
+          'Inventory tracking is on but stock is zero. Restock or turn tracking off.',
+          `/admin/shop?edit=${p.id}`,
+          'Update stock'
+        )
+      );
+    }
+    if (
+      p.status === 'draft' &&
+      p.image_count > 0 &&
+      (p.price_cents ?? 0) > 0 &&
+      p.updated_at &&
+      daysBetween(Date.parse(p.updated_at), now) >= MISSION_DRAFT_READY_DAYS
+    ) {
+      items.push(
+        mission(
+          `mission:product:${p.id}:review-draft`,
+          'merchandise',
+          `Review draft ${quoted(p.name)}`,
+          `Photo and price are set. Last edited ${plural(daysBetween(Date.parse(p.updated_at), now), 'day')} ago — ready to publish when you are.`,
+          `/admin/shop?edit=${p.id}`,
+          'Open product'
+        )
+      );
+    }
+  }
+  return items;
+}
+
+function eventMissions(events: OverviewEvent[], attentionIds: Set<string>, now: number): MissionItem[] {
+  const items: MissionItem[] = [];
+  const pastMissingArt: OverviewEvent[] = [];
+  const pastMissingGallery: OverviewEvent[] = [];
+
+  for (const e of events) {
+    if (e.booking_status === 'cancelled' || e.status !== 'published') continue;
+    const when = Date.parse(e.date);
+    if (Number.isNaN(when)) continue;
+    const isPast = when < now;
+    const label = eventLabel(e);
+    const href = `/admin/events?edit=${e.id}`;
+
+    if (isPast && !e.artwork_url && !attentionIds.has(`event:${e.id}:incomplete`)) {
+      pastMissingArt.push(e);
+    }
+    if (isPast && (e.media_count ?? 0) === 0 && !e.gallery_url?.trim()) {
+      pastMissingGallery.push(e);
+    }
+    if (copyMissing(e.description) && !attentionIds.has(`event:${e.id}:incomplete`)) {
+      items.push(
+        mission(
+          `mission:event:${e.id}:copy`,
+          'events',
+          `Add a story for ${quoted(label)}`,
+          isPast
+            ? 'Past shows read better with a short recap visitors can share.'
+            : 'Give fans a reason to care before the night arrives.',
+          href,
+          'Edit event'
+        )
+      );
+    }
+  }
+
+  if (pastMissingArt.length === 1) {
+    const e = pastMissingArt[0];
+    items.push(
+      mission(
+        `mission:event:${e.id}:artwork`,
+        'events',
+        `Add artwork for ${quoted(eventLabel(e))}`,
+        'This past show is live without a flyer. A still image finishes the archive.',
+        `/admin/events?edit=${e.id}`,
+        'Add artwork'
+      )
+    );
+  } else if (pastMissingArt.length > 1) {
+    items.push(
+      mission(
+        'mission:events:past-artwork',
+        'events',
+        `${pastMissingArt.length} past events need a flyer`,
+        'Published shows without artwork look unfinished in the archive. Start with the most recent.',
+        `/admin/events?edit=${pastMissingArt.sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0].id}`,
+        'Add artwork'
+      )
+    );
+  }
+
+  if (pastMissingGallery.length > 0) {
+    const newest = [...pastMissingGallery].sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0];
+    items.push(
+      mission(
+        'mission:events:past-gallery',
+        'events',
+        pastMissingGallery.length === 1
+          ? `Add photos for ${quoted(eventLabel(newest))}`
+          : `${pastMissingGallery.length} past events have no photo gallery`,
+        'Optional recap media helps fans relive the night. One show at a time is enough.',
+        `/admin/events?edit=${newest.id}`,
+        'Open event'
+      )
+    );
+  }
+
+  return items;
+}
+
+function journalMissions(episodes: OverviewJournalEpisode[]): MissionItem[] {
+  const items: MissionItem[] = [];
+  for (const ep of episodes) {
+    if (ep.status === 'archived' || ep.status === 'published') continue;
+    const label = ep.title?.trim() || (ep.episode_number != null ? `Episode ${ep.episode_number}` : 'Untitled episode');
+    const missingCover = !ep.cover_image_url?.trim();
+    const missingSummary = !(ep.summary?.trim());
+    const missingDesc = copyMissing(ep.description);
+    const href = `/admin/journal?edit=${ep.id}`;
+
+    if (missingCover || missingSummary || missingDesc) {
+      const parts: string[] = [];
+      if (missingCover) parts.push('cover');
+      if (missingSummary) parts.push('summary');
+      if (missingDesc) parts.push('description');
+      items.push(
+        mission(
+          `mission:journal:${ep.id}:incomplete`,
+          'journal',
+          `Finish ${quoted(label)}`,
+          `Still needs ${listJoin(parts)} before it is ready to share.`,
+          href,
+          'Edit episode'
+        )
+      );
+    } else if (ep.status === 'draft') {
+      items.push(
+        mission(
+          `mission:journal:${ep.id}:ready-review`,
+          'journal',
+          `Review ${quoted(label)} for publish`,
+          'Cover, summary and description are in place. Publish or set Coming soon when you are ready.',
+          href,
+          'Open episode'
+        )
+      );
+    }
+  }
+  return items;
+}
+
+function websiteMissions(collections: OverviewCollection[], socials: OverviewSocials | null): MissionItem[] {
+  const items: MissionItem[] = [];
+  for (const c of collections) {
+    if (c.status !== 'draft' && c.status !== 'published') continue;
+    if (c.status === 'published' && !c.has_cover) {
+      items.push(
+        mission(
+          `mission:collection:${c.id}:cover`,
+          'website',
+          `Add a cover to ${quoted(c.name)}`,
+          'Collection cards look unfinished without a cover image.',
+          `/admin/collections?edit=${c.id}`,
+          'Edit collection'
+        )
+      );
+    }
+    if ((c.frame_count ?? 0) === 0) {
+      items.push(
+        mission(
+          `mission:collection:${c.id}:empty`,
+          'website',
+          `${quoted(c.name)} has no frames yet`,
+          'Add photos so the collection tells a story.',
+          `/admin/collections?edit=${c.id}`,
+          'Add frames'
+        )
+      );
+    }
+  }
+
+  if (socials) {
+    const missing: string[] = [];
+    if (!socials.instagram_url?.trim()) missing.push('Instagram');
+    if (!socials.youtube_url?.trim()) missing.push('YouTube');
+    if (!socials.spotify_url?.trim()) missing.push('Spotify');
+    if (!socials.apple_music_url?.trim()) missing.push('Apple Music');
+    if (!socials.soundcloud_url?.trim()) missing.push('SoundCloud');
+    if (!socials.beatport_url?.trim()) missing.push('Beatport');
+    if (missing.length > 0) {
+      items.push(
+        mission(
+          'mission:social:missing',
+          'website',
+          'Add missing social destinations',
+          `${listJoin(missing)} ${missing.length === 1 ? 'is' : 'are'} empty in site settings.`,
+          '/admin/settings',
+          'Open settings'
+        )
+      );
+    }
+  }
+
+  return items;
+}
+
+/**
+ * Proactive next steps for artists. Cap at MISSION_CAP. Merchandise and events sort first.
+ * Never emits an id already covered by Needs Attention for the same product/event gap.
+ */
+export function buildMissions(input: MissionInput, nowDate: Date): MissionItem[] {
+  const now = nowDate.getTime();
+  const attentionIds = new Set(input.attentionIds);
+  const items = [
+    ...merchandiseMissions(input.products, attentionIds, now),
+    ...eventMissions(input.events, attentionIds, now),
+    ...journalMissions(input.journal),
+    ...websiteMissions(input.collections, input.socials),
+  ];
+  return items
+    .map((item, order) => ({ item, order }))
+    .sort((a, b) => MISSION_CATEGORY_RANK[a.item.category] - MISSION_CATEGORY_RANK[b.item.category] || a.order - b.order)
+    .map(({ item }) => item)
+    .slice(0, MISSION_CAP);
+}
+
+/** Filter missions by device-local snoozes and dismissals. */
+export function visibleMissions(
+  items: MissionItem[],
+  snoozes: Record<string, string>,
+  dismissals: string[],
+  nowDate: Date
+) {
+  const dismissed = new Set(dismissals);
+  const visible: MissionItem[] = [];
+  let snoozed = 0;
+  let dismissedCount = 0;
+  for (const item of items) {
+    if (dismissed.has(item.id)) {
+      dismissedCount++;
+      continue;
+    }
+    const until = snoozes[item.id] ? Date.parse(snoozes[item.id]) : NaN;
+    if (item.snoozable && !Number.isNaN(until) && until > nowDate.getTime()) {
+      snoozed++;
+      continue;
+    }
+    visible.push(item);
+  }
+  return { visible, snoozed, dismissed: dismissedCount };
+}
+
+// ---------------------------------------------------------------------------------------------
 // Fan activity (recorded interactions from analytics_events; not unique visitors)
 
 export type ActivityCategory = 'events' | 'collections' | 'products';
@@ -500,6 +891,8 @@ export interface AdminOverview {
   generatedAt: string;
   /** Real content only; demonstration records never raise reminders. */
   attention: AttentionItem[];
+  /** Proactive suggestions (merch/events first). Real content only; capped. */
+  missions: MissionItem[];
   /** Next real events; demonstration events are counted in `upcomingDemoHidden`. */
   upcoming: OverviewEvent[];
   upcomingDemoHidden: number;

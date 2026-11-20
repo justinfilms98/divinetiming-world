@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAttention,
+  buildMissions,
+  MISSION_CAP,
   splitDemo,
   summarizeActivity,
   summarizeStorage,
   visibleAttention,
+  visibleMissions,
   type AttentionInput,
+  type MissionInput,
   type OverviewEvent,
+  type OverviewProduct,
 } from './overview';
 import { isDemo } from './demoContent';
 import { bandwidthNotice, supabasePlan } from './supabasePlan';
@@ -319,5 +324,176 @@ describe('demonstration content', () => {
       NOW
     );
     expect(items.map((i) => i.title)).toEqual(['Refund is not published yet']);
+  });
+});
+
+const missionEmpty = (over: Partial<MissionInput> = {}): MissionInput => ({
+  events: [],
+  collections: [],
+  products: [],
+  journal: [],
+  socials: {
+    instagram_url: 'https://instagram.com/x',
+    youtube_url: 'https://youtube.com/x',
+    spotify_url: 'https://spotify.com/x',
+    apple_music_url: 'https://music.apple.com/x',
+    soundcloud_url: 'https://soundcloud.com/x',
+    beatport_url: 'https://beatport.com/x',
+  },
+  attentionIds: [],
+  ...over,
+});
+
+const product = (over: Partial<OverviewProduct> = {}): OverviewProduct => ({
+  id: 'p1',
+  name: 'Tee',
+  status: 'published',
+  updated_at: daysFromNow(-1),
+  price_cents: 2500,
+  image_count: 1,
+  description: 'A long enough product description for the shop page.',
+  track_inventory: false,
+  inventory_count: null,
+  variants: [],
+  ...over,
+});
+
+describe('mission board', () => {
+  it('asks for a real merch product when the shop has none', () => {
+    const items = buildMissions(missionEmpty(), NOW);
+    expect(items[0]).toMatchObject({
+      id: 'mission:shop:empty-real',
+      category: 'merchandise',
+      href: '/admin/shop?new=1',
+    });
+  });
+
+  it('prioritizes merchandise and events ahead of journal and website', () => {
+    const items = buildMissions(
+      missionEmpty({
+        products: [product({ description: '' })],
+        events: [
+          event({
+            id: 'past',
+            date: daysFromNow(-10),
+            artwork_url: null,
+            description: 'Past show with enough copy for missions.',
+            media_count: 2,
+            gallery_url: 'https://example.com/g',
+          }),
+        ],
+        journal: [
+          {
+            id: 'j1',
+            title: 'Next Episode',
+            status: 'draft',
+            summary: null,
+            description: null,
+            cover_image_url: null,
+            updated_at: daysFromNow(-9),
+            episode_number: 3,
+          },
+        ],
+        collections: [{ id: 'g1', name: 'Elefantum I', status: 'published', updated_at: daysFromNow(-1), has_cover: false, frame_count: 16 }],
+      }),
+      NOW
+    );
+    expect(items.map((i) => i.category)).toEqual(['merchandise', 'events', 'journal', 'website']);
+    expect(items.length).toBeLessThanOrEqual(MISSION_CAP);
+  });
+
+  it('does not repeat a product already flagged in Needs Attention', () => {
+    const items = buildMissions(
+      missionEmpty({
+        products: [product({ description: '', image_count: 0, price_cents: 0 })],
+        attentionIds: ['product:p1:incomplete'],
+      }),
+      NOW
+    );
+    expect(items.find((i) => i.id.includes('p1'))).toBeUndefined();
+  });
+
+  it('flags an incomplete journal draft with an editor deep link', () => {
+    const items = buildMissions(
+      missionEmpty({
+        products: [product()],
+        journal: [
+          {
+            id: 'ep3',
+            title: 'Next Episode',
+            status: 'draft',
+            summary: '',
+            description: '',
+            cover_image_url: null,
+            updated_at: daysFromNow(-9),
+            episode_number: 3,
+          },
+        ],
+      }),
+      NOW
+    );
+    const journal = items.find((i) => i.id === 'mission:journal:ep3:incomplete');
+    expect(journal?.href).toBe('/admin/journal?edit=ep3');
+    expect(journal?.detail).toMatch(/cover/);
+  });
+
+  it('groups several past events missing artwork into one mission', () => {
+    const items = buildMissions(
+      missionEmpty({
+        products: [product()],
+        events: [
+          event({ id: 'a', date: daysFromNow(-30), artwork_url: null, description: 'Enough copy here for the past show archive card.' }),
+          event({ id: 'b', date: daysFromNow(-20), artwork_url: null, description: 'Enough copy here for the past show archive card.' }),
+          event({ id: 'c', date: daysFromNow(-5), artwork_url: null, description: 'Enough copy here for the past show archive card.' }),
+        ],
+      }),
+      NOW
+    );
+    const grouped = items.find((i) => i.id === 'mission:events:past-artwork');
+    expect(grouped?.title).toBe('3 past events need a flyer');
+    expect(grouped?.href).toBe('/admin/events?edit=c');
+  });
+
+  it('caps suggestions and respects snooze plus dismiss', () => {
+    const many = buildMissions(
+      missionEmpty({
+        products: [
+          product({ id: 'a', description: '' }),
+          product({ id: 'b', name: 'Hat', description: '' }),
+          product({ id: 'c', name: 'Bag', description: '', track_inventory: true, inventory_count: 0 }),
+        ],
+        events: [
+          event({ id: 'e1', date: daysFromNow(-2), artwork_url: null, description: 'x' }),
+          event({ id: 'e2', date: daysFromNow(-4), artwork_url: null, description: 'x' }),
+        ],
+        journal: [
+          {
+            id: 'j1',
+            title: 'Ep',
+            status: 'draft',
+            summary: null,
+            description: null,
+            cover_image_url: null,
+            updated_at: daysFromNow(-2),
+            episode_number: 1,
+          },
+        ],
+        collections: [{ id: 'g1', name: 'G', status: 'published', updated_at: null, has_cover: false, frame_count: 0 }],
+      }),
+      NOW
+    );
+    expect(many.length).toBe(MISSION_CAP);
+    expect(many[0].category).toBe('merchandise');
+
+    const { visible, snoozed, dismissed } = visibleMissions(
+      many,
+      { [many[0].id]: daysFromNow(3) },
+      [many[1].id],
+      NOW
+    );
+    expect(snoozed).toBe(1);
+    expect(dismissed).toBe(1);
+    expect(visible.map((i) => i.id)).not.toContain(many[0].id);
+    expect(visible.map((i) => i.id)).not.toContain(many[1].id);
   });
 });
