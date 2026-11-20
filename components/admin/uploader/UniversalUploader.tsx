@@ -97,6 +97,21 @@ async function requestSignedUpload(filename: string, kind: 'library' | 'poster',
   };
 }
 
+/** Best-effort: remove session objects that never reached /register. Never throws. */
+async function abandonUploadedPaths(paths: string[]): Promise<void> {
+  if (!paths.length) return;
+  try {
+    await fetch('/api/admin/media/abandon-uploads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ paths }),
+    });
+  } catch {
+    // Cleanup is best-effort; library registration never happened.
+  }
+}
+
 export function UniversalUploader({
   acceptedTypes = ['image', 'video'],
   multiple = false,
@@ -235,6 +250,8 @@ export function UniversalUploader({
 
         // 2) Upload media (+ posters) then register once.
         const supabase = createClient();
+        const sessionPaths: string[] = [];
+        let registered = false;
         const uploaded: Array<{
           storage_path: string;
           public_url: string;
@@ -246,6 +263,7 @@ export function UniversalUploader({
           thumbnail_url: string | null;
         }> = [];
 
+        try {
         for (let i = 0; i < ready.length; i++) {
           if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
           const item = ready[i]!;
@@ -269,11 +287,13 @@ export function UniversalUploader({
             cacheControl: IMMUTABLE_CACHE_SECONDS,
             upsert: false,
           });
-          if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
           if (uploadErr) {
             setError(uploadErr.message || 'Storage upload failed.');
             return;
           }
+          // Track before abort checks so cancel-after-PUT still cleans up.
+          sessionPaths.push(signed.path);
+          if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
 
           let thumbnailUrl: string | null = null;
           if (item.poster) {
@@ -287,9 +307,11 @@ export function UniversalUploader({
                   cacheControl: IMMUTABLE_CACHE_SECONDS,
                   upsert: false,
                 });
+              if (!posterErr) {
+                sessionPaths.push(posterSigned.path);
+                thumbnailUrl = posterSigned.publicUrl;
+              } else compressionNotes.push(`Poster upload failed for ${file.name}; video was kept.`);
               if (signal.aborted) throw new DOMException('Upload cancelled.', 'AbortError');
-              if (!posterErr) thumbnailUrl = posterSigned.publicUrl;
-              else compressionNotes.push(`Poster upload failed for ${file.name}; video was kept.`);
             } catch (err) {
               if (err instanceof DOMException && err.name === 'AbortError') throw err;
               compressionNotes.push(`Poster upload failed for ${file.name}; video was kept.`);
@@ -329,6 +351,7 @@ export function UniversalUploader({
           setError((regData?.error as string) || 'Failed to save to library.');
           return;
         }
+        registered = true;
 
         type AssetItem = {
           id: string;
@@ -362,6 +385,10 @@ export function UniversalUploader({
             setSuccess(false);
             setSuccessDetail(null);
           }, 6000);
+        }
+        } finally {
+          // Cancel / register failure / early return after storage PUT: drop only this session's objects.
+          if (!registered) await abandonUploadedPaths(sessionPaths);
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {

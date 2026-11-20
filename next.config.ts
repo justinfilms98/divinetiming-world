@@ -1,5 +1,27 @@
 import type { NextConfig } from "next";
 
+// Staging branches only: refuse to build unless the deployment points at the isolated
+// staging Supabase project. Prevents a staging preview from silently using production.
+const STAGING_SUPABASE_REF = 'goapnjajsjslxbjqthyo';
+const PRODUCTION_SUPABASE_REF = 'lokewuvbrrvmlgdwivoa';
+const stagingBranch =
+  process.env.VERCEL_GIT_COMMIT_REF === 'staging/d2a' ||
+  process.env.VERCEL_GIT_COMMIT_REF === 'staging/d3a';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+if (stagingBranch && !supabaseUrl.includes(STAGING_SUPABASE_REF)) {
+  throw new Error(
+    `${process.env.VERCEL_GIT_COMMIT_REF} must be built with the staging Supabase project (${STAGING_SUPABASE_REF}). ` +
+      'Add branch-scoped Preview environment variables in Vercel for this branch, then redeploy. ' +
+      'Missing staging config fails closed — it will not fall back to production.'
+  );
+}
+if (stagingBranch && supabaseUrl.includes(PRODUCTION_SUPABASE_REF)) {
+  throw new Error(
+    `${process.env.VERCEL_GIT_COMMIT_REF} is configured with the production Supabase project. ` +
+      'Replace the branch-scoped Preview env vars with staging credentials before deploying.'
+  );
+}
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {

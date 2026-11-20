@@ -4,6 +4,7 @@
  */
 
 import 'server-only';
+import { isStagingDeployBranch, stagingSupabaseUrlAllowed } from '@/lib/deploy/stagingGuard';
 
 /** User-facing messages when env is missing or a feature is unavailable. Never expose stack or vendor errors. */
 export const ENV_ERROR_MESSAGES = {
@@ -17,6 +18,18 @@ export const ENV_ERROR_MESSAGES = {
   operationFailed: 'Operation failed.',
 } as const;
 
+export { isStagingDeployBranch };
+
+/**
+ * Fail closed on staging branches: refuse production Supabase URL/key mix-ups.
+ * Called from service-client construction so API mutations cannot hit production by accident.
+ */
+export function assertStagingSupabaseIsolation(url: string | null): void {
+  if (!stagingSupabaseUrlAllowed(url)) {
+    throw new Error(ENV_ERROR_MESSAGES.supabaseUnavailable);
+  }
+}
+
 /** Required for server-side Supabase (API routes, admin). Never expose service role key to client. */
 export function getSupabaseServiceRoleKey(): string | null {
   const v = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -26,7 +39,9 @@ export function getSupabaseServiceRoleKey(): string | null {
 /** Required for Supabase client (URL). Public value. */
 export function getSupabaseUrl(): string | null {
   const v = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  return typeof v === 'string' && v.length > 0 ? v : null;
+  const url = typeof v === 'string' && v.length > 0 ? v : null;
+  assertStagingSupabaseIsolation(url);
+  return url;
 }
 
 /** Required for Supabase anon client (browser/middleware). Public value. */
