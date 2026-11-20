@@ -92,7 +92,7 @@ describe('POST /api/admin/media/abandon-uploads', () => {
     const res = await post({ tickets: [ticket] });
     const body = await res.json();
     expect(body.removed).toEqual([]);
-    expect(body.denied).toEqual(expect.arrayContaining([expect.objectContaining({ path, reason: 'registered' })]));
+    expect(body.denied).toEqual(expect.arrayContaining([expect.objectContaining({ path, reason: 'referenced' })]));
     expect(supabase.__removed).toHaveLength(0);
   });
 
@@ -102,7 +102,25 @@ describe('POST /api/admin/media/abandon-uploads', () => {
     const res = await post({ tickets: [ticket] });
     const body = await res.json();
     expect(body.removed).toEqual([]);
-    expect(body.denied).toEqual(expect.arrayContaining([expect.objectContaining({ path, reason: 'registered' })]));
+    expect(body.denied).toEqual(expect.arrayContaining([expect.objectContaining({ path, reason: 'referenced' })]));
+    expect(supabase.__removed).toHaveLength(0);
+  });
+
+  it('will not delete a path referenced by hero_sections storage path', async () => {
+    db.tables.hero_sections = [
+      {
+        media_storage_path: 'library/1795200000500-hero-slot.mp4',
+        hero_logo_storage_path: null,
+        media_url: null,
+        hero_logo_url: null,
+      },
+    ];
+    const path = 'library/1795200000500-hero-slot.mp4';
+    const ticket = issueAbandonTicket(path, 'owner@example.com')!;
+    const res = await post({ tickets: [ticket] });
+    const body = await res.json();
+    expect(body.removed).toEqual([]);
+    expect(body.denied).toEqual(expect.arrayContaining([expect.objectContaining({ path, reason: 'referenced' })]));
     expect(supabase.__removed).toHaveLength(0);
   });
 

@@ -6,7 +6,8 @@
  * - requireAdmin (authenticated authorized admin + service client)
  * - each path must carry a server-issued HMAC ticket bound to this admin
  * - path shape must match upload-path's timestamped library/poster pattern
- * - refuse if the object is already registered (file_id / preview / thumbnail)
+ * - refuse if referenced by the media library OR any known content table
+ * - re-check references immediately before storage.remove (narrow register race)
  * - never broad prefix deletes; remove is idempotent for missing objects
  */
 
@@ -16,49 +17,8 @@ import {
   parseAbandonTicketClaims,
   verifyAbandonTicket,
 } from '@/lib/media/abandonTicket';
-import { isAbandonableUploadPath, mediaUrlPointsAtPath } from '@/lib/media/abandonUploads';
-
-async function pathsRegisteredInLibrary(
-  supabase: NonNullable<Awaited<ReturnType<typeof requireAdmin>>['supabase']>,
-  paths: string[]
-): Promise<Set<string>> {
-  const registered = new Set<string>();
-  if (!paths.length) return registered;
-
-  const { data: byFileId, error: fileIdError } = await supabase
-    .from('external_media_assets')
-    .select('file_id')
-    .in('file_id', paths);
-  if (fileIdError) {
-    console.error('abandon-uploads file_id lookup error:', fileIdError);
-    throw new Error('library_lookup_failed');
-  }
-  for (const row of byFileId || []) {
-    if (typeof row.file_id === 'string') registered.add(row.file_id);
-  }
-
-  // Posters usually live only on thumbnail_url of a video row (no own file_id row).
-  for (const path of paths) {
-    if (registered.has(path)) continue;
-    const { data: urlRows, error: urlError } = await supabase
-      .from('external_media_assets')
-      .select('preview_url, thumbnail_url')
-      .or(`preview_url.ilike.%${path}%,thumbnail_url.ilike.%${path}%`)
-      .limit(20);
-    if (urlError) {
-      console.error('abandon-uploads url lookup error:', urlError);
-      throw new Error('library_lookup_failed');
-    }
-    for (const row of urlRows || []) {
-      if (mediaUrlPointsAtPath(row.preview_url, path) || mediaUrlPointsAtPath(row.thumbnail_url, path)) {
-        registered.add(path);
-        break;
-      }
-    }
-  }
-
-  return registered;
-}
+import { isAbandonableUploadPath } from '@/lib/media/abandonUploads';
+import { findReferencedMediaPaths } from '@/lib/media/mediaReferenceGuard';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
@@ -96,23 +56,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, removed: [], denied, skipped: 'no_authorized_paths' });
     }
 
-    let registered: Set<string>;
+    let referenced: Set<string>;
     try {
-      registered = await pathsRegisteredInLibrary(supabase, allowed);
+      referenced = await findReferencedMediaPaths(supabase, allowed);
     } catch {
       return NextResponse.json(
-        { ok: false, error: 'Could not verify library ownership before cleanup.', removed: [], denied },
+        { ok: false, error: 'Could not verify media references before cleanup.', removed: [], denied },
         { status: 500 }
       );
     }
 
-    const toRemove = allowed.filter((p) => !registered.has(p));
+    let toRemove = allowed.filter((p) => !referenced.has(p));
     for (const path of allowed) {
-      if (registered.has(path)) denied.push({ path, reason: 'registered' });
+      if (referenced.has(path)) denied.push({ path, reason: 'referenced' });
     }
 
     if (toRemove.length === 0) {
-      return NextResponse.json({ ok: true, removed: [], denied, skipped: 'all_registered_or_denied' });
+      return NextResponse.json({ ok: true, removed: [], denied, skipped: 'all_referenced_or_denied' });
+    }
+
+    // Narrow the register-vs-cleanup race: re-check immediately before delete.
+    let referencedAgain: Set<string>;
+    try {
+      referencedAgain = await findReferencedMediaPaths(supabase, toRemove);
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: 'Could not re-verify media references before cleanup.', removed: [], denied },
+        { status: 500 }
+      );
+    }
+    for (const path of [...toRemove]) {
+      if (referencedAgain.has(path)) {
+        denied.push({ path, reason: 'referenced' });
+        toRemove = toRemove.filter((p) => p !== path);
+      }
+    }
+
+    if (toRemove.length === 0) {
+      return NextResponse.json({ ok: true, removed: [], denied, skipped: 'all_referenced_or_denied' });
     }
 
     const { data, error } = await supabase.storage.from('media').remove(toRemove);

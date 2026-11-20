@@ -83,7 +83,7 @@ class Query implements PromiseLike<{ data: unknown; error: FakeError | null }> {
         if (c === '__or' && typeof v === 'string') {
           const needles = [...v.matchAll(/ilike\.%([^%]+)%/gi)].map((m) => m[1]!);
           if (!needles.length) return true;
-          const hay = `${r.preview_url ?? ''}\n${r.thumbnail_url ?? ''}\n${r.file_id ?? ''}`;
+          const hay = JSON.stringify(r);
           return needles.some((n) => hay.includes(n));
         }
         return r[c] === v;

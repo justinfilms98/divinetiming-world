@@ -14,7 +14,18 @@ export type IssuedAbandonTicket = {
   sig: string;
 };
 
+/**
+ * Server-only signing material (never imported by client components).
+ * Preference order:
+ * 1. ABANDON_UPLOAD_HMAC_SECRET — dedicated key (recommended later; optional today)
+ * 2. SESSION_SECRET — already configured for production/staging
+ * 3. SUPABASE_SERVICE_ROLE_KEY — last-resort fallback; does not weaken auth by itself
+ *    because this module never leaves the server, but a dedicated secret is preferred
+ *    so cleanup signing is not coupled to the DB admin key.
+ */
 function abandonSecret(): string | null {
+  const dedicated = process.env.ABANDON_UPLOAD_HMAC_SECRET;
+  if (typeof dedicated === 'string' && dedicated.length >= 16) return dedicated;
   const session = process.env.SESSION_SECRET;
   if (typeof session === 'string' && session.length >= 16) return session;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
